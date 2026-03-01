@@ -38,18 +38,18 @@ docker-compose down
 **Goal**: Set up project structure and developer documentation
 
 ### 0.1 Documentation Files
-- [ ] Create `README.md` with:
-  - [ ] Quick start guide (3 commands to run MVP)
-  - [ ] WhatsApp setup instructions (Neonize)
-  - [ ] Architecture diagram
-  - [ ] Link to full plan.md
-- [ ] Create `CLAUDE.md` with:
-  - [ ] Token-saving iteration workflow (from plan.md)
-  - [ ] How to run specific tests
-  - [ ] How to view state.md files
-  - [ ] Common development patterns
-  - [ ] File structure overview
-- [ ] Create `.env.example` with all required variables
+- [x] Create `README.md` with:
+  - [x] Quick start guide (3 commands to run MVP)
+  - [x] WhatsApp setup instructions (Neonize)
+  - [x] Architecture diagram
+  - [x] Link to full plan.md
+- [x] Create `CLAUDE.md` with:
+  - [x] Token-saving iteration workflow (from plan.md)
+  - [x] How to run specific tests
+  - [x] How to view state.md files
+  - [x] Common development patterns
+  - [x] File structure overview
+- [x] Create `.env.example` with all required variables
 
 ### 0.2 Project Structure
 - [ ] Create complete directory structure (see plan.md section 7)
