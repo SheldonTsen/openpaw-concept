@@ -14,6 +14,27 @@ When ready, commit the work.
 As you develop, update execution-list.md to keep track of what you've done.
 If we discover something, update the execution-list.md in the appropriate place. 
 
+# File Structure Overview
+
+```
+opentlawpy/
+├── src/
+│   ├── workflows/          # Temporal workflows (agent_workflow.py)
+│   ├── activities/         # Temporal activities (llm_call, bash, whatsapp, state_file_io)
+│   ├── models/             # Dataclasses (messages, tools, state)
+│   ├── llm/                # LLM provider clients (anthropic, etc.)
+│   ├── whatsapp/           # Neonize WhatsApp listener
+│   ├── worker/             # Temporal worker startup
+│   └── utils/              # Helpers (state_manager, config_loader)
+├── tests/
+├── tools/                  # TOOL.md definitions (loaded by agent)
+├── scripts/                # Standalone scripts (neonize-basic.py, etc.)
+├── docs/                   # Architecture docs (plan.md)
+├── state/                  # Per-chat state.md files (runtime)
+├── workspace/              # Agent working files (runtime)
+└── neonize.db              # WhatsApp auth (created on first run)
+```
+
 # Misc
 
 Update this file yourself as you receive pattern instructions or DO or DO NOTs.
@@ -140,7 +161,7 @@ docker-compose logs -f worker
 docker-compose logs -f worker --tail=50
 
 # Multiple services
-docker-compose logs -f worker whatsapp-poller
+docker-compose logs -f worker whatsapp-listener
 ```
 
 ## Inspect State Files
@@ -191,7 +212,7 @@ docker-compose exec worker python -c "import temporalio; print(temporalio.__vers
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 # View logs
-docker-compose logs -f worker whatsapp-poller
+docker-compose logs -f worker whatsapp-listener
 
 # Run single test
 docker-compose run --rm pytest tests/test_llm.py::test_call_llm -v
