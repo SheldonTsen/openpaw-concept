@@ -446,7 +446,7 @@ await workflow.wait_condition(
 **Step 2: External Event (WhatsApp Message)**
 ```python
 # User sends message
-# WhatsApp poller receives it
+# Neonize listener receives it via WebSocket event
 async def _route_message(self, message):
     workflow_id = f"whatsapp-{message.chat_id}"
     handle = temporal_client.get_workflow_handle(workflow_id)
@@ -578,14 +578,14 @@ async def route_message(message):
 └────────────────┬────────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────────┐
-│ 2. WhatsApp Poller (polls every 5 seconds)              │
-│    - Fetches new messages via Green API                 │
-│    - Parses: chat_id, sender, text                      │
+│ 2. Neonize Listener (persistent WebSocket connection)    │
+│    - Receives message via Baileys/Whatsmeow event       │
+│    - Parses: chat JID, sender, text                     │
 └────────────────┬────────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────────┐
-│ 3. Poller routes to Temporal                            │
-│    workflow_id = "whatsapp-" + chat_id                  │
+│ 3. Listener routes to Temporal                          │
+│    workflow_id = "whatsapp-" + sender_jid               │
 │    handle.signal("new_message", sender, text)           │
 └────────────────┬────────────────────────────────────────┘
                  │
@@ -645,28 +645,31 @@ async def route_message(message):
 
 ## System Components
 
-### 1. WhatsApp Poller Service
+### 1. WhatsApp Listener Service
 
-**Purpose**: Poll WhatsApp API for new messages and route them to Temporal workflows.
+**Purpose**: Listen for WhatsApp messages via Neonize (Baileys/Whatsmeow) and route them to Temporal workflows.
 
-**Why Polling Instead of Webhooks:**
-- WhatsApp (via Green API) doesn't push events to you
-- Green API provides a message queue (24-hour retention)
-- Polling is simple: check for messages every 5 seconds
+**Why Neonize (Direct WhatsApp Web Connection):**
+- Connects directly as a WhatsApp linked device (like WhatsApp Web)
+- Event-driven: receives messages instantly via persistent WebSocket
+- Free — no third-party API subscription needed
+- Self-chat supported (can message and test with your own number)
+- Auth via QR code scan, stored locally in SQLite database
 
 **Responsibilities**:
-- Poll WhatsApp API for new messages (every 5 seconds)
-- Parse incoming messages (chat_id, sender, text)
+- Maintain persistent WebSocket connection to WhatsApp
+- Receive incoming messages via event callbacks (instant, no polling)
+- Parse incoming messages (sender JID, text)
 - Route to appropriate Temporal workflow via signal
 - Start new workflows if needed (first message in chat)
-- Delete processed messages from queue
+- Send agent responses back via `client.send_message()`
 
 **Technology**:
-- Python asyncio (for continuous polling loop)
+- Neonize (Python wrapper around Whatsmeow Go library)
 - Temporal Python SDK (for workflow signals)
-- Green API client library
+- SQLite (for WhatsApp auth state persistence)
 
-**Implementation**: See detailed implementation in [WhatsApp Integration](#whatsapp-integration-detail) section below.
+**Implementation**: See detailed implementation in [WhatsApp Integration](#whatsapp-integration-mvp) section below.
 
 **Note**: For multi-channel support (HTTP, Slack, Email), see `upgrade-ideas.md` for Gateway Service design.
 
@@ -958,7 +961,7 @@ Savings: 62K tokens per LLM call
 
 #### 3.6 WhatsApp Send Message Activity ⚠️ **CRITICAL FOR MVP**
 
-**Purpose**: Send agent responses back to WhatsApp users via Green API. This completes the request-response loop.
+**Purpose**: Send agent responses back to WhatsApp users via Neonize. This completes the request-response loop.
 
 **Why Critical**: Without this activity, the agent can process messages but cannot send responses back to users!
 
@@ -966,10 +969,8 @@ Savings: 62K tokens per LLM call
 ```python
 @dataclass
 class WhatsAppSendInput:
-    phone_number: str  # User's phone number (format: "1234567890@c.us")
+    phone_number: str  # User's phone number (digits only, e.g. "1234567890")
     message: str       # Response message to send
-    instance_id: str   # Green API instance ID
-    api_token: str     # Green API token
 ```
 
 **Output**:
@@ -977,7 +978,7 @@ class WhatsAppSendInput:
 @dataclass
 class WhatsAppSendOutput:
     success: bool
-    message_id: str | None    # Green API message ID
+    message_id: str | None    # WhatsApp message ID
     error: str | None         # Error message if failed
 ```
 
@@ -985,38 +986,28 @@ class WhatsAppSendOutput:
 ```python
 @activity.defn
 async def whatsapp_send_message(input: WhatsAppSendInput) -> WhatsAppSendOutput:
-    """Send message to WhatsApp user via Green API."""
+    """Send message to WhatsApp user via Neonize.
 
-    url = f"https://api.green-api.com/waInstance{input.instance_id}/sendMessage/{input.api_token}"
-
-    payload = {
-        "chatId": input.phone_number,
-        "message": input.message
-    }
-
+    The Neonize client is initialized once at worker startup and shared
+    across activity calls. It maintains a persistent WebSocket connection
+    to WhatsApp, so sends are instant (no HTTP round-trip to a third party).
+    """
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(url, json=payload)
-            response.raise_for_status()
+        from neonize.utils import build_jid
 
-            result = response.json()
+        # Get the shared neonize client (initialized at worker startup)
+        neonize_client = get_neonize_client()
 
-            return WhatsAppSendOutput(
-                success=True,
-                message_id=result.get("idMessage"),
-                error=None
-            )
+        jid = build_jid(input.phone_number)
+        result = neonize_client.send_message(jid, input.message)
 
-    except httpx.HTTPStatusError as e:
-        # 4xx/5xx errors
         return WhatsAppSendOutput(
-            success=False,
-            message_id=None,
-            error=f"HTTP {e.response.status_code}: {e.response.text}"
+            success=True,
+            message_id=result.ID,
+            error=None
         )
 
     except Exception as e:
-        # Network errors, timeouts, etc.
         return WhatsAppSendOutput(
             success=False,
             message_id=None,
@@ -1031,7 +1022,6 @@ retry_policy = RetryPolicy(
     backoff_coefficient=2.0,
     maximum_attempts=3,
     maximum_interval=timedelta(seconds=10),
-    non_retriable_error_types=["ValueError", "AuthenticationError"]
 )
 ```
 
@@ -1054,37 +1044,25 @@ class AgentWorkflow:
                 WhatsAppSendInput(
                     phone_number=user_msg.sender,
                     message=response_text,
-                    instance_id=os.getenv("GREEN_API_INSTANCE_ID"),
-                    api_token=os.getenv("GREEN_API_TOKEN")
                 ),
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=retry_policy
             )
 
             if not send_result.success:
-                # Log error but don't crash workflow
                 workflow.logger.error(
                     f"Failed to send WhatsApp message: {send_result.error}"
                 )
 ```
 
 **Error Handling**:
-- **Transient errors** (network, timeout): Retry up to 3 times
-- **Permanent errors** (invalid phone, banned account): Fail immediately, log error
+- **Transient errors** (WebSocket disconnect): Neonize auto-reconnects; retry succeeds
+- **Permanent errors** (invalid JID): Fail immediately, log error
 - **Partial failure**: If send fails after retries, log error but continue workflow
 
-**Green API Response Format**:
-```json
-{
-  "idMessage": "3EB0D2C5F5456AF00D6C",
-  "timestamp": 1626686737
-}
-```
-
 **Common Issues**:
-- **Invalid phone format**: Must be `"1234567890@c.us"` format
-- **Rate limiting**: Green API has limits (check plan)
-- **Account not ready**: Instance must be authenticated and connected
+- **Not authenticated**: Must scan QR code on first run (auth persists in neonize.db)
+- **Session conflict (440)**: Another device took over the linked session
 - **Message too long**: WhatsApp has ~4096 character limit per message
 
 **Testing**:
@@ -1092,10 +1070,8 @@ class AgentWorkflow:
 @pytest.mark.asyncio
 async def test_whatsapp_send_message():
     input_data = WhatsAppSendInput(
-        phone_number="1234567890@c.us",
+        phone_number="1234567890",
         message="Hello from agent!",
-        instance_id=os.getenv("GREEN_API_INSTANCE_ID"),
-        api_token=os.getenv("GREEN_API_TOKEN")
     )
 
     result = await whatsapp_send_message(input_data)
@@ -1225,87 +1201,77 @@ async def call_llm_activity(input: LLMCallInput) -> LLMCallOutput:
 
 ## WhatsApp Integration (MVP)
 
-This section details the complete WhatsApp Poller implementation - the primary entry point for the MVP.
+This section details the complete WhatsApp Listener implementation using **Neonize** — the primary entry point for the MVP.
 
 ### Architecture Overview
 
 ```
-WhatsApp          Green API           Poller              Temporal
-────────          ─────────           ──────              ────────
+WhatsApp            Neonize Listener           Temporal
+────────            ────────────────           ────────
 
-User sends    →   Message stored  →   Poll every 5s   →   Start workflow (first msg)
-message           in queue            Get message         OR Signal workflow (subsequent)
-                  (24hr retention)    Parse chat_id
-                                     Route to workflow
-                                     Delete from queue
+User sends    →     WebSocket event fires  →   Start workflow (first msg)
+message             (instant, no polling)      OR Signal workflow (subsequent)
+                    Parse sender JID
+                    Route to workflow
 ```
 
 ### Bootstrap Flow (How First Workflow Starts)
 
 **Question:** "How does the first workflow start without a gateway?"
-**Answer:** The WhatsApp Poller starts it!
+**Answer:** The Neonize Listener starts it!
 
 **Complete Flow:**
 
 ```
-Step 1: User sends first WhatsApp message
-   You: "Find all TODO comments"
+Step 1: First run — scan QR code to link as WhatsApp device
+   Neonize displays QR in terminal
+   Scan with WhatsApp > Settings > Linked Devices
+   Auth saved to neonize.db (persists across restarts)
 
-Step 2: Message stored in Green API queue
-   Green API holds message for up to 24 hours
+Step 2: User sends WhatsApp message
+   You (or anyone): "Find all TODO comments"
 
-Step 3: Poller checks for messages (runs every 5 seconds)
-   GET https://api.green-api.com/waInstance{id}/receiveNotification
+Step 3: Neonize receives message instantly via WebSocket event
+   @client.event(MessageEv)
+   def on_message(client, message):
+       text = message.Message.conversation
+       sender = message.Info.MessageSource.Sender.User
+       # "1234567890"
 
-Step 4: Poller receives message
-   {
-     "receiptId": 123,
-     "body": {
-       "chatId": "1234567890@c.us",
-       "senderId": "1234567890@c.us",
-       "messageData": {
-         "textMessageData": {
-           "textMessage": "Find all TODO comments"
-         }
-       }
-     }
-   }
-
-Step 5: Poller tries to find existing workflow
-   workflow_id = "whatsapp-1234567890@c.us"
+Step 4: Listener tries to find existing workflow
+   workflow_id = f"whatsapp-{sender}"
    try:
        handle = temporal_client.get_workflow_handle(workflow_id)
-   except WorkflowNotFoundError:
-       # This is the FIRST message!
+       await handle.describe()  # Check if running
+   except:
+       # This is the FIRST message — start new workflow
 
-Step 6: Poller STARTS new workflow
+Step 5: Listener STARTS new workflow
    handle = await temporal_client.start_workflow(
        AgentWorkflow.run,
        config=WorkflowConfig(...),
-       id="whatsapp-1234567890@c.us"
+       id=f"whatsapp-{sender}"
    )
 
-Step 7: Poller SIGNALS the new workflow with message
+Step 6: Listener SIGNALS the workflow with message
    await handle.signal("new_message", sender, text)
 
-Step 8: Workflow processes message
+Step 7: Workflow processes message
    - Loads state.md (empty for first time)
    - Receives signal via new_message handler
    - Processes user message through LLM loop
+   - Sends reply via whatsapp_send_message activity
    - Saves state
    - Waits for next message OR heartbeat (30 min)
-
-Step 9: Poller deletes message from queue
-   DELETE https://api.green-api.com/.../deleteNotification/123
 ```
 
-### Poller + Heartbeat Interaction
+### Listener + Heartbeat Interaction
 
-**Two Independent Timers:**
+**Neonize Listener is always connected — no polling interval:**
 
 ```python
-# Poller: Checks WhatsApp every 5 seconds
-poll_interval_seconds = 5
+# Listener: Receives messages instantly via WebSocket events
+# (no polling interval — event-driven)
 
 # Workflow: Heartbeat check-in every 30 minutes
 heartbeat_interval_minutes = 30
@@ -1315,94 +1281,94 @@ heartbeat_interval_minutes = 30
 
 ```
 10:00:00 - User sends: "Monitor API status"
-10:00:03 - Poller polls, gets message
-10:00:03 - Poller starts new workflow (first message)
-10:00:03 - Poller signals workflow
-10:00:10 - Workflow processes message, waits (30 min timer starts)
+10:00:00 - Listener receives message instantly (WebSocket event)
+10:00:00 - Listener starts new workflow (first message)
+10:00:00 - Listener signals workflow
+10:00:07 - Workflow processes message, waits (30 min timer starts)
 
-[Poller continues polling every 5s, finds no messages]
+[Listener stays connected, waiting for next event — zero CPU]
 
-10:30:10 - Workflow timeout (30 min passed, no new messages)
-10:30:10 - Heartbeat prompt: "Check in and report status"
-10:30:15 - LLM: "Monitoring API. 6 checks, all healthy."
-10:30:20 - Workflow waits again (new 30 min timer)
+10:30:07 - Workflow timeout (30 min passed, no new messages)
+10:30:07 - Heartbeat prompt: "Check in and report status"
+10:30:12 - LLM: "Monitoring API. 6 checks, all healthy."
+10:30:17 - Workflow waits again (new 30 min timer)
 
-11:00:20 - Workflow timeout (heartbeat)
-11:00:25 - LLM: "Still monitoring. 12 checks, all healthy."
+11:00:17 - Workflow timeout (heartbeat)
+11:00:22 - LLM: "Still monitoring. 12 checks, all healthy."
 
 11:15:00 - User sends: "Any issues?"
-11:15:03 - Poller polls, gets message
-11:15:03 - Poller signals EXISTING workflow
-11:15:03 - Workflow wakes up (timer canceled)
-11:15:05 - Workflow processes new message
-11:15:10 - Workflow waits again (new 30 min timer)
+11:15:00 - User sends: "Any issues?"
+11:15:00 - Listener receives message instantly
+11:15:00 - Listener signals EXISTING workflow
+11:15:00 - Workflow wakes up (timer canceled)
+11:15:02 - Workflow processes new message
+11:15:07 - Workflow waits again (new 30 min timer)
 ```
 
 **Key Points:**
-- Poller polls WhatsApp continuously (every 5s)
+- Listener receives messages instantly (WebSocket events)
 - Workflow waits for signals OR timeout (30 min)
-- Poller doesn't know about heartbeats
-- Workflow doesn't know about polling frequency
+- Listener doesn't know about heartbeats
+- Workflow doesn't know about the listener
 - They're decoupled but work together perfectly!
 
-### Complete Poller Implementation
+### Complete Listener Implementation
 
-**File:** `src/whatsapp/poller.py`
+**File:** `src/whatsapp/listener.py`
 
 ```python
-import asyncio
 import logging
-from typing import Optional
-from dataclasses import dataclass
-from temporalio.client import Client
-from temporalio.service import WorkflowNotFoundError
 import os
+import signal
+import threading
+from dataclasses import dataclass
+from pathlib import Path
+
+from neonize.client import NewClient
+from neonize.events import ConnectedEv, MessageEv, PairStatusEv, event
+from neonize.utils import log as neonize_log, build_jid
+from temporalio.client import Client
 
 from workflows import AgentWorkflow, WorkflowConfig
-from whatsapp.greenapi import GreenAPIClient, WhatsAppMessage
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class PollerConfig:
-    """Configuration for WhatsApp poller."""
-    green_api_instance_id: str
-    green_api_token: str
+class ListenerConfig:
+    """Configuration for WhatsApp listener."""
+    neonize_db_path: str = "./neonize.db"
     temporal_address: str = "localhost:7233"
-    poll_interval_seconds: int = 5
     llm_model: str = "claude-sonnet-4.5"
     workflow_max_duration_minutes: int = 60
 
 
-class WhatsAppPoller:
+class WhatsAppListener:
     """
-    Polls WhatsApp for new messages and routes to Temporal workflows.
+    Listens for WhatsApp messages via neonize and routes to Temporal workflows.
 
     This is the primary entry point for WhatsApp integration (MVP).
 
     Responsibilities:
-    1. Poll Green API every N seconds
-    2. Start new workflows (first message in chat)
-    3. Signal existing workflows (subsequent messages)
-    4. Delete processed messages from queue
+    1. Connect to WhatsApp via neonize (WebSocket, linked device)
+    2. Listen for incoming messages via event callbacks
+    3. Start new workflows (first message in chat)
+    4. Signal existing workflows (subsequent messages)
     """
 
-    def __init__(self, config: PollerConfig):
+    def __init__(self, config: ListenerConfig):
         self.config = config
-        self.greenapi: Optional[GreenAPIClient] = None
+        self.client = NewClient(config.neonize_db_path)
         self.temporal_client: Optional[Client] = None
-        self.running = False
+
+        # Register neonize event handlers
+        self.client.event(ConnectedEv)(self._on_connected)
+        self.client.event(MessageEv)(self._on_message)
+        self.client.event(PairStatusEv)(self._on_pair_status)
 
     async def start(self):
-        """Initialize clients and start polling loop."""
-        logger.info("Starting WhatsApp Poller...")
-
-        # Initialize Green API client
-        self.greenapi = GreenAPIClient(
-            instance_id=self.config.green_api_instance_id,
-            token=self.config.green_api_token
-        )
+        """Initialize Temporal client and start neonize listener."""
+        logger.info("Starting WhatsApp Listener...")
 
         # Initialize Temporal client
         self.temporal_client = await Client.connect(
@@ -1410,88 +1376,62 @@ class WhatsAppPoller:
         )
 
         logger.info(f"Connected to Temporal at {self.config.temporal_address}")
-        logger.info(f"Polling interval: {self.config.poll_interval_seconds}s")
+        logger.info(f"Auth database: {self.config.neonize_db_path}")
 
-        # Start polling loop
-        self.running = True
-        await self._polling_loop()
+        # Start neonize client (blocks — displays QR on first run)
+        # This runs the Go event loop; callbacks fire on message events
+        self.client.connect()
 
-    async def stop(self):
-        """Gracefully stop the poller."""
-        logger.info("Stopping WhatsApp Poller...")
-        self.running = False
+    def _on_connected(self, client: NewClient, _: ConnectedEv):
+        """Called when WhatsApp connection is established."""
+        me = client.get_me()
+        logger.info(f"Connected to WhatsApp as {me.JID.User}")
 
-    async def _polling_loop(self):
-        """Main polling loop - runs forever."""
-        logger.info("Polling loop started")
+    def _on_pair_status(self, _: NewClient, msg: PairStatusEv):
+        """Called after QR code scan — device is now linked."""
+        logger.info(f"Linked as {msg.ID.User}")
 
-        while self.running:
-            try:
-                # Poll for new messages
-                await self._poll_once()
-
-                # Wait before next poll
-                await asyncio.sleep(self.config.poll_interval_seconds)
-
-            except KeyboardInterrupt:
-                logger.info("Received shutdown signal")
-                break
-            except Exception as e:
-                logger.error(f"Error in polling loop: {e}", exc_info=True)
-                # Continue polling despite errors
-                await asyncio.sleep(self.config.poll_interval_seconds)
-
-    async def _poll_once(self):
+    def _on_message(self, client: NewClient, message: MessageEv):
         """
-        Poll for messages once.
+        Called on every incoming message — this is the core routing logic.
 
         Flow:
-        1. Get one message from queue
-        2. Parse message
-        3. Route to workflow (start or signal)
-        4. Delete message from queue
-        5. Repeat until queue is empty
+        1. Extract text from message
+        2. Skip non-text and own outgoing messages
+        3. Build deterministic workflow ID from chat
+        4. Route to Temporal workflow (start or signal)
         """
+        # Extract text content
+        text = (
+            message.Message.conversation
+            or message.Message.extendedTextMessage.text
+        )
+        if not text:
+            return
 
-        # Keep polling until queue is empty
-        while True:
-            # Get next message from Green API queue
-            notification = await self.greenapi.receive_notification()
+        # Skip our own outgoing messages
+        if message.Info.MessageSource.IsFromMe:
+            return
 
-            if not notification:
-                # Queue is empty
-                break
+        sender = message.Info.MessageSource.Sender.User
+        chat_id = message.Info.Chat.User
 
-            try:
-                # Parse WhatsApp message
-                message = WhatsAppMessage.from_notification(notification)
+        logger.info(f"Message from {sender} in chat {chat_id}: {text}")
 
-                if not message:
-                    # Invalid message format
-                    logger.warning(f"Could not parse notification: {notification}")
-                    await self.greenapi.delete_notification(notification.receipt_id)
-                    continue
+        # Route to Temporal workflow (run async in event loop)
+        asyncio.get_event_loop().run_until_complete(
+            self._route_message(
+                chat_id=chat_id,
+                sender=sender,
+                text=text,
+            )
+        )
 
-                # Route to Temporal workflow
-                await self._route_message(message)
-
-                # Delete message from queue (processed successfully)
-                await self.greenapi.delete_notification(notification.receipt_id)
-
-                logger.info(
-                    f"Processed message from {message.sender} in chat {message.chat_id}"
-                )
-
-            except Exception as e:
-                logger.error(f"Error processing message: {e}", exc_info=True)
-                # Still delete the message to avoid reprocessing
-                await self.greenapi.delete_notification(notification.receipt_id)
-
-    async def _route_message(self, message: WhatsAppMessage):
+    async def _route_message(self, *, chat_id: str, sender: str, text: str):
         """
         Route message to appropriate workflow.
 
-        THIS IS THE KEY METHOD - handles workflow startup!
+        THIS IS THE KEY METHOD — handles workflow startup!
 
         Strategy:
         1. Build workflow_id from chat_id (deterministic)
@@ -1501,7 +1441,7 @@ class WhatsAppPoller:
         """
 
         # Build deterministic workflow ID from chat
-        workflow_id = f"whatsapp-{message.chat_id}"
+        workflow_id = f"whatsapp-{chat_id}@c.us"
 
         try:
             # Try to get existing workflow
@@ -1510,16 +1450,14 @@ class WhatsAppPoller:
             # Workflow exists! Signal it with new message
             await handle.signal(
                 "new_message",
-                sender=message.sender,
-                text=message.text
+                sender=sender,
+                text=text,
             )
 
             logger.info(f"Signaled existing workflow: {workflow_id}")
 
         except WorkflowNotFoundError:
-            # No workflow exists - this is the FIRST message in this chat!
-            # We need to START a new workflow
-
+            # No workflow exists — this is the FIRST message in this chat!
             logger.info(f"Starting new workflow: {workflow_id}")
 
             # Create workflow configuration
@@ -1527,15 +1465,15 @@ class WhatsAppPoller:
                 llm_model=self.config.llm_model,
                 max_duration_minutes=self.config.workflow_max_duration_minutes,
                 heartbeat_interval_minutes=30,
-                tools=self._get_tools()  # Load tool definitions
+                tools=self._get_tools(),
             )
 
             # START new workflow
             handle = await self.temporal_client.start_workflow(
                 AgentWorkflow.run,
                 config,
-                id=workflow_id,  # Deterministic ID!
-                task_queue="agent-tasks"
+                id=workflow_id,
+                task_queue="agent-tasks",
             )
 
             logger.info(f"Workflow started: {workflow_id}")
@@ -1543,8 +1481,8 @@ class WhatsAppPoller:
             # Now signal it with the first message
             await handle.signal(
                 "new_message",
-                sender=message.sender,
-                text=message.text
+                sender=sender,
+                text=text,
             )
 
             logger.info(f"Sent first message to new workflow: {workflow_id}")
@@ -1560,35 +1498,28 @@ class WhatsAppPoller:
 
 async def main():
     """
-    Main entry point for WhatsApp Poller.
+    Main entry point for WhatsApp Listener.
 
-    Run this to start the poller!
+    Run this to start the listener!
+
+    First run: displays a QR code — scan with WhatsApp to link.
+    Subsequent runs: reconnects automatically (auth in neonize.db).
     """
 
     # Load configuration from environment
-    config = PollerConfig(
-        green_api_instance_id=os.getenv("GREEN_API_INSTANCE_ID"),
-        green_api_token=os.getenv("GREEN_API_TOKEN"),
+    config = ListenerConfig(
+        neonize_db_path=os.getenv("NEONIZE_DB_PATH", "./neonize.db"),
         temporal_address=os.getenv("TEMPORAL_ADDRESS", "localhost:7233"),
-        poll_interval_seconds=int(os.getenv("POLL_INTERVAL_SECONDS", "5")),
         llm_model=os.getenv("LLM_MODEL", "claude-sonnet-4.5"),
     )
 
-    # Validate configuration
-    if not config.green_api_instance_id or not config.green_api_token:
-        raise ValueError(
-            "Missing Green API credentials! "
-            "Set GREEN_API_INSTANCE_ID and GREEN_API_TOKEN"
-        )
-
-    # Create and start poller
-    poller = WhatsAppPoller(config)
+    # Create and start listener
+    listener = WhatsAppListener(config=config)
 
     try:
-        await poller.start()
+        await listener.start()
     except KeyboardInterrupt:
         logger.info("Shutting down...")
-        await poller.stop()
 
 
 if __name__ == "__main__":
@@ -1598,7 +1529,7 @@ if __name__ == "__main__":
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
 
-    # Run poller
+    # Run listener
     asyncio.run(main())
 ```
 
@@ -1606,9 +1537,10 @@ if __name__ == "__main__":
 
 **Prerequisites:**
 1. Temporal server running (local or cloud)
-2. Green API account with instance ID and token
-3. Claude API key
-4. Python 3.11+
+2. Claude API key
+3. Python 3.11+
+4. `brew install libmagic` (required by neonize)
+5. WhatsApp account to link as bot
 
 **Step-by-Step Startup:**
 
@@ -1625,57 +1557,43 @@ temporal server start-dev
 # gRPC endpoint: localhost:7233
 ```
 
-**Terminal 2: Start Temporal Worker**
+**Terminal 2: Start WhatsApp Listener + Worker**
 ```bash
 # Set environment variables
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
-export TEMPORAL_ADDRESS="localhost:7233"
-
-# Start worker (executes workflows and activities)
-python -m src.worker
-
-# Output:
-# Worker started on task queue: agent-tasks
-# Registered workflows: AgentWorkflow
-# Registered activities: call_llm_activity, bash_executor_activity, ...
-# Waiting for tasks...
-```
-
-**Terminal 3: Start WhatsApp Poller**
-```bash
-# Set environment variables
-export GREEN_API_INSTANCE_ID="1101000001"
-export GREEN_API_TOKEN="your-green-api-token-here"
 export ANTHROPIC_API_KEY="sk-ant-api03-..."
 export TEMPORAL_ADDRESS="localhost:7233"
 export LLM_MODEL="claude-sonnet-4.5"
-export POLL_INTERVAL_SECONDS="5"
 
-# Start poller
-python -m src.whatsapp.poller
+# Start listener (also starts worker internally)
+python -m src.whatsapp.listener
 
-# Output:
-# Starting WhatsApp Poller...
+# First run — displays QR code in terminal:
+# Starting WhatsApp Listener...
 # Connected to Temporal at localhost:7233
-# Polling interval: 5s
-# Polling loop started
-# [Every 5s] Polling... (no messages)
+# Auth database: ./neonize.db
+# [QR CODE APPEARS HERE — scan with WhatsApp]
+# Linked as 1234567890
+# Connected to WhatsApp as 1234567890
+
+# Subsequent runs — reconnects automatically:
+# Starting WhatsApp Listener...
+# Connected to WhatsApp as 1234567890
+# Listening for messages...
 ```
 
-**Terminal 4: Send WhatsApp Message**
+**Send a WhatsApp Message**
 ```bash
-# Open WhatsApp on your phone
-# Send message to bot's number: "Find all TODO comments"
+# Open WhatsApp on any phone
+# Send message to the linked number: "Find all TODO comments"
 
-# Back in Terminal 3 (poller), you'll see:
-# Polling... got message!
-# Starting new workflow: whatsapp-1234567890@c.us
+# Terminal 2 (listener) shows:
+# Message from 9876543210 in chat 9876543210: Find all TODO comments
+# Starting new workflow: whatsapp-9876543210@c.us
 # Workflow started
 # Sent first message to new workflow
-# Processed message from 1234567890@c.us
 
-# Terminal 2 (worker) shows:
-# Executing workflow: whatsapp-1234567890@c.us
+# Worker output:
+# Executing workflow: whatsapp-9876543210@c.us
 # Activity: read_state_file (loading state)
 # Activity: call_llm_activity (processing message)
 # Activity: bash_executor_activity (executing tools)
@@ -1686,10 +1604,6 @@ python -m src.whatsapp.poller
 
 **.env** (root directory)
 ```bash
-# WhatsApp (Green API)
-GREEN_API_INSTANCE_ID=1101000001
-GREEN_API_TOKEN=your-green-api-token-here
-
 # Temporal
 TEMPORAL_ADDRESS=localhost:7233
 
@@ -1697,8 +1611,8 @@ TEMPORAL_ADDRESS=localhost:7233
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 LLM_MODEL=claude-sonnet-4.5
 
-# Poller
-POLL_INTERVAL_SECONDS=5
+# Neonize (optional — defaults shown)
+NEONIZE_DB_PATH=./neonize.db
 
 # Workflow
 WORKFLOW_MAX_DURATION_MINUTES=60
@@ -1736,18 +1650,18 @@ services:
       - ./workspace:/app/workspace
     restart: unless-stopped
 
-  whatsapp-poller:
+  whatsapp-listener:
     build: .
-    command: python -m src.whatsapp.poller
+    command: python -m src.whatsapp.listener
     depends_on:
       - temporal
       - worker
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-      - GREEN_API_INSTANCE_ID=${GREEN_API_INSTANCE_ID}
-      - GREEN_API_TOKEN=${GREEN_API_TOKEN}
-      - POLL_INTERVAL_SECONDS=5
       - LLM_MODEL=claude-sonnet-4.5
+      - NEONIZE_DB_PATH=/app/neonize.db
+    volumes:
+      - ./neonize.db:/app/neonize.db  # Persist auth across restarts
     restart: unless-stopped
 ```
 
@@ -1761,7 +1675,7 @@ cp .env.example .env
 docker-compose up -d
 
 # View logs
-docker-compose logs -f whatsapp-poller
+docker-compose logs -f whatsapp-listener
 
 # Stop everything
 docker-compose down
@@ -1780,13 +1694,13 @@ http://localhost:8080
 - Query workflow state
 ```
 
-**Check Poller Status:**
+**Check Listener Status:**
 ```bash
-# View poller logs
-docker-compose logs -f whatsapp-poller
+# View listener logs
+docker-compose logs -f whatsapp-listener
 
-# Or if running locally
-tail -f logs/poller.log
+# Or if running locally — neonize logs to stdout
+# Look for: "Connected to WhatsApp as ..."
 ```
 
 **Query Workflow State:**
@@ -1804,12 +1718,22 @@ print(state)
 
 ### Common Issues
 
-**Issue: Poller not getting messages**
+**Issue: Listener not receiving messages**
 ```bash
-# Check Green API instance is active
-curl https://api.green-api.com/waInstance{id}/getStateInstance/{token}
+# Check neonize is connected
+# Logs should show: "Connected to WhatsApp as <phone>"
+# If not connected, delete neonize.db and re-scan QR code
 
-# Should return: {"stateInstance": "authorized"}
+# Check the linked device is still active in WhatsApp:
+# WhatsApp → Settings → Linked Devices
+```
+
+**Issue: QR code not appearing**
+```bash
+# Ensure libmagic is installed: brew install libmagic
+# Delete neonize.db to force a fresh QR code
+rm neonize.db
+python -m src.whatsapp.listener
 ```
 
 **Issue: Workflows not starting**
@@ -1830,19 +1754,21 @@ temporal workflow list --address localhost:7233
 
 ### Summary
 
-**The WhatsApp Poller:**
-- ✅ Polls Green API every 5 seconds
+**The WhatsApp Listener:**
+- ✅ Connects directly to WhatsApp via neonize (WebSocket)
+- ✅ Event-driven — no polling delay
 - ✅ Starts workflows automatically (first message)
 - ✅ Signals workflows (subsequent messages)
 - ✅ Works with heartbeat mechanism
-- ✅ No gateway needed for MVP
+- ✅ No third-party API or gateway needed
+- ✅ Free — no subscription costs
+- ✅ Supports self-chat (useful for testing)
 
 **To run the MVP:**
 1. Start Temporal server
-2. Start worker
-3. Start poller
-4. Send WhatsApp message
-5. Done!
+2. Start listener (scan QR on first run)
+3. Send WhatsApp message
+4. Done!
 
 ---
 
@@ -2029,9 +1955,9 @@ Failed workflows don't block workers!
 **Failed workflows auto-restart on next message:**
 
 ```python
-# In WhatsApp poller
-async def _route_message(self, message):
-    workflow_id = f"whatsapp-{message.chat_id}"
+# In WhatsApp listener
+async def _route_message(self, *, chat_id, sender, text):
+    workflow_id = f"whatsapp-{chat_id}@c.us"
 
     try:
         # Try to signal existing workflow
@@ -2126,7 +2052,7 @@ For first iteration, just implement:
 - ✅ **Return tool errors to LLM** (don't crash)
 - ✅ **Basic logging** (activity.logger.error)
 - ✅ **Monitor in Temporal UI** (check failures)
-- ✅ **Auto-restart** (poller starts new workflow on next message)
+- ✅ **Auto-restart** (listener starts new workflow on next message)
 
 **Don't worry about:**
 - ❌ Complex monitoring systems
@@ -2181,7 +2107,7 @@ opentlawpy/
 │   │
 │   ├── whatsapp/                   # WhatsApp Integration (MVP) ⚠️
 │   │   ├── __init__.py
-│   │   └── poller.py               # Green API message poller
+│   │   └── listener.py             # Neonize WhatsApp listener
 │   │
 │   ├── gateway/                    # Optional: Multi-channel support
 │   │   ├── __init__.py
@@ -3620,15 +3546,15 @@ Total: 2 seconds (3x faster!)
    - Test signal delivery
 
 2. **WhatsApp Activities (MVP)** ⚠️ **REQUIRED**
-   - Implement `whatsapp_send_message` activity (Green API)
+   - Implement `whatsapp_send_message` activity (neonize)
    - Test sending messages back to users
    - Handle message formatting and errors
 
-3. **WhatsApp Poller Service (MVP)** ⚠️ **REQUIRED**
-   - Poll Green API for new messages (every 5 seconds)
+3. **WhatsApp Listener Service (MVP)** ⚠️ **REQUIRED**
+   - Connect to WhatsApp via neonize (WebSocket, linked device)
+   - Listen for incoming messages via event callbacks
    - Start workflows for new chats
    - Signal existing workflows for ongoing chats
-   - Handle message deduplication
 
 4. **Heartbeat Mechanism**
    - Implement heartbeat timer in workflow
@@ -3636,7 +3562,7 @@ Total: 2 seconds (3x faster!)
    - Test periodic prompts
 
 **Deliverables**:
-- WhatsApp Poller receiving messages
+- WhatsApp Listener receiving messages via neonize
 - `whatsapp_send_message` activity working
 - Complete loop: Receive WhatsApp → Process → Respond to WhatsApp
 - Signals triggering workflow actions
@@ -3645,7 +3571,7 @@ Total: 2 seconds (3x faster!)
 **Testing**:
 - End-to-end test: Send WhatsApp message → workflow processes → receive response
 - Heartbeat test: verify agent prompts itself every X minutes
-- Error test: Green API down → graceful failure
+- Error test: neonize disconnected → graceful reconnection
 
 **Optional (defer to upgrade-ideas.md)**:
 - Gateway Service (multi-channel support)
@@ -4002,9 +3928,9 @@ echo "Smoke test passed!"
 │  └────────┘  └────────┘  └──────────┘   │     │    │
 │                                          │     │    │
 │  ┌─────────────────┐  ┌─────────────────┼─────┘    │
-│  │ WhatsApp Poller │  │ Temporal Server │          │
-│  │   Writes────────┘  └─────────────────┘          │
-│  └─────────────────┘                                │
+│  │ WhatsApp Listener│  │ Temporal Server │          │
+│  │   Writes─────────┘  └─────────────────┘          │
+│  └──────────────────┘                                │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -4096,23 +4022,24 @@ services:
     command: python -m src.worker
     restart: unless-stopped
 
-  # WhatsApp Poller (MVP Entry Point)
-  whatsapp-poller:
+  # WhatsApp Listener (MVP Entry Point)
+  whatsapp-listener:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: whatsapp-poller
+    container_name: whatsapp-listener
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-      - GREEN_API_INSTANCE_ID=${GREEN_API_INSTANCE_ID}
-      - GREEN_API_TOKEN=${GREEN_API_TOKEN}
-      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-5}
+      - LLM_MODEL=${LLM_MODEL:-claude-sonnet-4.5-20250929}
+      - NEONIZE_DB_PATH=/app/neonize.db
+    volumes:
+      - ./neonize.db:/app/neonize.db  # Persist auth across restarts
     depends_on:
       temporal:
         condition: service_healthy
       worker:
         condition: service_started
-    command: python -m src.whatsapp.poller
+    command: python -m src.whatsapp.listener
     restart: unless-stopped
 
 # ⚠️ CRITICAL: Named volume for PostgreSQL only
@@ -4141,7 +4068,7 @@ mkdir -p state workspace tools
 docker-compose up -d
 
 # View logs
-docker-compose logs -f worker whatsapp-poller
+docker-compose logs -f worker whatsapp-listener
 
 # Scale workers (all share same volumes!)
 docker-compose up -d --scale worker=3
@@ -4191,23 +4118,23 @@ services:
              watchmedo auto-restart --recursive --pattern='*.py' --directory=./src
              -- python -m src.worker"
 
-  # Override poller for development
-  whatsapp-poller:
+  # Override listener for development
+  whatsapp-listener:
     build:
       context: .
       dockerfile: Dockerfile.dev
     volumes:
       - ./src:/app/src:ro
+      - ./neonize.db:/app/neonize.db
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-      - GREEN_API_INSTANCE_ID=${GREEN_API_INSTANCE_ID}
-      - GREEN_API_TOKEN=${GREEN_API_TOKEN}
-      - POLL_INTERVAL_SECONDS=5
+      - LLM_MODEL=${LLM_MODEL:-claude-sonnet-4.5-20250929}
+      - NEONIZE_DB_PATH=/app/neonize.db
       - LOG_LEVEL=DEBUG
     command: >
       sh -c "pip install watchdog &&
              watchmedo auto-restart --recursive --pattern='*.py' --directory=./src
-             -- python -m src.whatsapp.poller"
+             -- python -m src.whatsapp.listener"
 
   # Add pytest container for testing
   pytest:
@@ -4274,8 +4201,8 @@ services:
       - LOG_LEVEL=INFO
     command: python -m src.worker --test-mode
 
-  # Don't start poller in test mode
-  whatsapp-poller:
+  # Don't start listener in test mode
+  whatsapp-listener:
     profiles:
       - manual  # Skip auto-start
 
@@ -4490,10 +4417,8 @@ TEMPORAL_ADDRESS=localhost:7233
 ANTHROPIC_API_KEY=sk-ant-your-key-here
 LLM_MODEL=claude-sonnet-4.5-20250929
 
-# WhatsApp (Green API)
-GREEN_API_INSTANCE_ID=1101000001
-GREEN_API_TOKEN=your-green-api-token-here
-POLL_INTERVAL_SECONDS=5
+# WhatsApp (Neonize)
+NEONIZE_DB_PATH=./neonize.db
 
 # Workflow Configuration
 DEFAULT_WORKFLOW_DURATION_MINUTES=60
@@ -4538,13 +4463,13 @@ nano .env  # Add your API keys
 docker-compose up -d
 
 # 4. Check logs
-docker-compose logs -f worker whatsapp-poller
+docker-compose logs -f worker whatsapp-listener
 
 # 5. Verify Temporal UI
 open http://localhost:8080
 
 # 6. Send test WhatsApp message
-# Message your WhatsApp number connected to Green API
+# Message the WhatsApp number linked via neonize
 
 # 7. Monitor in Temporal UI
 # Go to http://localhost:8080/workflows
@@ -4663,7 +4588,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml run --rm pytest -
 **Debugging**:
 ```bash
 # View real-time logs from multiple services
-docker-compose logs -f worker whatsapp-poller
+docker-compose logs -f worker whatsapp-listener
 
 # Tail specific service
 docker-compose logs -f worker --tail=50
@@ -4800,7 +4725,7 @@ dpkg -l | grep nfs-common
 - [ ] Health checks passing
 - [ ] Temporal UI accessible
 - [ ] Worker logs show successful connection
-- [ ] WhatsApp Poller connected to Green API
+- [ ] WhatsApp Listener connected via neonize (QR scanned, device linked)
 - [ ] Test message sent and received
 - [ ] state.md files being created
 - [ ] Multiple workers tested (scale to 2, verify state sharing)
@@ -4810,7 +4735,7 @@ dpkg -l | grep nfs-common
 **Production Monitoring:**
 - [ ] Temporal UI: http://localhost:8080
 - [ ] Worker logs: `docker-compose logs -f worker`
-- [ ] Poller logs: `docker-compose logs -f whatsapp-poller`
+- [ ] Listener logs: `docker-compose logs -f whatsapp-listener`
 - [ ] Disk usage: `docker system df`
 - [ ] Volume size: `du -sh $(docker volume inspect opentlawpy_agent-state --format '{{.Mountpoint}}')`
 

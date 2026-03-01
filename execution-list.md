@@ -40,7 +40,7 @@ docker-compose down
 ### 0.1 Documentation Files
 - [ ] Create `README.md` with:
   - [ ] Quick start guide (3 commands to run MVP)
-  - [ ] WhatsApp setup instructions (Green API)
+  - [ ] WhatsApp setup instructions (Neonize)
   - [ ] Architecture diagram
   - [ ] Link to full plan.md
 - [ ] Create `CLAUDE.md` with:
@@ -129,14 +129,14 @@ docker-compose down
 - [ ] Create `src/activities/whatsapp.py`
 - [ ] Create tests `tests/test_activities/test_whatsapp.py`
 
-### 3.2 Green API Client Library
-- [ ] Create `src/whatsapp/greenapi.py`
-- [ ] Create tests `tests/test_whatsapp/test_greenapi.py`
+### 3.2 Neonize WhatsApp Client
+- [ ] Create `src/whatsapp/listener.py`
+- [ ] Create tests `tests/test_whatsapp/test_listener.py`
 
-### 3.3 WhatsApp Poller Service
-- [ ] Create `src/whatsapp/poller.py`
-- [ ] Update `docker-compose.yml` with poller service
-- [ ] Create tests `tests/test_whatsapp/test_poller.py`
+### 3.3 WhatsApp Listener Service
+- [ ] Create `src/whatsapp/listener.py` (event-driven via neonize)
+- [ ] Update `docker-compose.yml` with listener service
+- [ ] Create tests `tests/test_whatsapp/test_listener.py`
 
 ### 3.4 Signal Handling in Workflow
 - [ ] Add signal handlers to workflow
@@ -222,7 +222,7 @@ docker-compose down
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 # View logs
-docker-compose logs -f worker whatsapp-poller
+docker-compose logs -f worker whatsapp-listener
 
 # Run single test
 docker-compose run --rm pytest tests/test_llm.py::test_call_llm -v
