@@ -1,0 +1,27 @@
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/app/src
+    command: >
+      uv run watchmedo auto-restart
+      --directory src
+      --pattern '*.py'
+      --recursive
+      -- uv run python -m src.worker
+
+  listener:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/app/src
+      - ./neonize.db:/data/neonize.db
+    command: >
+      uv run watchmedo auto-restart
+      --directory src
+      --pattern '*.py'
+      --recursive
+      -- uv run python -m src.whatsapp

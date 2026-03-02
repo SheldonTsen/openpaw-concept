@@ -37,36 +37,40 @@ You send WhatsApp msg → Neonize listener receives it
   → You receive response on WhatsApp
 ```
 
-### 1.1 Docker Compose + Temporal
-- [ ] Create `docker-compose.yml` (Temporal server + UI + PostgreSQL)
-- [ ] Create `Dockerfile` (worker image)
+### 1.1 Docker Compose + Temporal (DONE)
+- [x] Create `docker-compose.yml` (Temporal server + UI + PostgreSQL) — was done in Phase 0
+- [x] Create `Dockerfile` (worker image) — `python:3.13-slim` + uv
+- [x] Add `agent` service to `docker-compose.yml` (depends on temporal + namespace creation)
 - [ ] Verify Temporal UI accessible at localhost:8080
 - [ ] Verify worker connects to Temporal
 
-### 1.2 Hello World Workflow + Worker
-- [ ] Create `src/workflows/__init__.py`
-- [ ] Create `src/workflows/agent_workflow.py` — minimal workflow:
+### 1.2 Hello World Workflow + Worker (DONE)
+- [x] Create `src/workflows/__init__.py`
+- [x] Create `src/workflows/agent_workflow.py` — minimal workflow:
   - Receives signal `new_message(sender, text)`
-  - Calls a single activity that returns `"Hello! I received: {text}"`
-  - Calls `whatsapp_send_message` activity to reply
-  - Waits for next message (loop with `wait_condition`)
-- [ ] Create `src/activities/__init__.py`
-- [ ] Create `src/activities/whatsapp.py` — `whatsapp_send_message` activity
-- [ ] Create `src/worker/__init__.py`
-- [ ] Create `src/worker/worker.py` — registers workflow + activities, starts worker
-- [ ] Create `src/models/__init__.py`
-- [ ] Create `src/models/messages.py` — minimal dataclasses (just what's needed)
-- [ ] Test: start worker, manually start workflow via `temporal` CLI, send signal, check activity runs
+  - Calls `whatsapp_send_message` activity to reply with `"Hello! I received: {text}"`
+  - Waits for next message (loop with `wait_condition`, 60 min timeout)
+- [x] Create `src/activities/__init__.py`
+- [x] Create `src/activities/whatsapp.py` — factory pattern: `create_send_whatsapp_message_activity(neonize_client)` returns activity bound to neonize client
+- [x] Create `src/worker/__init__.py`
+- [x] Create `src/worker/worker.py` — `run_worker(client, activities)` + `create_temporal_client(address)`
+- [x] Create `src/models/__init__.py`
+- [x] Create `src/models/messages.py` — `IncomingMessage`, `SendMessageInput`, `SendMessageOutput`
+- [x] Test: 3 workflow tests pass via `WorkflowEnvironment.start_time_skipping()`
 
-### 1.3 WhatsApp Listener (Neonize)
-- [ ] Create `src/whatsapp/__init__.py`
-- [ ] Create `src/whatsapp/listener.py`:
-  - Connect to WhatsApp via Neonize
-  - Filter messages by `MY_PHONE_NUMBER` (only process our own)
-  - On message: start workflow (if new) or signal existing workflow
-  - QR code scan on first run
-- [ ] Add `whatsapp-listener` service to `docker-compose.yml`
-- [ ] Add `MY_PHONE_NUMBER` to `.env.example`
+### 1.3 WhatsApp Listener (Neonize) (DONE)
+- [x] Create `src/whatsapp/__init__.py`
+- [x] Create `src/whatsapp/listener.py` — `WhatsAppListener` class:
+  - Connects to WhatsApp via Neonize, registers `ConnectedEv`, `MessageEv`, `PairStatusEv` handlers
+  - Filters messages by `is_from_me` or `my_phone_number`
+  - Atomic start-or-signal via `id_conflict_policy=USE_EXISTING` + `start_signal`
+  - Routes messages to Temporal via `asyncio.run_coroutine_threadsafe`
+- [x] Create `src/main.py` + `src/__main__.py` — single-process entry point:
+  - Main thread: neonize `client.connect()` (blocking Go event loop)
+  - Daemon thread: asyncio loop with Temporal Worker + Client
+  - Signal handlers with `os._exit(0)` for clean shutdown
+- [x] Add `agent` service to `docker-compose.yml` (single service, not separate listener)
+- [x] Update `.env.example` with `MY_PHONE_NUMBER`
 
 ### 1.4 End-to-End Test
 - [ ] Start all services: `docker-compose up`
@@ -76,12 +80,19 @@ You send WhatsApp msg → Neonize listener receives it
 - [ ] Verify workflow visible in Temporal UI (localhost:8080)
 - [ ] Send a second message — verify it signals the EXISTING workflow (not a new one)
 
-### 1.5 Dev Workflow Validation
-- [ ] Create `docker-compose.dev.yml` with hot reload (docker compose watch or watchdog)
+### 1.5 Dev Workflow Validation (DONE — config created)
+- [x] Create `docker-compose.dev.yml` with hot reload (watchdog `auto-restart`)
+- [x] Create `Dockerfile.dev` with dev dependencies (watchdog)
 - [ ] Verify: edit workflow code → worker auto-restarts → no rebuild needed
-- [ ] Verify: `docker-compose logs -f worker --tail=20` shows reload
+- [ ] Verify: `docker-compose logs -f agent --tail=20` shows reload
 - [ ] Change "Hello!" to "Hey!" in workflow, confirm change takes effect without rebuild
-- [ ] Document any gotchas in CLAUDE.md
+
+### 1.6 Automated Tests (DONE)
+- [x] Create `tests/test_workflow.py` — 3 tests using `WorkflowEnvironment.start_time_skipping()`:
+  - `test_workflow_echoes_message` — signal → echo activity called
+  - `test_workflow_start_signal_pattern` — atomic start+signal works
+  - `test_workflow_multiple_messages` — handles multiple signals in sequence
+- [x] All 3 tests pass
 
 **Phase 1 exit criteria**: You send a WhatsApp message, you get a response back, you can see it in Temporal UI, and code changes hot-reload.
 
@@ -258,7 +269,13 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 0 (Project Setup)
-**Next Milestone**: Phase 1 — Lean E2E "Hello World"
+**Current Phase**: Phase 1 (Lean E2E "Hello World") — code complete, pending manual E2E verification
+**Next Milestone**: Phase 1.4 E2E test (docker-compose up, send WhatsApp message, verify echo)
 
 **Blockers**: None
+
+**Notes**:
+- Architecture: single Python process with neonize on main thread, Temporal worker on daemon thread
+- `uv sync --extra dev` is needed (not `--dev`) because dev deps are in `[project.optional-dependencies]`
+- Temporal test env: use `WorkflowEnvironment.start_time_skipping()` (not `start_local()`) for auto time advancement
+- Neonize `send_message()` is sync (Go FFI), so the activity is sync and runs on Temporal's thread pool
