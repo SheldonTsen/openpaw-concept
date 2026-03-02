@@ -1,27 +1,18 @@
 services:
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./src:/app/src
-    command: >
-      uv run watchmedo auto-restart
-      --directory src
-      --pattern '*.py'
-      --recursive
-      -- uv run python -m src.worker
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./src/opentlawpy
+          target: /app/src/opentlawpy
+        - action: rebuild
+          path: ./pyproject.toml
 
   listener:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./src:/app/src
-      - ./neonize.db:/data/neonize.db
-    command: >
-      uv run watchmedo auto-restart
-      --directory src
-      --pattern '*.py'
-      --recursive
-      -- uv run python -m src.whatsapp
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./src/opentlawpy
+          target: /app/src/opentlawpy
+        - action: rebuild
+          path: ./pyproject.toml

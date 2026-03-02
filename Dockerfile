@@ -20,4 +20,4 @@ COPY src/ src/
 # Install the project itself
 RUN uv sync --no-dev
 
-CMD ["uv", "run", "python", "-m", "src"]
+CMD ["uv", "run", "python", "-m", "opentlawpy.worker"]

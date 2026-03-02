@@ -72,99 +72,17 @@ You send WhatsApp msg → Neonize listener receives it
 - [x] Add `agent` service to `docker-compose.yml` (single service, not separate listener)
 - [x] Update `.env.example` with `MY_PHONE_NUMBER`
 
-Follow Up:
-- [ ] directories should be src/opentlawpy 
-- [ ] imports should be from opentlawpy import x (pyproject.toml might need updating for this to work
-- [ ] Remove dockerfile.dev and modify docker-compose.dev.yml to use docker compose watch. While the main docker-compose does not use docker compose watch. 
-- [ ] my_phone_number=MY_PHONE_NUMBER, change to my_whatsapp_number=MY_WHATSAPP_NUMBER (keep same as .env declaration). No reason to be different
-- [ ] move TASK_QUEUE = "agent-tasks" NAMESPACE = "opentlawpy" to a config.py to hold all code related config in one place. 
-- [ ] move logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-) to a custom_logging.py and re-use that (repeated again in src/whatsapp/__main__.py)
-- [ ] move TEMPORAL_ADDRESS = os.environ.get("TEMPORAL_ADDRESS", "localhost:7233")
-MY_PHONE_NUMBER = os.environ.get("MY_PHONE_NUMBER", os.environ.get("MY_WHATSAPP_NUMBER", ""))
-NEONIZE_DB_PATH = os.environ.get("NEONIZE_DB_PATH", "./neonize.db")
- to the central config.py (in src/whatsapp/__main__.py at the moment)
-- [ ] Remove duplication in TASK_QUEUE = "agent-tasks"
-NAMESPACE = "opentlawpy" from src/worker/worker.py
-- [ ] Explain tests 
-async def test_workflow_echoes_message():
-    """Workflow receives a signal and calls send_whatsapp_message with echo response."""
-    activity_calls.clear()
+Follow Up (DONE):
+- [x] directories renamed to `src/opentlawpy/`, imports use `from opentlawpy import x`
+- [x] Removed `Dockerfile.dev`, `docker-compose.dev.yml` uses `docker compose watch` (`sync+restart`)
+- [x] Renamed `my_phone_number` to `my_whatsapp_number` everywhere (matches `MY_WHATSAPP_NUMBER` env var)
+- [x] Created `opentlawpy/config.py` — all config in one place (TASK_QUEUE, NAMESPACE, TEMPORAL_ADDRESS, MY_WHATSAPP_NUMBER, NEONIZE_DB_PATH)
+- [x] Created `opentlawpy/logging.py` — shared `setup_logging()` function
+- [x] Removed duplicate test (`test_workflow_start_signal_pattern` was identical to `test_workflow_echoes_message`)
+- [x] Simplified `_get_message_timestamp` — uses `message.Info.Timestamp.seconds` directly (protobuf Timestamp)
+- [x] Added `logger.debug()` for skipped old messages and no-text messages
 
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
-            task_queue=TASK_QUEUE,
-            workflows=[AgentWorkflow],
-            activities=[mock_send_whatsapp_message],
-        ):
-            handle = await env.client.start_workflow(
-                AgentWorkflow.run,
-                arg="1234567890",
-                id="test-workflow-1",
-                task_queue=TASK_QUEUE,
-                start_signal="new_message",
-                start_signal_args=["1234567890", "Hi there"],
-            )
-
-            # Time-skipping env auto-advances to the 60-min timeout
-            await handle.result()
-
-    assert len(activity_calls) == 1
-    assert activity_calls[0].phone_number == "1234567890"
-    assert activity_calls[0].text == "Hello! I received: Hi there"
-
-
-async def test_workflow_start_signal_pattern():
-    """Verify the atomic start-or-signal pattern works correctly."""
-    activity_calls.clear()
-
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
-            task_queue=TASK_QUEUE,
-            workflows=[AgentWorkflow],
-            activities=[mock_send_whatsapp_message],
-        ):
-            handle = await env.client.start_workflow(
-                AgentWorkflow.run,
-                arg="9876543210",
-                id="test-workflow-2",
-                task_queue=TASK_QUEUE,
-                start_signal="new_message",
-                start_signal_args=["9876543210", "Hello world"],
-            )
-
-            await handle.result()
-
-    assert len(activity_calls) >= 1
-    assert activity_calls[0].phone_number == "9876543210"
-    assert activity_calls[0].text == "Hello! I received: Hello world"
-
-this seems repeated twice. I don't see what the difference is between these 2 tests?
-- [ ] Validate if we need all these if else     def _get_message_timestamp(self, message: MessageEv) -> float:
-        """Extract message timestamp as Unix seconds."""
-        ts = message.Info.Timestamp
-        if isinstance(ts, (int, float)):
-            return float(ts)
-        if hasattr(ts, "seconds"):
-            return float(ts.seconds)
-        if hasattr(ts, "timestamp"):
-            return ts.timestamp()
-        return time.time()
-- [ ] add logging for these 2         msg_time = self._get_message_timestamp(message=message)
-        if msg_time < self._start_time:
-            return
-
-        text = message.Message.conversation or message.Message.extendedTextMessage.text
-        if not text:
-            return
-
-
-Next Follow Up:
-- [ ] Clarify on neonize.db in listener pattern - seems a bit odd. If we refer to the same DB is that the same client?
+neonize.db note: It stores WhatsApp session auth (encryption keys). Only the listener container mounts it. The worker container never touches WhatsApp — the `send_whatsapp_message` activity runs on the listener's Temporal worker (same task queue, different worker process).
 
 
 

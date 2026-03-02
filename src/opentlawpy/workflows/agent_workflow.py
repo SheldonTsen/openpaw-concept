@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from temporalio import workflow
 
-from src.models.messages import IncomingMessage, SendMessageInput
+from opentlawpy.models.messages import IncomingMessage, SendMessageInput
 
 
 @workflow.defn
