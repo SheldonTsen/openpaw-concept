@@ -7,16 +7,17 @@ This document contains enhancements and sophisticated features to consider **aft
 ## Table of Contents
 
 1. [Gateway Service (Multi-Channel Support)](#gateway-service-multi-channel-support)
-2. [Advanced State Compaction](#advanced-state-compaction)
-3. [Multi-Model LLM Strategy](#multi-model-llm-strategy)
-4. [Semantic Memory Search](#semantic-memory-search)
-5. [Cost Tracking & Optimization](#cost-tracking--optimization)
-6. [Advanced Tool System](#advanced-tool-system)
-7. [Multi-Agent Collaboration](#multi-agent-collaboration)
-8. [Security & Sandboxing](#security--sandboxing)
-9. [Observability & Analytics](#observability--analytics)
-10. [Advanced Error Handling](#advanced-error-handling)
-11. [Advanced Parallelization & Scaling](#advanced-parallelization--scaling)
+2. [Separate WhatsApp Bot Number](#separate-whatsapp-bot-number)
+3. [Advanced State Compaction](#advanced-state-compaction)
+4. [Multi-Model LLM Strategy](#multi-model-llm-strategy)
+5. [Semantic Memory Search](#semantic-memory-search)
+6. [Cost Tracking & Optimization](#cost-tracking--optimization)
+7. [Advanced Tool System](#advanced-tool-system)
+8. [Multi-Agent Collaboration](#multi-agent-collaboration)
+9. [Security & Sandboxing](#security--sandboxing)
+10. [Observability & Analytics](#observability--analytics)
+11. [Advanced Error Handling](#advanced-error-handling)
+12. [Advanced Parallelization & Scaling](#advanced-parallelization--scaling)
 
 ---
 
@@ -510,7 +511,83 @@ Each has separate conversation (workflow_id)
 
 ---
 
-## 2. Advanced State Compaction
+## 2. Separate WhatsApp Bot Number
+
+### Current (MVP in plan.md)
+- Uses your own WhatsApp number with Neonize
+- Filters messages by `MY_PHONE_NUMBER` (only processes your own messages)
+- Self-chat supported for testing
+- Simple, no extra SIM needed
+
+### Upgrade: Dedicated Bot Number
+
+**Why:** A separate WhatsApp number for the bot provides cleaner separation — the bot is a distinct contact you message, rather than filtering your own incoming messages.
+
+**How OpenClaw does it (reference):**
+- Uses Baileys (JS equivalent of Neonize) with a **separate phone number**
+- The bot runs as a linked device on the dedicated number
+- Users message the bot number directly
+- Multi-account support: multiple bot numbers per instance
+- Access control: DM policies (`pairing`, `allowlist`, `open`, `disabled`), group policies, sender allowlists
+
+**Setup:**
+1. Get a second phone number (prepaid SIM, Google Voice, etc.)
+2. Install WhatsApp on it (or use a dual-SIM phone)
+3. Link Neonize as a device on that number (QR scan)
+4. Users message the bot number — no filtering needed
+
+**What changes in our code:**
+- Remove `MY_PHONE_NUMBER` filtering (all messages to the bot number are legitimate)
+- Remove `IsFromMe` self-chat logic
+- Add access control policies (allowlist of who can message the bot)
+- Optionally support multi-account (multiple bot numbers)
+
+**Access Control (from OpenClaw):**
+
+```python
+@dataclass
+class WhatsAppAccessConfig:
+    dm_policy: str = "allowlist"  # "allowlist", "open", "disabled"
+    allowed_senders: list[str] = field(default_factory=list)  # E.164 format: ["+15551234567"]
+    group_policy: str = "disabled"  # "open", "allowlist", "disabled"
+    group_allowed_senders: list[str] = field(default_factory=list)
+```
+
+**Multi-Account (from OpenClaw):**
+
+```python
+@dataclass
+class WhatsAppAccountConfig:
+    account_id: str = "default"
+    enabled: bool = True
+    name: str = "Bot"
+    auth_dir: str = "~/.opentlawpy/whatsapp/default"
+    dm_policy: str = "allowlist"
+    allowed_senders: list[str] = field(default_factory=list)
+```
+
+**Tradeoffs:**
+
+| | Own number (MVP) | Separate number (upgrade) |
+|---|---|---|
+| **Setup** | No extra SIM needed | Needs a second phone number |
+| **UX** | Self-chat or filter incoming | Natural — bot is a separate contact |
+| **Risk** | Must filter carefully | Clean separation, no accidental processing |
+| **Group support** | Awkward (talking to yourself) | Natural (bot is a distinct participant) |
+| **Cost** | Free | Prepaid SIM or Google Voice (~$0-5/mo) |
+| **Code complexity** | Sender filtering | Access control policies |
+
+**When to upgrade:**
+- When you want others to use the bot (not just yourself)
+- When you want group chat support
+- When self-chat UX feels awkward
+- When you need multi-account support
+
+**No code changes needed to switch** — just scan the QR code with the new number's WhatsApp instead of your own. The Neonize connection logic is identical.
+
+---
+
+## 3. Advanced State Compaction
 
 ### Current (MVP in plan.md)
 - Simple threshold: Compact when > 100 messages

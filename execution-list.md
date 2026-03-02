@@ -51,11 +51,8 @@ docker-compose down
   - [x] File structure overview
 - [x] Create `.env.example` with all required variables
 
-### 0.2 Project Structure
-- [ ] Create complete directory structure (see plan.md section 7)
-- [ ] Initialize `__init__.py` files
 
-### 0.3 Python Project Setup
+### 0.2 Python Project Setup
 - [ ] Create `requirements.txt`
 - [ ] Create `pyproject.toml` (optional)
 - [ ] Create `.gitignore`
@@ -118,6 +115,7 @@ docker-compose down
 - [ ] Update workflow with LLM thinking loop
 - [ ] Implement parallel tool execution
 - [ ] Create integration test
+
 
 ---
 
