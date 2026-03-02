@@ -6,6 +6,18 @@ Inspired by [OpenClaw](https://github.com/openclaw) — but in Python, and using
 
 > **Name origin**: Openclaw → Open**t**law (Temporal) → Open**t**law**py** (Python). Yeah...
 
+## Quick Start
+
+```
+cp .env.example .env
+# fill in required details mainly API key and whatsapp phone number
+
+docker compose up --build
+
+docker compose logs listener # scan the bar code to link
+```
+
+
 ## Architecture
 
 ```
