@@ -5,3 +5,5 @@ NAMESPACE = "opentlawpy"
 TEMPORAL_ADDRESS = os.environ.get("TEMPORAL_ADDRESS", "localhost:7233")
 MY_WHATSAPP_NUMBER = os.environ.get("MY_WHATSAPP_NUMBER", "")
 NEONIZE_DB_PATH = os.environ.get("NEONIZE_DB_PATH", "./neonize.db")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+LLM_MODEL = os.environ.get("LLM_MODEL", "claude-sonnet-4-5-20250929")
