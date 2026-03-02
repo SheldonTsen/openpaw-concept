@@ -1,7 +1,6 @@
 from temporalio.client import Client
 
-TASK_QUEUE = "agent-tasks"
-NAMESPACE = "opentlawpy"
+from opentlawpy.config import NAMESPACE
 
 
 async def create_temporal_client(temporal_address: str) -> Client:

@@ -9,20 +9,15 @@ from neonize.client import NewClient
 from neonize.utils import log as neonize_log
 from temporalio.worker import Worker
 
-from src.activities.whatsapp import create_send_whatsapp_message_activity
-from src.whatsapp.listener import WhatsAppListener
-from src.worker.worker import TASK_QUEUE, create_temporal_client
+from opentlawpy.activities.whatsapp import create_send_whatsapp_message_activity
+from opentlawpy.config import MY_WHATSAPP_NUMBER, NEONIZE_DB_PATH, TASK_QUEUE, TEMPORAL_ADDRESS
+from opentlawpy.logging import setup_logging
+from opentlawpy.whatsapp.listener import WhatsAppListener
+from opentlawpy.worker.worker import create_temporal_client
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-)
+setup_logging()
 logger = logging.getLogger(__name__)
 neonize_log.setLevel(logging.INFO)
-
-TEMPORAL_ADDRESS = os.environ.get("TEMPORAL_ADDRESS", "localhost:7233")
-MY_PHONE_NUMBER = os.environ.get("MY_PHONE_NUMBER", os.environ.get("MY_WHATSAPP_NUMBER", ""))
-NEONIZE_DB_PATH = os.environ.get("NEONIZE_DB_PATH", "./neonize.db")
 
 
 def force_exit(*_):
@@ -35,12 +30,12 @@ def main() -> None:
     signal.signal(signal.SIGINT, force_exit)
     signal.signal(signal.SIGTERM, force_exit)
 
-    if not MY_PHONE_NUMBER:
-        logger.error("MY_PHONE_NUMBER (or MY_WHATSAPP_NUMBER) environment variable is required")
+    if not MY_WHATSAPP_NUMBER:
+        logger.error("MY_WHATSAPP_NUMBER environment variable is required")
         return
 
     logger.info(f"Temporal address: {TEMPORAL_ADDRESS}")
-    logger.info(f"Phone number: {MY_PHONE_NUMBER}")
+    logger.info(f"WhatsApp number: {MY_WHATSAPP_NUMBER}")
     logger.info(f"Neonize DB: {NEONIZE_DB_PATH}")
 
     # Create neonize client
@@ -80,7 +75,7 @@ def main() -> None:
     listener = WhatsAppListener(
         neonize_client=neonize_client,
         temporal_client=state["temporal_client"],
-        my_phone_number=MY_PHONE_NUMBER,
+        my_whatsapp_number=MY_WHATSAPP_NUMBER,
         event_loop=loop,
     )
     listener.start()
