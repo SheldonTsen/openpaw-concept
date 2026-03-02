@@ -97,9 +97,9 @@ neonize.db note: It stores WhatsApp session auth (encryption keys). Only the lis
 ### 1.5 Dev Workflow Validation (DONE — config created)
 - [x] Create `docker-compose.dev.yml` with hot reload (watchdog `auto-restart`)
 - [x] Create `Dockerfile.dev` with dev dependencies (watchdog)
-- [ ] Verify: edit workflow code → worker auto-restarts → no rebuild needed
-- [ ] Verify: `docker-compose logs -f agent --tail=20` shows reload
-- [ ] Change "Hello!" to "Hey!" in workflow, confirm change takes effect without rebuild
+- [x] Verify: edit workflow code → worker auto-restarts → no rebuild needed
+- [x] Verify: `docker-compose logs -f agent --tail=20` shows reload
+- [x] Change "Hello!" to "Hey!" in workflow, confirm change takes effect without rebuild
 
 ### 1.6 Automated Tests (DONE)
 - [x] Create `tests/test_workflow.py` — 3 tests using `WorkflowEnvironment.start_time_skipping()`:
