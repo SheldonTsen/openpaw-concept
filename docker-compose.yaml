@@ -107,7 +107,7 @@ services:
         condition: service_healthy
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-      - DEFAULT_NAMESPACE=default
+      - DEFAULT_NAMESPACE=opentlawpy
     networks:
       - temporal-network
     volumes:
@@ -128,6 +128,40 @@ services:
       - temporal-network
     ports:
       - 8080:8080
+
+  worker:
+    build: .
+    container_name: opentlawpy-worker
+    depends_on:
+      temporal:
+        condition: service_healthy
+      temporal-create-namespace:
+        condition: service_completed_successfully
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    networks:
+      - temporal-network
+    restart: unless-stopped
+    command: ["uv", "run", "python", "-m", "src.worker"]
+
+  listener:
+    build: .
+    container_name: opentlawpy-listener
+    depends_on:
+      temporal:
+        condition: service_healthy
+      temporal-create-namespace:
+        condition: service_completed_successfully
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - MY_PHONE_NUMBER=${MY_PHONE_NUMBER:-${MY_WHATSAPP_NUMBER}}
+      - NEONIZE_DB_PATH=/data/neonize.db
+    volumes:
+      - ./neonize.db:/data/neonize.db
+    networks:
+      - temporal-network
+    restart: unless-stopped
+    command: ["uv", "run", "python", "-m", "src.whatsapp"]
 
 networks:
   temporal-network:
