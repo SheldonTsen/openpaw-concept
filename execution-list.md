@@ -4,213 +4,212 @@
 **Start Date**: 2026-02-28
 **Target MVP**: WhatsApp-integrated agentic system with Temporal orchestration
 
+**Philosophy**: Lean end-to-end first. Get a message flowing through the entire stack (WhatsApp → Temporal → response) before adding LLM logic. This lets us debug the plumbing in isolation.
+
 ---
 
-## Quick Reference: Token-Saving Iteration Guide
+## Phase 0: Project Setup 📚
 
-### Daily Development Loop
-```bash
-# Morning: Start once
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+**Goal**: Project structure, dependencies, git hygiene
 
-# Edit code → auto-reload (no rebuild!)
-vim src/workflows/agent_workflow.py
-docker-compose logs -f worker --tail=20
+### 0.1 Documentation (DONE)
+- [x] Create `README.md`
+- [x] Create `CLAUDE.md`
+- [x] Create `.env.example`
 
-# Run single test (fast!)
-docker-compose run --rm pytest tests/test_llm.py::test_call_llm -v
+### 0.2 Python Project Setup
+- [ ] Create `pyproject.toml` with uv
+- [ ] Create `.gitignore`
+- [ ] Install core dependencies: `temporalio`, `neonize`, `anthropic`
 
-# View state files directly
-cat ./state/whatsapp-*/state.md
+---
 
-# Evening: Stop
-docker-compose down
+## Phase 1: Lean End-to-End ("Hello World") 🔌
+
+**Goal**: WhatsApp message in → Temporal workflow → "Hello World" response back. No LLM, no tools, no state. Just prove the plumbing works.
+
+**What we're building:**
+```
+You send WhatsApp msg → Neonize listener receives it
+  → Listener starts/signals Temporal workflow
+  → Workflow runs a simple activity that returns "Hello! I received: <your message>"
+  → Workflow calls whatsapp_send_message activity
+  → You receive response on WhatsApp
 ```
 
-### When to Rebuild (Rare)
-- ✅ Only when: requirements.txt, Dockerfile, or system dependencies change
-- ❌ NOT when: Python code changes (hot reload handles it!)
+### 1.1 Docker Compose + Temporal
+- [ ] Create `docker-compose.yml` (Temporal server + UI + PostgreSQL)
+- [ ] Create `Dockerfile` (worker image)
+- [ ] Verify Temporal UI accessible at localhost:8080
+- [ ] Verify worker connects to Temporal
+
+### 1.2 Hello World Workflow + Worker
+- [ ] Create `src/workflows/__init__.py`
+- [ ] Create `src/workflows/agent_workflow.py` — minimal workflow:
+  - Receives signal `new_message(sender, text)`
+  - Calls a single activity that returns `"Hello! I received: {text}"`
+  - Calls `whatsapp_send_message` activity to reply
+  - Waits for next message (loop with `wait_condition`)
+- [ ] Create `src/activities/__init__.py`
+- [ ] Create `src/activities/whatsapp.py` — `whatsapp_send_message` activity
+- [ ] Create `src/worker/__init__.py`
+- [ ] Create `src/worker/worker.py` — registers workflow + activities, starts worker
+- [ ] Create `src/models/__init__.py`
+- [ ] Create `src/models/messages.py` — minimal dataclasses (just what's needed)
+- [ ] Test: start worker, manually start workflow via `temporal` CLI, send signal, check activity runs
+
+### 1.3 WhatsApp Listener (Neonize)
+- [ ] Create `src/whatsapp/__init__.py`
+- [ ] Create `src/whatsapp/listener.py`:
+  - Connect to WhatsApp via Neonize
+  - Filter messages by `MY_PHONE_NUMBER` (only process our own)
+  - On message: start workflow (if new) or signal existing workflow
+  - QR code scan on first run
+- [ ] Add `whatsapp-listener` service to `docker-compose.yml`
+- [ ] Add `MY_PHONE_NUMBER` to `.env.example`
+
+### 1.4 End-to-End Test
+- [ ] Start all services: `docker-compose up`
+- [ ] Scan QR code to link WhatsApp
+- [ ] Send yourself a WhatsApp message
+- [ ] Verify you receive "Hello! I received: ..." back
+- [ ] Verify workflow visible in Temporal UI (localhost:8080)
+- [ ] Send a second message — verify it signals the EXISTING workflow (not a new one)
+
+### 1.5 Dev Workflow Validation
+- [ ] Create `docker-compose.dev.yml` with hot reload (docker compose watch or watchdog)
+- [ ] Verify: edit workflow code → worker auto-restarts → no rebuild needed
+- [ ] Verify: `docker-compose logs -f worker --tail=20` shows reload
+- [ ] Change "Hello!" to "Hey!" in workflow, confirm change takes effect without rebuild
+- [ ] Document any gotchas in CLAUDE.md
+
+**Phase 1 exit criteria**: You send a WhatsApp message, you get a response back, you can see it in Temporal UI, and code changes hot-reload.
 
 ---
 
-## Phase 0: Project Setup & Documentation 📚
+## Phase 2: LLM Integration 🤖
 
-**Goal**: Set up project structure and developer documentation
+**Goal**: Replace "Hello World" with actual LLM calls. Agent can think and respond.
 
-### 0.1 Documentation Files
-- [x] Create `README.md` with:
-  - [x] Quick start guide (3 commands to run MVP)
-  - [x] WhatsApp setup instructions (Neonize)
-  - [x] Architecture diagram
-  - [x] Link to full plan.md
-- [x] Create `CLAUDE.md` with:
-  - [x] Token-saving iteration workflow (from plan.md)
-  - [x] How to run specific tests
-  - [x] How to view state.md files
-  - [x] Common development patterns
-  - [x] File structure overview
-- [x] Create `.env.example` with all required variables
+### 2.1 LLM Call Activity
+- [ ] Create `src/activities/llm_call.py` — call Anthropic API
+- [ ] Create `src/llm/__init__.py`
+- [ ] Create `src/llm/anthropic_client.py` — wrapper around Anthropic SDK
+- [ ] Test: activity calls Claude, returns response text
+- [ ] Add retry policy (3 attempts, exponential backoff)
 
-### 0.2 Project Structure
-- [ ] Create complete directory structure (see plan.md section 7)
-- [ ] Initialize `__init__.py` files
+### 2.2 Agent Thinking Loop (No Tools Yet)
+- [ ] Update `agent_workflow.py`:
+  - On message: call LLM activity with conversation history
+  - Return LLM's text response via WhatsApp
+  - Store conversation history in workflow state (in-memory, not persisted yet)
+- [ ] Test: send WhatsApp message → get actual LLM response back
+- [ ] Test: send follow-up message → LLM has context from previous message
 
-### 0.3 Python Project Setup
-- [ ] Create `requirements.txt`
-- [ ] Create `pyproject.toml` (optional)
-- [ ] Create `.gitignore`
+### 2.3 System Prompt
+- [ ] Add configurable system prompt to WorkflowConfig
+- [ ] Load system prompt from file or env var
+- [ ] Test: agent responds according to system prompt personality
 
 ---
 
-## Phase 1: Foundation (Week 1) 🏗️
+## Phase 3: Tool Execution 🔧
 
-**Goal**: Temporal infrastructure + basic workflow + state persistence
+**Goal**: LLM can call tools (bash, read_file, write_file). Multi-step reasoning works.
 
-### 1.1 Docker Compose Setup
-- [ ] Create `docker-compose.yml` (base/production)
-- [ ] Create `docker-compose.dev.yml` (hot reload)
-- [ ] Create `docker-compose.test.yml` (testing)
-- [ ] Create `Dockerfile` (production)
-- [ ] Create `Dockerfile.dev` (development)
+### 3.1 Tool Definitions
+- [ ] Create `tools/bash/TOOL.md`
+- [ ] Create `tools/read_file/TOOL.md`
+- [ ] Create `tools/write_file/TOOL.md`
+- [ ] Create `src/utils/tool_loader.py` — load TOOL.md files, convert to Anthropic format
 
-### 1.2 Basic Models (Data Schemas)
-- [ ] Create `src/models/messages.py` (Message, MessageRole, TokenUsage)
-- [ ] Create `src/models/tools.py` (ToolDefinition, ToolCall, ToolResult)
-- [ ] Create `src/models/state.py` (AgentWorkflowState, WorkflowConfig)
+### 3.2 Tool Activities
+- [ ] Create `src/activities/bash_executor.py` — execute bash with safety checks
+- [ ] Create `src/activities/file_operations.py` — read_file, write_file
 
-### 1.3 State File I/O Activity
-- [ ] Create `src/activities/state_file_io.py`
-- [ ] Create `src/utils/state_manager.py`
-- [ ] Create tests `tests/test_activities/test_state_file_io.py`
-
-### 1.4 Basic Agent Workflow
-- [ ] Create `src/workflows/agent_workflow.py` (echo mode, no LLM)
-- [ ] Create `src/worker/worker.py`
-- [ ] Create tests `tests/test_workflows/test_agent_workflow.py`
-
----
-
-## Phase 2: LLM Integration (Week 2) 🤖
-
-**Goal**: Call LLM, load tools, execute bash commands
-
-### 2.1 Tool System (Markdown-Based)
-- [ ] Create 8 MVP TOOL.md files in `tools/` directory
-- [ ] Create `tools/README.md`
-- [ ] Create `src/utils/tool_loader.py`
-- [ ] Create tests `tests/test_utils/test_tool_loader.py`
-
-### 2.2 LLM Provider Configuration
-- [ ] Create `src/llm/anthropic_client.py`
-- [ ] Create `src/llm/llm.py` (LLMRegistry)
-- [ ] Create tests `tests/test_llm/test_anthropic_client.py`
-
-### 2.3 LLM Call Activity
-- [ ] Create `src/activities/llm_call.py`
-- [ ] Create tests `tests/test_activities/test_llm_call.py`
-
-### 2.4 Core Tool Activities
-- [ ] Create `src/activities/bash_executor.py`
-- [ ] Create `src/activities/file_operations.py`
-- [ ] Create tests for all activities
-
-### 2.5 Tool Execution in Workflow
-- [ ] Update workflow with LLM thinking loop
-- [ ] Implement parallel tool execution
-- [ ] Create integration test
+### 3.3 Agent Thinking Loop (With Tools)
+- [ ] Update `agent_workflow.py`:
+  - Pass tool definitions to LLM call
+  - If LLM returns tool_calls → execute tools (parallel with asyncio.gather)
+  - Feed tool results back to LLM
+  - Loop until LLM returns no tool_calls (task complete)
+  - Max 20 iterations safety limit
+- [ ] Test: "What files are in the workspace?" → LLM calls bash(ls) → returns list
+- [ ] Test: "Create a file called hello.txt with 'hi'" → LLM calls write_file → confirms
+- [ ] Test: multi-step task → LLM chains multiple tool calls
 
 ---
 
-## Phase 3: WhatsApp Integration (Week 3) 📱 **MVP CRITICAL**
+## Phase 4: State Persistence 📝
 
-**Goal**: Complete request-response loop via WhatsApp
+**Goal**: Conversation survives workflow restarts. Agent has memory across sessions.
 
-### 3.1 WhatsApp Send Message Activity
-- [ ] Create `src/activities/whatsapp.py`
-- [ ] Create tests `tests/test_activities/test_whatsapp.py`
+### 4.1 State File I/O
+- [ ] Create `src/activities/state_file_io.py` — read/write state.md
+- [ ] Create `src/utils/state_manager.py` — parse/serialize state.md (YAML frontmatter + markdown)
+- [ ] Workflow loads state.md on startup, saves after each message
 
-### 3.2 Neonize WhatsApp Client
-- [ ] Create `src/whatsapp/listener.py`
-- [ ] Create tests `tests/test_whatsapp/test_listener.py`
-
-### 3.3 WhatsApp Listener Service
-- [ ] Create `src/whatsapp/listener.py` (event-driven via neonize)
-- [ ] Update `docker-compose.yml` with listener service
-- [ ] Create tests `tests/test_whatsapp/test_listener.py`
-
-### 3.4 Signal Handling in Workflow
-- [ ] Add signal handlers to workflow
-- [ ] Add WhatsApp response sending
-
-### 3.5 Heartbeat Mechanism
-- [ ] Implement heartbeat timer in workflow
-- [ ] Configure heartbeat interval
-
-### 3.6 End-to-End MVP Test
-- [ ] Create `tests/test_integration/test_e2e_whatsapp.py`
-- [ ] Test full stack with real WhatsApp
-
----
-
-## Phase 4: State Management & Compaction (Week 4) 📝
-
-### 4.1 Conversation Compaction Activity
+### 4.2 Conversation Compaction
 - [ ] Create `src/activities/conversation_compaction.py`
-- [ ] Integrate into workflow
+- [ ] Trigger when conversation > 100 messages
+- [ ] Keep first 5 + summary + last 20 messages
 
-### 4.2 State.md Section-Based Updates
-- [ ] Update `src/utils/state_manager.py` with sections
-- [ ] Update workflow to use section updates
-
----
-
-## Phase 5: Error Handling & Resilience (Week 5) 🛡️
-
-### 5.1 Activity Retry Policies
-- [ ] Define retry policies in `src/worker/config.py`
-- [ ] Test retry behavior
-
-### 5.2 Error Handling in Workflow
-- [ ] Add try/catch around tool execution
-- [ ] Return errors to LLM
-
-### 5.3 Worker Resilience
-- [ ] Add graceful shutdown
-- [ ] Add health check endpoint
+### 4.3 Workflow Duration & Restart
+- [ ] Add max duration (1 hour) to workflow
+- [ ] On next message after expiry: listener starts new workflow, loads state.md
+- [ ] Test: conversation context preserved across workflow restarts
 
 ---
 
-## Phase 6: Testing & Documentation (Week 6) ✅
+## Phase 5: Heartbeat & Signals 💓
 
-### 6.1 Unit Test Coverage
-- [ ] Achieve 80%+ coverage
+**Goal**: Agent can check in periodically. Signals fully working.
 
-### 6.2 Integration Tests
-- [ ] Create comprehensive integration tests
+### 5.1 Heartbeat
+- [ ] Implement heartbeat timer (30 min default)
+- [ ] On timeout: inject system prompt "Check in and report status"
+- [ ] Configurable via `update_heartbeat` signal
 
-### 6.3 Documentation
-- [ ] Complete README.md
-- [ ] Complete CLAUDE.md
-- [ ] Create docs/ARCHITECTURE.md
-- [ ] Create docs/DEPLOYMENT.md
+### 5.2 Stop Signal
+- [ ] Implement `stop` signal for graceful shutdown
+- [ ] Test: send stop signal → workflow terminates cleanly
 
 ---
 
-## Phase 7: Deployment & Production (Week 7-8) 🚀
+## Phase 6: Error Handling & Resilience 🛡️
 
-### 7.1 Docker Production Images
-- [ ] Optimize Dockerfile
-- [ ] Create production docker-compose
+**Goal**: System handles failures gracefully.
 
-### 7.2 Monitoring & Observability
-- [ ] Set up logging
-- [ ] Document Temporal UI usage
-- [ ] Create runbook
+### 6.1 Retry Policies
+- [ ] LLM calls: 3 attempts, exponential backoff
+- [ ] Bash execution: 2 attempts
+- [ ] File I/O: 2 attempts
+- [ ] WhatsApp send: 3 attempts
+- [ ] Non-retriable errors for bad API keys
 
-### 7.3 Production Testing
-- [ ] Load testing
-- [ ] Failover testing
-- [ ] End-to-end production test
+### 6.2 Tool Error Handling
+- [ ] Return tool errors to LLM (don't crash workflow)
+- [ ] LLM adapts and tries different approach
+
+### 6.3 Worker Resilience
+- [ ] Test: kill worker mid-execution → new worker picks up via replay
+- [ ] Graceful shutdown on SIGTERM
+
+---
+
+## Phase 7: Testing & Hardening ✅
+
+### 7.1 Unit Tests
+- [ ] Tests for all activities (mock external calls)
+- [ ] Tests for tool loader
+- [ ] Tests for state manager
+
+### 7.2 Integration Tests
+- [ ] Workflow test with Temporal test server
+- [ ] End-to-end test: signal → LLM → tools → response
+
+### 7.3 Target 80%+ Coverage
+- [ ] `pytest --cov=src --cov-report=term-missing`
 
 ---
 
@@ -225,7 +224,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 docker-compose logs -f worker whatsapp-listener
 
 # Run single test
-docker-compose run --rm pytest tests/test_llm.py::test_call_llm -v
+pytest tests/test_activities/test_llm_call.py::test_call_llm -v
 
 # View state files
 cat ./state/whatsapp-*/state.md
@@ -234,13 +233,13 @@ cat ./state/whatsapp-*/state.md
 ### Testing
 ```bash
 # Unit tests
-pytest tests/test_activities/ -v
+pytest tests/ -v
 
 # Coverage
 pytest --cov=src --cov-report=term-missing
 
 # Single test
-pytest tests/test_llm.py::test_anthropic_client -v
+pytest tests/test_activities/test_llm_call.py -v
 ```
 
 ### Production
@@ -260,6 +259,6 @@ docker-compose down
 ## Progress Tracking
 
 **Current Phase**: Phase 0 (Project Setup)
-**Next Milestone**: Complete Phase 1 by [DATE]
+**Next Milestone**: Phase 1 — Lean E2E "Hello World"
 
 **Blockers**: None
