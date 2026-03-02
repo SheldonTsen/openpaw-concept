@@ -5,6 +5,8 @@ services:
         - action: sync+restart
           path: ./src/opentlawpy
           target: /app/src/opentlawpy
+        - action: rebuild
+          path: ./pyproject.toml
 
   listener:
     develop:
@@ -12,3 +14,5 @@ services:
         - action: sync+restart
           path: ./src/opentlawpy
           target: /app/src/opentlawpy
+        - action: rebuild
+          path: ./pyproject.toml
