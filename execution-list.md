@@ -17,10 +17,10 @@
 - [x] Create `CLAUDE.md`
 - [x] Create `.env.example`
 
-### 0.2 Python Project Setup
-- [ ] Create `pyproject.toml` with uv
-- [ ] Create `.gitignore`
-- [ ] Install core dependencies: `temporalio`, `neonize`, `anthropic`
+### 0.2 Python Project Setup (DONE)
+- [x] Create `pyproject.toml` with uv
+- [x] Create `.gitignore`
+- [x] Install core dependencies: `temporalio`, `neonize`, `anthropic`
 
 ---
 
