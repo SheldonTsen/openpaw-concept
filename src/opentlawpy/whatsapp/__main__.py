@@ -11,7 +11,7 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from opentlawpy.activities.whatsapp import create_send_whatsapp_message_activity
-from opentlawpy.config import MY_WHATSAPP_NUMBER, NEONIZE_DB_PATH, TASK_QUEUE, TEMPORAL_ADDRESS
+from opentlawpy.config import MY_WHATSAPP_NUMBER, NEONIZE_DB_PATH, TEMPORAL_ADDRESS, WHATSAPP_TASK_QUEUE
 from opentlawpy.logging import setup_logging
 from opentlawpy.whatsapp.listener import WhatsAppListener
 from opentlawpy.worker.worker import create_temporal_client
@@ -31,7 +31,7 @@ async def _run_activity_worker(client: Client, send_activity) -> None:
     """Run the send-activity-only Temporal worker forever."""
     worker = Worker(
         client,
-        task_queue=TASK_QUEUE,
+        task_queue=WHATSAPP_TASK_QUEUE,
         activities=[send_activity],
         activity_executor=ThreadPoolExecutor(max_workers=5),
     )
@@ -63,7 +63,7 @@ def main() -> None:
         create_temporal_client(temporal_address=TEMPORAL_ADDRESS),
         loop,
     ).result(timeout=30)
-    logger.info(f"Connected to Temporal at {TEMPORAL_ADDRESS}, task queue: {TASK_QUEUE}")
+    logger.info(f"Connected to Temporal at {TEMPORAL_ADDRESS}, task queue: {WHATSAPP_TASK_QUEUE}")
 
     # Start activity worker (non-blocking — runs on the loop)
     worker_future = asyncio.run_coroutine_threadsafe(

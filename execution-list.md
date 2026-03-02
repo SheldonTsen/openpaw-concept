@@ -129,13 +129,23 @@ neonize.db note: It stores WhatsApp session auth (encryption keys). Only the lis
 Addendum:
 - [x] Move workflow timeout to config.py (`WORKFLOW_TIMEOUT_MINUTES`, default 15 min)
 
-### 2.2 Agent Thinking Loop (No Tools Yet)
-- [ ] Update `agent_workflow.py`:
+### 2.2 Agent Thinking Loop (No Tools Yet) (DONE)
+- [x] Update `agent_workflow.py`:
   - On message: call LLM activity with conversation history
   - Return LLM's text response via WhatsApp
   - Store conversation history in workflow state (in-memory, not persisted yet)
-- [ ] Test: send WhatsApp message → get actual LLM response back
-- [ ] Test: send follow-up message → LLM has context from previous message
+- [x] Test: send WhatsApp message → get actual LLM response back
+- [x] Test: send follow-up message → LLM has context from previous message
+
+Note: `result_type=LLMCallOutput` is required on `execute_activity` when calling by string name — without it Temporal can't deserialize the result and the workflow task retries forever.
+
+Addendum — OpenRouter (free) support:
+- [x] Create `src/opentlawpy/llm/openrouter_client.py` — async httpx client for OpenRouter `/v1/chat/completions`
+- [x] Add `LLM_PROVIDER` config (default `openrouter`) + `OPENROUTER_API_KEY` to `config.py`
+- [x] Widen `create_call_llm_activity` to accept any client with `.chat()` method (duck typing)
+- [x] Branch in `create_activities.py` on `LLM_PROVIDER` (`anthropic` vs `openrouter`)
+- [x] Pass `OPENROUTER_API_KEY` and `LLM_PROVIDER` through `docker-compose.yaml` + `.env.example`
+- [x] Unit tests: 3 tests for OpenRouterClient (request body, missing usage, HTTP error)
 
 ### 2.3 System Prompt
 - [ ] Add configurable system prompt to WorkflowConfig
@@ -289,8 +299,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 2 (LLM Integration) — 2.1 done, next is 2.2
-**Next Milestone**: Phase 2.2 Agent Thinking Loop (wire call_llm into workflow)
+**Current Phase**: Phase 2 (LLM Integration) — 2.1 & 2.2 done, next is 2.3
+**Next Milestone**: Phase 2.3 System Prompt
 
 **Blockers**: None
 
