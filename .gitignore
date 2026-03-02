@@ -1,2 +1,27 @@
+# Environment
 .env
+.venv/
+__pycache__/
+*.py[cod]
+*.so
+
+# WhatsApp auth
 neonize.db
+
+# Runtime data
+state/
+workspace/
+
+# IDE
+.vscode/
+.idea/
+
+# Distribution
+dist/
+*.egg-info/
+
+# OS
+.DS_Store
+
+# Temporal data (docker volumes)
+temporal-data/
