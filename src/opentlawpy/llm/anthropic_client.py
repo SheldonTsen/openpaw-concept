@@ -4,7 +4,7 @@ from opentlawpy.models.llm import LLMCallOutput
 
 
 class AnthropicClient:
-    def __init__(self, *, api_key: str, base_url: str = ""):
+    def __init__(self, *, api_key: str, base_url: str = None):
         kwargs: dict = {"api_key": api_key}
         if base_url:
             kwargs["base_url"] = base_url

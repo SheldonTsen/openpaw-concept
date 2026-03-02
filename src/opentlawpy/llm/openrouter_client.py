@@ -37,6 +37,8 @@ class OpenRouterClient:
             response.raise_for_status()
             data = response.json()
 
+        logger.info("OpenRouter response: data=%s", data)
+
         choice = data["choices"][0]
         usage = data.get("usage", {})
 
