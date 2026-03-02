@@ -1103,39 +1103,9 @@ async def test_whatsapp_send_message():
 
 ---
 
-### 5. Cron Job Manager
+### 5. Cron Job Manager — DEFERRED (Not MVP)
 
-**Purpose**: Start agent workflows on a schedule.
-
-**Implementation Options**:
-
-**Option A: External Cron (Linux crontab)**
-```bash
-# Restart agent workflow every hour
-0 * * * * python start_workflow.py --workflow-id agent-001
-```
-
-**Option B: Temporal Scheduled Workflows**
-- Use Temporal's built-in cron support
-- Define workflow with `cron_schedule="0 * * * *"`
-
-**Recommendation**: Option B (Temporal-native)
-
-**Configuration**:
-```python
-@workflow.defn
-class AgentWorkflow:
-    # ...
-    pass
-
-# Schedule it
-await client.start_workflow(
-    AgentWorkflow.run,
-    id="agent-001",
-    task_queue="agent-workflows",
-    cron_schedule="0 * * * *",  # Every hour
-)
-```
+> **Not needed for MVP.** The WhatsApp listener handles workflow lifecycle automatically. Cron scheduling is useful for autonomous periodic agents (e.g., daily summaries) but not required for conversational use. See `upgrade-ideas.md` for future implementation.
 
 ---
 
@@ -1341,6 +1311,7 @@ class ListenerConfig:
     temporal_address: str = "localhost:7233"
     llm_model: str = "claude-sonnet-4.5"
     workflow_max_duration_minutes: int = 60
+    my_phone_number: str = ""  # Only process messages from this number
 
 
 class WhatsAppListener:
@@ -1397,7 +1368,7 @@ class WhatsAppListener:
 
         Flow:
         1. Extract text from message
-        2. Skip non-text and own outgoing messages
+        2. Filter: only process messages from our own number
         3. Build deterministic workflow ID from chat
         4. Route to Temporal workflow (start or signal)
         """
@@ -1409,11 +1380,15 @@ class WhatsAppListener:
         if not text:
             return
 
-        # Skip our own outgoing messages
-        if message.Info.MessageSource.IsFromMe:
+        sender = message.Info.MessageSource.Sender.User
+        is_from_me = message.Info.MessageSource.IsFromMe
+
+        # Only process messages from ourselves (self-chat or our own number)
+        # This prevents random people from triggering workflows and consuming LLM tokens.
+        if not is_from_me and sender != self.config.my_phone_number:
+            logger.debug(f"Ignoring message from {sender} (not in allowed senders)")
             return
 
-        sender = message.Info.MessageSource.Sender.User
         chat_id = message.Info.Chat.User
 
         logger.info(f"Message from {sender} in chat {chat_id}: {text}")
@@ -1461,11 +1436,12 @@ class WhatsAppListener:
             logger.info(f"Starting new workflow: {workflow_id}")
 
             # Create workflow configuration
+            # Note: Tools are loaded by the workflow itself (from tools/ directory),
+            # not configured by the listener.
             config = WorkflowConfig(
                 llm_model=self.config.llm_model,
                 max_duration_minutes=self.config.workflow_max_duration_minutes,
                 heartbeat_interval_minutes=30,
-                tools=self._get_tools(),
             )
 
             # START new workflow
@@ -1487,12 +1463,6 @@ class WhatsAppListener:
 
             logger.info(f"Sent first message to new workflow: {workflow_id}")
 
-    def _get_tools(self):
-        """Get tool definitions for agent."""
-        from tools import BASH_TOOL, READ_FILE_TOOL, WRITE_FILE_TOOL
-
-        return [BASH_TOOL, READ_FILE_TOOL, WRITE_FILE_TOOL]
-
 
 # ============= Main Entry Point =============
 
@@ -1511,6 +1481,7 @@ async def main():
         neonize_db_path=os.getenv("NEONIZE_DB_PATH", "./neonize.db"),
         temporal_address=os.getenv("TEMPORAL_ADDRESS", "localhost:7233"),
         llm_model=os.getenv("LLM_MODEL", "claude-sonnet-4.5"),
+        my_phone_number=os.getenv("MY_PHONE_NUMBER", ""),
     )
 
     # Create and start listener
@@ -1535,71 +1506,6 @@ if __name__ == "__main__":
 
 ### How to Start Everything (MVP Setup)
 
-**Prerequisites:**
-1. Temporal server running (local or cloud)
-2. Claude API key
-3. Python 3.11+
-4. `brew install libmagic` (required by neonize)
-5. WhatsApp account to link as bot
-
-**Step-by-Step Startup:**
-
-**Terminal 1: Start Temporal Server**
-```bash
-# Install Temporal CLI first (if not installed)
-# brew install temporal (macOS)
-# or download from temporal.io
-
-# Start Temporal development server
-temporal server start-dev
-
-# Temporal UI available at: http://localhost:8080
-# gRPC endpoint: localhost:7233
-```
-
-**Terminal 2: Start WhatsApp Listener + Worker**
-```bash
-# Set environment variables
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
-export TEMPORAL_ADDRESS="localhost:7233"
-export LLM_MODEL="claude-sonnet-4.5"
-
-# Start listener (also starts worker internally)
-python -m src.whatsapp.listener
-
-# First run — displays QR code in terminal:
-# Starting WhatsApp Listener...
-# Connected to Temporal at localhost:7233
-# Auth database: ./neonize.db
-# [QR CODE APPEARS HERE — scan with WhatsApp]
-# Linked as 1234567890
-# Connected to WhatsApp as 1234567890
-
-# Subsequent runs — reconnects automatically:
-# Starting WhatsApp Listener...
-# Connected to WhatsApp as 1234567890
-# Listening for messages...
-```
-
-**Send a WhatsApp Message**
-```bash
-# Open WhatsApp on any phone
-# Send message to the linked number: "Find all TODO comments"
-
-# Terminal 2 (listener) shows:
-# Message from 9876543210 in chat 9876543210: Find all TODO comments
-# Starting new workflow: whatsapp-9876543210@c.us
-# Workflow started
-# Sent first message to new workflow
-
-# Worker output:
-# Executing workflow: whatsapp-9876543210@c.us
-# Activity: read_state_file (loading state)
-# Activity: call_llm_activity (processing message)
-# Activity: bash_executor_activity (executing tools)
-# Activity: write_state_file (saving state)
-```
-
 ### Configuration Files
 
 **.env** (root directory)
@@ -1614,12 +1520,15 @@ LLM_MODEL=claude-sonnet-4.5
 # Neonize (optional — defaults shown)
 NEONIZE_DB_PATH=./neonize.db
 
+# WhatsApp — only process messages from this number (digits only)
+MY_PHONE_NUMBER=1234567890
+
 # Workflow
 WORKFLOW_MAX_DURATION_MINUTES=60
 HEARTBEAT_INTERVAL_MINUTES=30
 ```
 
-### Production Deployment (Docker Compose)
+### Production and Development Deployment (Docker Compose)
 
 **docker-compose.yml**
 ```yaml
@@ -1660,10 +1569,12 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
       - LLM_MODEL=claude-sonnet-4.5
       - NEONIZE_DB_PATH=/app/neonize.db
+      - MY_PHONE_NUMBER=${MY_PHONE_NUMBER}
     volumes:
       - ./neonize.db:/app/neonize.db  # Persist auth across restarts
     restart: unless-stopped
 ```
+
 
 **Start everything with one command:**
 ```bash
@@ -3167,6 +3078,8 @@ async def _call_anthropic(input: LLMCallInput) -> LLMCallOutput:
 
 ### 4. Gateway Service (FastAPI)
 
+Note Gateway is not part of MVP. 
+
 ```python
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
@@ -3611,32 +3524,14 @@ Total: 2 seconds (3x faster!)
 
 ---
 
-### Phase 5: Cron and Scheduling (Week 5)
+### Phase 5: Cron and Scheduling — DEFERRED (Not MVP)
 
-**Goals**: Implement scheduled workflows and heartbeat management
+> **Moved out of MVP.** The WhatsApp listener handles workflow lifecycle (start on first message, signal on subsequent messages, restart on next message after expiry). Cron scheduling is useful for autonomous periodic agents but not needed for the conversational MVP. See `upgrade-ideas.md` for details.
 
-**Tasks**:
-1. **Temporal Cron Workflows**
-   - Configure workflow with cron schedule
-   - Test workflow restart on schedule
-   - Ensure state.md persists across runs
-
-2. **Workflow Duration Management**
-   - Implement graceful shutdown after X minutes
-   - Test workflow restart with state continuity
-
-3. **Cron Job Configuration**
-   - YAML config for cron jobs
-   - CLI to start/stop scheduled workflows
-
-**Deliverables**:
-- Workflows restart on schedule
-- State persists across runs
-- Configurable cron jobs
-
-**Testing**:
-- Cron test: start workflow with 1-minute duration, verify it restarts
-- State continuity test: verify state.md content preserved
+**Deferred Tasks**:
+- Temporal Cron Workflows
+- Workflow Duration Management (auto-restart on schedule)
+- Cron Job Configuration (YAML config, CLI)
 
 ---
 
@@ -4032,6 +3927,7 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
       - LLM_MODEL=${LLM_MODEL:-claude-sonnet-4.5-20250929}
       - NEONIZE_DB_PATH=/app/neonize.db
+      - MY_PHONE_NUMBER=${MY_PHONE_NUMBER}
     volumes:
       - ./neonize.db:/app/neonize.db  # Persist auth across restarts
     depends_on:
@@ -4419,6 +4315,7 @@ LLM_MODEL=claude-sonnet-4.5-20250929
 
 # WhatsApp (Neonize)
 NEONIZE_DB_PATH=./neonize.db
+MY_PHONE_NUMBER=1234567890  # Only process messages from this number (digits only)
 
 # Workflow Configuration
 DEFAULT_WORKFLOW_DURATION_MINUTES=60
