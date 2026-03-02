@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from neonize.client import NewClient
 from neonize.utils import log as neonize_log
+from temporalio.client import Client
 from temporalio.worker import Worker
 
 from opentlawpy.activities.whatsapp import create_send_whatsapp_message_activity
@@ -26,6 +27,17 @@ def force_exit(*_):
     os._exit(0)
 
 
+async def _run_activity_worker(client: Client, send_activity) -> None:
+    """Run the send-activity-only Temporal worker forever."""
+    worker = Worker(
+        client,
+        task_queue=TASK_QUEUE,
+        activities=[send_activity],
+        activity_executor=ThreadPoolExecutor(max_workers=5),
+    )
+    await worker.run()
+
+
 def main() -> None:
     signal.signal(signal.SIGINT, force_exit)
     signal.signal(signal.SIGTERM, force_exit)
@@ -38,68 +50,39 @@ def main() -> None:
     logger.info(f"WhatsApp number: {MY_WHATSAPP_NUMBER}")
     logger.info(f"Neonize DB: {NEONIZE_DB_PATH}")
 
-    # Create neonize client
     neonize_client = NewClient(NEONIZE_DB_PATH)
-
-    # Create send activity bound to neonize client
     send_activity = create_send_whatsapp_message_activity(neonize_client=neonize_client)
 
-    # Shared state for cross-thread access
-    state: dict = {}
+    # Start event loop in daemon thread
     loop = asyncio.new_event_loop()
-    worker_ready = threading.Event()
+    threading.Thread(target=loop.run_forever, daemon=True, name="async-loop").start()
 
-    def run_activity_worker():
-        """Run send-activity-only Temporal worker on a daemon thread."""
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(
-            _start_activity_worker(
-                state=state,
-                send_activity=send_activity,
-                worker_ready=worker_ready,
-            )
-        )
+    # Connect to Temporal (blocks until connected)
+    logger.info("Connecting to Temporal...")
+    temporal_client = asyncio.run_coroutine_threadsafe(
+        create_temporal_client(temporal_address=TEMPORAL_ADDRESS),
+        loop,
+    ).result(timeout=30)
+    logger.info(f"Connected to Temporal at {TEMPORAL_ADDRESS}, task queue: {TASK_QUEUE}")
 
-    daemon = threading.Thread(target=run_activity_worker, daemon=True, name="activity-worker")
-    daemon.start()
-
-    # Wait for Temporal connection
-    logger.info("Waiting for Temporal connection...")
-    worker_ready.wait(timeout=30)
-    if not worker_ready.is_set():
-        logger.error("Temporal connection failed within 30 seconds")
-        return
-    logger.info("Activity worker ready")
+    # Start activity worker (non-blocking — runs on the loop)
+    worker_future = asyncio.run_coroutine_threadsafe(
+        _run_activity_worker(client=temporal_client, send_activity=send_activity),
+        loop,
+    )
+    worker_future.add_done_callback(
+        lambda f: logger.error(f"Activity worker died: {f.exception()}") if f.exception() else None
+    )
 
     # Start WhatsApp listener on main thread (blocks)
     listener = WhatsAppListener(
         neonize_client=neonize_client,
-        temporal_client=state["temporal_client"],
+        temporal_client=temporal_client,
         my_whatsapp_number=MY_WHATSAPP_NUMBER,
         event_loop=loop,
     )
     listener.start()
 
 
-async def _start_activity_worker(
-    state: dict,
-    send_activity,
-    worker_ready: threading.Event,
-) -> None:
-    """Connect to Temporal and run the send-activity-only worker."""
-    temporal_client = await create_temporal_client(temporal_address=TEMPORAL_ADDRESS)
-    state["temporal_client"] = temporal_client
-
-    logger.info(f"Connected to Temporal at {TEMPORAL_ADDRESS}, task queue: {TASK_QUEUE}")
-    worker_ready.set()
-
-    worker = Worker(
-        temporal_client,
-        task_queue=TASK_QUEUE,
-        activities=[send_activity],
-        activity_executor=ThreadPoolExecutor(max_workers=5),
-    )
-    await worker.run()
-
-
-main()
+if __name__ == "__main__":
+    main()
