@@ -4,7 +4,9 @@
 Always prefer calling functions using kwargs whenever possible. This 
 might not be possible with temporal however. Use ruff for formatting and ty for type checking. 
 
-uv is used for package management. 
+uv is used for package management.
+
+Do NOT put logic in `__init__.py` files — keep them empty. Use dedicated modules instead (e.g. `activities/create_activities.py` not `activities/__init__.py`).
 
 # Development Rules
 

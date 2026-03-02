@@ -116,12 +116,18 @@ neonize.db note: It stores WhatsApp session auth (encryption keys). Only the lis
 
 **Goal**: Replace "Hello World" with actual LLM calls. Agent can think and respond.
 
-### 2.1 LLM Call Activity
-- [ ] Create `src/activities/llm_call.py` — call Anthropic API
-- [ ] Create `src/llm/__init__.py`
-- [ ] Create `src/llm/anthropic_client.py` — wrapper around Anthropic SDK
-- [ ] Test: activity calls Claude, returns response text
-- [ ] Add retry policy (3 attempts, exponential backoff)
+### 2.1 LLM Call Activity (DONE)
+- [x] Create `src/opentlawpy/models/llm.py` — `LLMCallInput`, `LLMCallOutput` dataclasses
+- [x] Create `src/opentlawpy/llm/__init__.py`
+- [x] Create `src/opentlawpy/llm/anthropic_client.py` — async wrapper around Anthropic SDK
+- [x] Create `src/opentlawpy/activities/llm_call.py` — factory pattern matching whatsapp.py
+- [x] Add `ANTHROPIC_API_KEY` and `LLM_MODEL` to `config.py`
+- [x] Register `call_llm` activity in `worker/__main__.py`
+- [x] Test: 3 unit tests pass (activity returns response, propagates errors, client maps SDK response)
+- [ ] Add retry policy (3 attempts, exponential backoff) — deferred to Phase 6
+
+Addendum:
+- [ ] Move workflow timeout to config.py controlled via an env var. Set this to 15 mins by default.
 
 ### 2.2 Agent Thinking Loop (No Tools Yet)
 - [ ] Update `agent_workflow.py`:
@@ -283,8 +289,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 1 (Lean E2E "Hello World") — code complete, pending manual E2E verification
-**Next Milestone**: Phase 1.4 E2E test (docker-compose up, send WhatsApp message, verify echo)
+**Current Phase**: Phase 2 (LLM Integration) — 2.1 done, next is 2.2
+**Next Milestone**: Phase 2.2 Agent Thinking Loop (wire call_llm into workflow)
 
 **Blockers**: None
 

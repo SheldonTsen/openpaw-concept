@@ -3,6 +3,7 @@ import logging
 
 from temporalio.worker import Worker
 
+from opentlawpy.activities.create_activities import create_activities
 from opentlawpy.config import TASK_QUEUE, TEMPORAL_ADDRESS
 from opentlawpy.logging import setup_logging
 from opentlawpy.worker.worker import create_temporal_client
@@ -20,8 +21,10 @@ async def main() -> None:
         client,
         task_queue=TASK_QUEUE,
         workflows=[AgentWorkflow],
+        activities=create_activities(),
     )
     await worker.run()
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
