@@ -127,7 +127,7 @@ neonize.db note: It stores WhatsApp session auth (encryption keys). Only the lis
 - [ ] Add retry policy (3 attempts, exponential backoff) — deferred to Phase 6
 
 Addendum:
-- [ ] Move workflow timeout to config.py controlled via an env var. Set this to 15 mins by default.
+- [x] Move workflow timeout to config.py (`WORKFLOW_TIMEOUT_MINUTES`, default 15 min)
 
 ### 2.2 Agent Thinking Loop (No Tools Yet)
 - [ ] Update `agent_workflow.py`:

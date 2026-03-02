@@ -3,6 +3,9 @@ from datetime import timedelta
 
 from temporalio import workflow
 
+with workflow.unsafe.imports_passed_through():
+    from opentlawpy.config import WORKFLOW_TIMEOUT_MINUTES
+
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
 
 
@@ -14,14 +17,16 @@ class AgentWorkflow:
     @workflow.run
     async def run(self, chat_id: str) -> None:
         while True:
-            # Wait for messages or timeout after 60 minutes
             try:
                 await workflow.wait_condition(
                     lambda: len(self._pending_messages) > 0,
-                    timeout=timedelta(minutes=60),
+                    timeout=timedelta(minutes=WORKFLOW_TIMEOUT_MINUTES),
                 )
             except asyncio.TimeoutError:
-                workflow.logger.info(f"Workflow {chat_id} timed out after 60 minutes of inactivity")
+                workflow.logger.info(
+                    f"Workflow {chat_id} timed out after "
+                    f"{WORKFLOW_TIMEOUT_MINUTES} minutes of inactivity"
+                )
                 return
 
             # Process all pending messages
