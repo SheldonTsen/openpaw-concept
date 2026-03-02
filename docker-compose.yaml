@@ -142,7 +142,7 @@ services:
     networks:
       - temporal-network
     restart: unless-stopped
-    command: ["uv", "run", "python", "-m", "src.worker"]
+    command: ["uv", "run", "python", "-m", "opentlawpy.worker"]
 
   listener:
     build: .
@@ -154,14 +154,14 @@ services:
         condition: service_completed_successfully
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-      - MY_PHONE_NUMBER=${MY_PHONE_NUMBER:-${MY_WHATSAPP_NUMBER}}
+      - MY_WHATSAPP_NUMBER=${MY_WHATSAPP_NUMBER}
       - NEONIZE_DB_PATH=/data/neonize.db
     volumes:
       - ./neonize.db:/data/neonize.db
     networks:
       - temporal-network
     restart: unless-stopped
-    command: ["uv", "run", "python", "-m", "src.whatsapp"]
+    command: ["uv", "run", "python", "-m", "opentlawpy.whatsapp"]
 
 networks:
   temporal-network:

@@ -1,19 +1,15 @@
 import asyncio
 import logging
-import os
 
 from temporalio.worker import Worker
 
-from src.worker.worker import TASK_QUEUE, create_temporal_client
-from src.workflows.agent_workflow import AgentWorkflow
+from opentlawpy.config import TASK_QUEUE, TEMPORAL_ADDRESS
+from opentlawpy.logging import setup_logging
+from opentlawpy.worker.worker import create_temporal_client
+from opentlawpy.workflows.agent_workflow import AgentWorkflow
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-)
+setup_logging()
 logger = logging.getLogger(__name__)
-
-TEMPORAL_ADDRESS = os.environ.get("TEMPORAL_ADDRESS", "localhost:7233")
 
 
 async def main() -> None:

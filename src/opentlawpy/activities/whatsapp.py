@@ -2,7 +2,7 @@ from typing import Callable
 
 from temporalio import activity
 
-from src.models.messages import SendMessageInput, SendMessageOutput
+from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
 
 
 def create_send_whatsapp_message_activity(

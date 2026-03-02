@@ -6,7 +6,7 @@ Inspired by [OpenClaw](https://github.com/openclaw) — but in Python, and using
 
 > **Name origin**: Openclaw → Open**t**law (Temporal) → Open**t**law**py** (Python). Yeah...
 
-## Quick Start
+## Quick Start (Prod)
 
 ```
 cp .env.example .env
@@ -17,6 +17,19 @@ docker compose up --build
 docker compose logs listener # scan the bar code to link
 ```
 
+## Quick Start (Dev)
+
+
+```
+cp .env.example .env
+# fill in required details mainly API key and whatsapp phone number
+
+# terminal 1
+docker compose -f docker-compose.yaml -f docker-compose.dev.yml watch --remove-orphans
+
+# terminal 2
+docker compose logs -f worker listener
+```
 
 ## Architecture
 
