@@ -137,6 +137,7 @@ services:
         condition: service_healthy
       temporal-create-namespace:
         condition: service_completed_successfully
+    env_file: .env
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
     networks:
@@ -152,9 +153,9 @@ services:
         condition: service_healthy
       temporal-create-namespace:
         condition: service_completed_successfully
+    env_file: .env
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-      - MY_WHATSAPP_NUMBER=${MY_WHATSAPP_NUMBER}
       - NEONIZE_DB_PATH=/data/neonize.db
     volumes:
       - ./neonize.db:/data/neonize.db

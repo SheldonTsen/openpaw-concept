@@ -4,8 +4,11 @@ from opentlawpy.models.llm import LLMCallOutput
 
 
 class AnthropicClient:
-    def __init__(self, *, api_key: str):
-        self._client = anthropic.AsyncAnthropic(api_key=api_key)
+    def __init__(self, *, api_key: str, base_url: str = ""):
+        kwargs: dict = {"api_key": api_key}
+        if base_url:
+            kwargs["base_url"] = base_url
+        self._client = anthropic.AsyncAnthropic(**kwargs)
 
     async def chat(self, *, messages: list[dict], model: str, max_tokens: int) -> LLMCallOutput:
         response = await self._client.messages.create(

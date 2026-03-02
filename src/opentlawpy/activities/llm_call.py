@@ -1,15 +1,14 @@
-from typing import Callable
+from typing import Any, Callable
 
 from temporalio import activity
 
-from opentlawpy.llm.anthropic_client import AnthropicClient
 from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 
 
-def create_call_llm_activity(*, anthropic_client: AnthropicClient) -> Callable:
+def create_call_llm_activity(*, llm_client: Any) -> Callable:
     @activity.defn(name="call_llm")
     async def call_llm(input: LLMCallInput) -> LLMCallOutput:
-        return await anthropic_client.chat(
+        return await llm_client.chat(
             messages=input.messages,
             model=input.model,
             max_tokens=input.max_tokens,
