@@ -58,9 +58,10 @@ class WhatsAppListener:
 
         is_from_me = message.Info.MessageSource.IsFromMe
         sender = message.Info.MessageSource.Sender.User
+        chat = message.Info.MessageSource.Chat.User
 
-        # Only process messages from ourselves
-        if not is_from_me and sender != self._my_whatsapp_number:
+        # Only process messages I send to myself
+        if not is_from_me or chat != self._my_whatsapp_number:
             return
 
         logger.info(f"Received message from {sender}: {text}")
