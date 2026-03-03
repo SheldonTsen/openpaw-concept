@@ -1,6 +1,7 @@
 from opentlawpy.activities.file_operations import read_file_activity, write_file_activity
 from opentlawpy.activities.llm_call import create_call_llm_activity
 from opentlawpy.activities.tool_command import execute_tool_command
+from opentlawpy.activities.tool_loader import load_tools_activity
 from opentlawpy.config import (
     ANTHROPIC_API_KEY,
     ANTHROPIC_BASE_URL,
@@ -24,4 +25,5 @@ def create_activities() -> list:
         execute_tool_command,
         read_file_activity,
         write_file_activity,
+        load_tools_activity,
     ]

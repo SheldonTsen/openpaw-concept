@@ -12,6 +12,7 @@ def create_call_llm_activity(*, llm_client: Any) -> Callable:
             messages=input.messages,
             model=input.model,
             max_tokens=input.max_tokens,
+            tools=input.tools,
         )
 
     return call_llm
