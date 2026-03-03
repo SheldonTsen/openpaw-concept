@@ -18,7 +18,7 @@ async def test_call_llm_activity_returns_response():
     )
     mock_client.chat.return_value = expected_output
 
-    call_llm = create_call_llm_activity(anthropic_client=mock_client)
+    call_llm = create_call_llm_activity(llm_client=mock_client)
 
     input_data = LLMCallInput(messages=[{"role": "user", "content": "Hi"}])
     result = await call_llm(input_data)
@@ -36,7 +36,7 @@ async def test_call_llm_activity_propagates_errors():
     mock_client = AsyncMock(spec=AnthropicClient)
     mock_client.chat.side_effect = RuntimeError("API rate limited")
 
-    call_llm = create_call_llm_activity(anthropic_client=mock_client)
+    call_llm = create_call_llm_activity(llm_client=mock_client)
 
     input_data = LLMCallInput(messages=[{"role": "user", "content": "Hi"}])
     with pytest.raises(RuntimeError, match="API rate limited"):
