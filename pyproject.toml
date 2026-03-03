@@ -7,6 +7,7 @@ dependencies = [
     "temporalio<=2.0.0",
     "neonize<=1.0.0",
     "anthropic<=1.0.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
