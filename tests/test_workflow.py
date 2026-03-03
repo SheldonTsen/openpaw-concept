@@ -2,10 +2,12 @@ from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 
-from opentlawpy.config import WHATSAPP_TASK_QUEUE
+from opentlawpy.config import SYSTEM_PROMPT, WHATSAPP_TASK_QUEUE
 from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
+
+SYSTEM_MESSAGE = {"role": "system", "content": SYSTEM_PROMPT}
 
 TASK_QUEUE = "test-agent-tasks"
 
@@ -59,7 +61,10 @@ async def test_workflow_calls_llm_and_sends_response():
             await handle.result()
 
     assert len(llm_calls) == 1
-    assert llm_calls[0].messages == [{"role": "user", "content": "Hi there"}]
+    assert llm_calls[0].messages == [
+        SYSTEM_MESSAGE,
+        {"role": "user", "content": "Hi there"},
+    ]
 
     assert len(send_calls) == 1
     assert send_calls[0].phone_number == "1234567890"
@@ -132,12 +137,58 @@ async def test_workflow_sends_conversation_history():
 
     assert len(llm_calls) >= 2
 
-    # First call: only the first user message
-    assert llm_calls[0].messages == [{"role": "user", "content": "Hello"}]
+    # First call: system prompt + first user message
+    assert llm_calls[0].messages == [
+        SYSTEM_MESSAGE,
+        {"role": "user", "content": "Hello"},
+    ]
 
-    # Second call: full history (user + assistant + user)
+    # Second call: system prompt + full history (user + assistant + user)
     assert llm_calls[1].messages == [
+        SYSTEM_MESSAGE,
         {"role": "user", "content": "Hello"},
         {"role": "assistant", "content": "LLM response to: Hello"},
         {"role": "user", "content": "How are you?"},
     ]
+
+
+async def test_system_prompt_prepended_to_every_llm_call():
+    """System prompt is the first message in every LLM call, not stored in history."""
+    send_calls.clear()
+    llm_calls.clear()
+
+    async with await WorkflowEnvironment.start_time_skipping() as env:
+        async with Worker(
+            env.client,
+            task_queue=TASK_QUEUE,
+            workflows=[AgentWorkflow],
+            activities=[mock_call_llm],
+        ), Worker(
+            env.client,
+            task_queue=WHATSAPP_TASK_QUEUE,
+            activities=[mock_send_whatsapp_message],
+        ):
+            handle = await env.client.start_workflow(
+                AgentWorkflow.run,
+                arg="7777777777",
+                id="test-workflow-4",
+                task_queue=TASK_QUEUE,
+                start_signal="new_message",
+                start_signal_args=["7777777777", "Msg1"],
+            )
+
+            await handle.signal(AgentWorkflow.new_message, args=["7777777777", "Msg2"])
+
+            await handle.result()
+
+    assert len(llm_calls) >= 2
+
+    # Every LLM call starts with the system prompt
+    for call in llm_calls:
+        assert call.messages[0] == SYSTEM_MESSAGE
+
+    # System prompt is NOT duplicated in conversation history
+    # (only one system message per call, the rest are user/assistant)
+    for call in llm_calls:
+        system_messages = [m for m in call.messages if m["role"] == "system"]
+        assert len(system_messages) == 1

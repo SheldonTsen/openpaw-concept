@@ -147,10 +147,10 @@ Addendum — OpenRouter (free) support:
 - [x] Pass `OPENROUTER_API_KEY` and `LLM_PROVIDER` through `docker-compose.yaml` + `.env.example`
 - [x] Unit tests: 3 tests for OpenRouterClient (request body, missing usage, HTTP error)
 
-### 2.3 System Prompt
-- [ ] Add configurable system prompt to WorkflowConfig
-- [ ] Load system prompt from file or env var
-- [ ] Test: agent responds according to system prompt personality
+### 2.3 System Prompt (DONE)
+- [x] Add `SYSTEM_PROMPT` constant to `config.py`
+- [x] Workflow prepends system prompt as `{"role": "system", ...}` to every LLM call (not stored in conversation history)
+- [x] Test: system prompt is prepended to every LLM call and not duplicated
 
 ---
 
@@ -299,8 +299,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 2 (LLM Integration) — 2.1 & 2.2 done, next is 2.3
-**Next Milestone**: Phase 2.3 System Prompt
+**Current Phase**: Phase 2 (LLM Integration) — 2.1, 2.2, 2.3 done
+**Next Milestone**: Phase 3.1 Tool Definitions
 
 **Blockers**: None
 
