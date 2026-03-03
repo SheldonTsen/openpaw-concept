@@ -5,7 +5,12 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
-    from opentlawpy.config import LLM_MODEL, WHATSAPP_TASK_QUEUE, WORKFLOW_TIMEOUT_MINUTES
+    from opentlawpy.config import (
+        LLM_MODEL,
+        SYSTEM_PROMPT,
+        WHATSAPP_TASK_QUEUE,
+        WORKFLOW_TIMEOUT_MINUTES,
+    )
     from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
@@ -44,10 +49,12 @@ class AgentWorkflow:
     async def _handle_message(self, chat_id: str, message: IncomingMessage) -> None:
         self._conversation_history.append({"role": "user", "content": message.text})
 
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._conversation_history
+
         llm_output = await workflow.execute_activity(
             "call_llm",
             arg=LLMCallInput(
-                messages=list(self._conversation_history),
+                messages=messages,
                 model=LLM_MODEL,
             ),
             result_type=LLMCallOutput,
