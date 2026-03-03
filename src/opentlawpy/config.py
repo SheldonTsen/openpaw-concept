@@ -15,3 +15,4 @@ LLM_MODEL = os.environ.get("LLM_MODEL", "claude-sonnet-4-5-20250929")
 OPENROUTER_TIMEOUT = float(os.environ.get("OPENROUTER_TIMEOUT", "120.0"))
 SYSTEM_PROMPT = "You are a helpful assistant."
 TOOLS_DIR = os.path.join(os.path.dirname(__file__), "tools")
+DEFAULT_TOOL_PRIORITY = 999
