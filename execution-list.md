@@ -170,9 +170,9 @@ Addendum — OpenRouter (free) support:
 - [x] All 15 tests pass, ruff clean
 
 ### 3.2 Tool Activities (DONE)
-- [x] Created `src/opentlawpy/models/tool_activities.py` — `ToolCommandInput/Output`, `ReadFileInput/Output`, `WriteFileInput/Output` dataclasses
+- [x] Created `src/opentlawpy/models/tool_activities.py` — `BashCommandOutput/Output`, `ReadFileInput/Output`, `WriteFileInput/Output` dataclasses
 - [x] Added `WORKSPACE_DIR` to `config.py` (env var with `./workspace` default)
-- [x] Created `src/opentlawpy/activities/tool_command.py` — generic `execute_tool_command` activity (`asyncio.create_subprocess_shell`, timeout enforcement, output truncation)
+- [x] Created `src/opentlawpy/activities/tool_command.py` — generic `execute_bash_command` activity (`asyncio.create_subprocess_shell`, timeout enforcement, output truncation)
 - [x] Created `src/opentlawpy/activities/file_operations.py` — `read_file_activity`, `write_file_activity` with path traversal prevention via `os.path.realpath()` + workspace boundary check
 - [x] Updated `create_activities.py` — registers all 3 new activities alongside `call_llm`
 - [x] Created `tests/test_tool_command.py` — 3 tests (simple command, nonzero exit, timeout)

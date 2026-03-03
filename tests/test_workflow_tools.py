@@ -10,7 +10,7 @@ from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
 from opentlawpy.models.tool_activities import (
     ReadFileInput,
     ReadFileOutput,
-    ToolCommandInput,
+    BashCommandOutput,
     ToolCommandOutput,
     WriteFileInput,
     WriteFileOutput,
@@ -23,7 +23,7 @@ TASK_QUEUE = "test-tool-tasks"
 # Track activity calls for assertions
 send_calls: list[SendMessageInput] = []
 llm_calls: list[LLMCallInput] = []
-tool_command_calls: list[ToolCommandInput] = []
+tool_command_calls: list[BashCommandOutput] = []
 read_file_calls: list[ReadFileInput] = []
 write_file_calls: list[WriteFileInput] = []
 
@@ -34,8 +34,8 @@ async def mock_send(input: SendMessageInput) -> SendMessageOutput:
     return SendMessageOutput(success=True)
 
 
-@activity.defn(name="execute_tool_command")
-async def mock_execute_tool_command(input: ToolCommandInput) -> ToolCommandOutput:
+@activity.defn(name="execute_bash_command")
+async def mock_execute_bash_command(input: BashCommandOutput) -> ToolCommandOutput:
     tool_command_calls.append(input)
     return ToolCommandOutput(stdout="file1.txt\nfile2.txt", stderr="", exit_code=0, success=True)
 
@@ -119,7 +119,7 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
             workflows=[AgentWorkflow],
             activities=[
                 mock_call_llm,
-                mock_execute_tool_command,
+                mock_execute_bash_command,
                 mock_read_file,
                 mock_write_file,
                 mock_load_tools,
@@ -196,8 +196,8 @@ async def test_workflow_tool_error_fed_back():
     _clear_all()
     call_count = 0
 
-    @activity.defn(name="execute_tool_command")
-    async def mock_failing_command(input: ToolCommandInput) -> ToolCommandOutput:
+    @activity.defn(name="execute_bash_command")
+    async def mock_failing_command(input: BashCommandOutput) -> ToolCommandOutput:
         tool_command_calls.append(input)
         return ToolCommandOutput(
             stdout="",
