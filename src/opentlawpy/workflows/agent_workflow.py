@@ -7,11 +7,15 @@ from temporalio.common import RetryPolicy
 with workflow.unsafe.imports_passed_through():
     from opentlawpy.config import (
         LLM_MODEL,
+        MAX_TOOL_ITERATIONS,
         SYSTEM_PROMPT,
         WHATSAPP_TASK_QUEUE,
         WORKFLOW_TIMEOUT_MINUTES,
     )
     from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
+    from opentlawpy.utils.tool_loader import load_tools
+    from opentlawpy.workflows.tool_executor import execute_tool_calls
+    from opentlawpy.activities.tool_loader import load_tools_activity
 
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
 
@@ -49,21 +53,57 @@ class AgentWorkflow:
     async def _handle_message(self, chat_id: str, message: IncomingMessage) -> None:
         self._conversation_history.append({"role": "user", "content": message.text})
 
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._conversation_history
-
-        llm_output = await workflow.execute_activity(
-            "call_llm",
-            arg=LLMCallInput(
-                messages=messages,
-                model=LLM_MODEL,
-            ),
-            result_type=LLMCallOutput,
-            start_to_close_timeout=timedelta(seconds=60),
-            retry_policy=RetryPolicy(maximum_attempts=3),
+        tools = await workflow.execute_activity(
+            load_tools_activity,
+            start_to_close_timeout=timedelta(seconds=10),
         )
+        tool_defs_for_llm = [t.to_llm_format() for t in tools]
 
-        response_text = llm_output.response_text
-        self._conversation_history.append({"role": "assistant", "content": response_text})
+        for _iteration in range(MAX_TOOL_ITERATIONS):
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._conversation_history
+
+            llm_output = await workflow.execute_activity(
+                "call_llm",
+                arg=LLMCallInput(
+                    messages=messages,
+                    model=LLM_MODEL,
+                    tools=tool_defs_for_llm,
+                ),
+                result_type=LLMCallOutput,
+                start_to_close_timeout=timedelta(seconds=120),
+                retry_policy=RetryPolicy(maximum_attempts=3),
+            )
+
+            if not llm_output.tool_calls:
+                # LLM is done — store final response and break
+                self._conversation_history.append({
+                    "role": "assistant",
+                    "content": llm_output.response_text,
+                })
+                break
+
+            # Store assistant message with tool calls
+            self._conversation_history.append({
+                "role": "assistant",
+                "content": llm_output.response_text or "",
+                "tool_calls": llm_output.tool_calls,
+            })
+
+            # Execute tools in parallel, add results to history
+            tool_results = await execute_tool_calls(
+                tool_calls=llm_output.tool_calls,
+                tool_definitions=tools,
+            )
+            self._conversation_history.extend(tool_results)
+        else:
+            # Hit max iterations
+            self._conversation_history.append({
+                "role": "assistant",
+                "content": "I've reached my thinking limit for this message.",
+            })
+
+        # Extract last assistant content for the WhatsApp reply
+        response_text = self._conversation_history[-1]["content"]
 
         await workflow.execute_activity(
             "send_whatsapp_message",

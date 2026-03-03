@@ -28,6 +28,7 @@ async def test_call_llm_activity_returns_response():
         messages=[{"role": "user", "content": "Hi"}],
         model="claude-sonnet-4-5-20250929",
         max_tokens=4096,
+        tools=None,
     )
 
 

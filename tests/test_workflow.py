@@ -1,10 +1,11 @@
 from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
-from temporalio.worker import Worker
+from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
 from opentlawpy.config import SYSTEM_PROMPT, WHATSAPP_TASK_QUEUE
 from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
+from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 
 SYSTEM_MESSAGE = {"role": "system", "content": SYSTEM_PROMPT}
@@ -33,6 +34,11 @@ async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
     )
 
 
+@activity.defn(name="load_tools_activity")
+async def mock_load_tools() -> list[ToolDefinition]:
+    return []
+
+
 async def test_workflow_calls_llm_and_sends_response():
     """Start workflow with signal, verify it calls call_llm then send_whatsapp_message."""
     send_calls.clear()
@@ -43,7 +49,8 @@ async def test_workflow_calls_llm_and_sends_response():
             env.client,
             task_queue=TASK_QUEUE,
             workflows=[AgentWorkflow],
-            activities=[mock_call_llm],
+            activities=[mock_call_llm, mock_load_tools],
+            workflow_runner=UnsandboxedWorkflowRunner(),
         ), Worker(
             env.client,
             task_queue=WHATSAPP_TASK_QUEUE,
@@ -81,7 +88,8 @@ async def test_workflow_multiple_messages():
             env.client,
             task_queue=TASK_QUEUE,
             workflows=[AgentWorkflow],
-            activities=[mock_call_llm],
+            activities=[mock_call_llm, mock_load_tools],
+            workflow_runner=UnsandboxedWorkflowRunner(),
         ), Worker(
             env.client,
             task_queue=WHATSAPP_TASK_QUEUE,
@@ -116,7 +124,8 @@ async def test_workflow_sends_conversation_history():
             env.client,
             task_queue=TASK_QUEUE,
             workflows=[AgentWorkflow],
-            activities=[mock_call_llm],
+            activities=[mock_call_llm, mock_load_tools],
+            workflow_runner=UnsandboxedWorkflowRunner(),
         ), Worker(
             env.client,
             task_queue=WHATSAPP_TASK_QUEUE,
@@ -162,7 +171,8 @@ async def test_system_prompt_prepended_to_every_llm_call():
             env.client,
             task_queue=TASK_QUEUE,
             workflows=[AgentWorkflow],
-            activities=[mock_call_llm],
+            activities=[mock_call_llm, mock_load_tools],
+            workflow_runner=UnsandboxedWorkflowRunner(),
         ), Worker(
             env.client,
             task_queue=WHATSAPP_TASK_QUEUE,

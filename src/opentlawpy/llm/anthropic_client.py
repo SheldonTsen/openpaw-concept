@@ -10,7 +10,14 @@ class AnthropicClient:
             kwargs["base_url"] = base_url
         self._client = anthropic.AsyncAnthropic(**kwargs)
 
-    async def chat(self, *, messages: list[dict], model: str, max_tokens: int) -> LLMCallOutput:
+    async def chat(
+        self,
+        *,
+        messages: list[dict],
+        model: str,
+        max_tokens: int,
+        tools: list[dict] | None = None,
+    ) -> LLMCallOutput:
         response = await self._client.messages.create(
             model=model,
             max_tokens=max_tokens,
