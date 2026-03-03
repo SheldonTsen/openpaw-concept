@@ -3,7 +3,7 @@ import os
 
 import yaml
 
-from opentlawpy.config import TOOLS_DIR
+from opentlawpy.config import DEFAULT_TOOL_PRIORITY, TOOLS_DIR
 from opentlawpy.models.tools import ToolDefinition
 
 DEFAULT_TIERS = ["essential", "common"]
@@ -60,5 +60,5 @@ def load_tools(
             )
         )
 
-    tools.sort(key=lambda t: t.metadata.get("priority", 999))
+    tools.sort(key=lambda t: t.metadata.get("priority", DEFAULT_TOOL_PRIORITY))
     return tools
