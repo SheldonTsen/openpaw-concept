@@ -169,9 +169,15 @@ Addendum — OpenRouter (free) support:
 - [x] Created `tests/test_tool_loader.py` — 5 tests (load all, required fields, filter by tier, sorted by priority, LLM format)
 - [x] All 15 tests pass, ruff clean
 
-### 3.2 Tool Activities
-- [ ] Create `src/activities/bash_executor.py` — execute bash with safety checks
-- [ ] Create `src/activities/file_operations.py` — read_file, write_file
+### 3.2 Tool Activities (DONE)
+- [x] Created `src/opentlawpy/models/tool_activities.py` — `ToolCommandInput/Output`, `ReadFileInput/Output`, `WriteFileInput/Output` dataclasses
+- [x] Added `WORKSPACE_DIR` to `config.py` (env var with `./workspace` default)
+- [x] Created `src/opentlawpy/activities/tool_command.py` — generic `execute_tool_command` activity (`asyncio.create_subprocess_shell`, timeout enforcement, output truncation)
+- [x] Created `src/opentlawpy/activities/file_operations.py` — `read_file_activity`, `write_file_activity` with path traversal prevention via `os.path.realpath()` + workspace boundary check
+- [x] Updated `create_activities.py` — registers all 3 new activities alongside `call_llm`
+- [x] Created `tests/test_tool_command.py` — 3 tests (simple command, nonzero exit, timeout)
+- [x] Created `tests/test_file_operations.py` — 8 tests (read/write, path traversal, large file, append, auto-create dirs)
+- [x] All 26 tests pass, ruff clean
 
 ### 3.3 Agent Thinking Loop (With Tools)
 - [ ] Update `agent_workflow.py`:
@@ -304,8 +310,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 3 (Tool Execution) — 3.1 done
-**Next Milestone**: Phase 3.2 Tool Activities
+**Current Phase**: Phase 3 (Tool Execution) — 3.1, 3.2 done
+**Next Milestone**: Phase 3.3 Agent Thinking Loop (With Tools)
 
 **Blockers**: None
 

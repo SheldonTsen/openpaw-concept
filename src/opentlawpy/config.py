@@ -16,3 +16,6 @@ OPENROUTER_TIMEOUT = float(os.environ.get("OPENROUTER_TIMEOUT", "120.0"))
 SYSTEM_PROMPT = "You are a helpful assistant."
 TOOLS_DIR = os.path.join(os.path.dirname(__file__), "tools")
 DEFAULT_TOOL_PRIORITY = 999
+WORKSPACE_DIR = os.environ.get("WORKSPACE_DIR", "./workspace")
+MAX_COMMAND_TIMEOUT = 300
+MAX_COMMAND_OUTPUT_BYTES = 100_000
