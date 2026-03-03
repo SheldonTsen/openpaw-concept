@@ -158,11 +158,16 @@ Addendum — OpenRouter (free) support:
 
 **Goal**: LLM can call tools (bash, read_file, write_file). Multi-step reasoning works.
 
-### 3.1 Tool Definitions
-- [ ] Create `tools/bash/TOOL.md`
-- [ ] Create `tools/read_file/TOOL.md`
-- [ ] Create `tools/write_file/TOOL.md`
-- [ ] Create `src/utils/tool_loader.py` — load TOOL.md files, convert to Anthropic format
+### 3.1 Tool Definitions (DONE)
+- [x] Moved `tools/` → `src/opentlawpy/tools/` (available inside Docker containers)
+- [x] 8 TOOL.md files already exist: bash, read_file, write_file, python, web_search, git, grep, calculator
+- [x] Created `src/opentlawpy/models/tools.py` — `ToolDefinition` dataclass with `to_llm_format()` (OpenAI function-calling format)
+- [x] Created `src/opentlawpy/utils/__init__.py` (empty)
+- [x] Created `src/opentlawpy/utils/tool_loader.py` — `load_tools()` parses YAML frontmatter, filters by tier, sorts by priority
+- [x] Added `pyyaml>=6.0` to `pyproject.toml` dependencies
+- [x] Added `TOOLS_DIR` to `config.py` (resolves to `src/opentlawpy/tools/`)
+- [x] Created `tests/test_tool_loader.py` — 5 tests (load all, required fields, filter by tier, sorted by priority, LLM format)
+- [x] All 15 tests pass, ruff clean
 
 ### 3.2 Tool Activities
 - [ ] Create `src/activities/bash_executor.py` — execute bash with safety checks
@@ -299,8 +304,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 2 (LLM Integration) — 2.1, 2.2, 2.3 done
-**Next Milestone**: Phase 3.1 Tool Definitions
+**Current Phase**: Phase 3 (Tool Execution) — 3.1 done
+**Next Milestone**: Phase 3.2 Tool Activities
 
 **Blockers**: None
 
