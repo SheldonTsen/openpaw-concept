@@ -22,14 +22,16 @@ def _parse_tool_calls(raw_tool_calls: list[dict] | None) -> list[dict]:
         if isinstance(arguments, str):
             arguments = json.loads(arguments)
 
-        parsed.append({
-            "id": tc["id"],
-            "type": tc["type"],
-            "function": {
-                "name": tc["function"]["name"],
-                "arguments": arguments,
-            },
-        })
+        parsed.append(
+            {
+                "id": tc["id"],
+                "type": tc["type"],
+                "function": {
+                    "name": tc["function"]["name"],
+                    "arguments": arguments,
+                },
+            }
+        )
     return parsed
 
 
@@ -41,21 +43,23 @@ def _serialize_messages(messages: list[dict]) -> list[dict]:
             serialized.append(msg)
             continue
 
-        serialized.append({
-            **msg,
-            "tool_calls": [
-                {
-                    **tc,
-                    "function": {
-                        **tc["function"],
-                        "arguments": json.dumps(tc["function"]["arguments"])
-                        if isinstance(tc["function"]["arguments"], dict)
-                        else tc["function"]["arguments"],
-                    },
-                }
-                for tc in msg["tool_calls"]
-            ],
-        })
+        serialized.append(
+            {
+                **msg,
+                "tool_calls": [
+                    {
+                        **tc,
+                        "function": {
+                            **tc["function"],
+                            "arguments": json.dumps(tc["function"]["arguments"])
+                            if isinstance(tc["function"]["arguments"], dict)
+                            else tc["function"]["arguments"],
+                        },
+                    }
+                    for tc in msg["tool_calls"]
+                ],
+            }
+        )
     return serialized
 
 
@@ -84,7 +88,7 @@ class OpenRouterClient:
         if tools:
             payload["tools"] = tools
 
-        logger.info("OpenRouter payload: payload=%s", payload)    
+        logger.debug("OpenRouter payload: payload=%s", payload)
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -98,11 +102,13 @@ class OpenRouterClient:
             response.raise_for_status()
             data = response.json()
 
-        logger.info("OpenRouter response: data=%s", data)
+        logger.debug("OpenRouter response: data=%s", data)
 
         choice = data["choices"][0]
         message = choice["message"]
         usage = data.get("usage", {})
+
+        logger.info("OpenRouter response: choice=%s message=%s usage=%s", choice, message, usage)
 
         tool_calls = _parse_tool_calls(message.get("tool_calls"))
         finish_reason = choice.get("finish_reason")

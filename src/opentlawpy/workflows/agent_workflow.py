@@ -59,7 +59,7 @@ class AgentWorkflow:
         )
         tool_defs_for_llm = [t.to_llm_format() for t in tools]
 
-        for _iteration in range(MAX_TOOL_ITERATIONS):
+        for _ in range(MAX_TOOL_ITERATIONS):
             messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._conversation_history
 
             llm_output = await workflow.execute_activity(

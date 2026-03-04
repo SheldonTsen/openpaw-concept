@@ -190,6 +190,11 @@ Addendum — OpenRouter (free) support:
 - [ ] Test: "Create a file called hello.txt with 'hi'" → LLM calls write_file → confirms
 - [ ] Test: multi-step task → LLM chains multiple tool calls
 
+Addendum:
+- [ ] Very nested structure of calling tools. 
+- [ ] Fix web_search tool
+- [ ] Add git to worker container
+
 ---
 
 ## Phase 4: State Persistence 📝
