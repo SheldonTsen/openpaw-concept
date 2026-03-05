@@ -1,7 +1,7 @@
 import pytest
 
-from opentlawpy.activities.tool_command import execute_tool_command
-from opentlawpy.models.tool_activities import ToolCommandInput
+from opentlawpy.activities.tool_command import execute_bash_command
+from opentlawpy.models.tool_activities import BashCommandOutput
 
 
 @pytest.fixture(autouse=True)
@@ -11,7 +11,7 @@ def _patch_workspace(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_execute_simple_command():
-    result = await execute_tool_command(ToolCommandInput(command="echo hello"))
+    result = await execute_bash_command(BashCommandOutput(command="echo hello"))
     assert result.success is True
     assert result.exit_code == 0
     assert result.stdout.strip() == "hello"
@@ -20,7 +20,7 @@ async def test_execute_simple_command():
 
 @pytest.mark.asyncio
 async def test_execute_command_with_nonzero_exit():
-    result = await execute_tool_command(ToolCommandInput(command="ls /nonexistent_path_xyz"))
+    result = await execute_bash_command(BashCommandOutput(command="ls /nonexistent_path_xyz"))
     assert result.success is False
     assert result.exit_code != 0
     assert result.stderr != ""
@@ -28,7 +28,7 @@ async def test_execute_command_with_nonzero_exit():
 
 @pytest.mark.asyncio
 async def test_execute_command_timeout():
-    result = await execute_tool_command(ToolCommandInput(command="sleep 10", timeout=1))
+    result = await execute_bash_command(BashCommandOutput(command="sleep 10", timeout=1))
     assert result.success is False
     assert result.exit_code == -1
     assert "timed out" in result.stderr

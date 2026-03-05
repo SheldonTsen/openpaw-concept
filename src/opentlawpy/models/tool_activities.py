@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class ToolCommandInput:
+class BashCommandOutput:
     command: str
     timeout: int = 30
 

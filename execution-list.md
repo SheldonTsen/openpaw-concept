@@ -170,9 +170,9 @@ Addendum — OpenRouter (free) support:
 - [x] All 15 tests pass, ruff clean
 
 ### 3.2 Tool Activities (DONE)
-- [x] Created `src/opentlawpy/models/tool_activities.py` — `ToolCommandInput/Output`, `ReadFileInput/Output`, `WriteFileInput/Output` dataclasses
+- [x] Created `src/opentlawpy/models/tool_activities.py` — `BashCommandOutput/Output`, `ReadFileInput/Output`, `WriteFileInput/Output` dataclasses
 - [x] Added `WORKSPACE_DIR` to `config.py` (env var with `./workspace` default)
-- [x] Created `src/opentlawpy/activities/tool_command.py` — generic `execute_tool_command` activity (`asyncio.create_subprocess_shell`, timeout enforcement, output truncation)
+- [x] Created `src/opentlawpy/activities/tool_command.py` — generic `execute_bash_command` activity (`asyncio.create_subprocess_shell`, timeout enforcement, output truncation)
 - [x] Created `src/opentlawpy/activities/file_operations.py` — `read_file_activity`, `write_file_activity` with path traversal prevention via `os.path.realpath()` + workspace boundary check
 - [x] Updated `create_activities.py` — registers all 3 new activities alongside `call_llm`
 - [x] Created `tests/test_tool_command.py` — 3 tests (simple command, nonzero exit, timeout)
@@ -189,6 +189,24 @@ Addendum — OpenRouter (free) support:
 - [ ] Test: "What files are in the workspace?" → LLM calls bash(ls) → returns list
 - [ ] Test: "Create a file called hello.txt with 'hi'" → LLM calls write_file → confirms
 - [ ] Test: multi-step task → LLM chains multiple tool calls
+
+Addendum:
+- [ ] Very nested structure of calling tools - `execute_tool_calls` -> see if can make more flat
+- [ ] Fix web_search tool
+- [ ] Check why need to load tools every time.
+- [ ] Add f-string to "I've reached my thinking limit for this message."
+- [ ] Install ddg and curl? Or upgrade prompt so LLM can always self-install
+- [ ] Change `src/opentlawpy/activities/tool_command.py` to `./../bash_command.py`
+- [ ] why `async def _execute_activity_tool(*, tool_name: str, args: dict) -> str:` returns str even though we've defined nice data models. Surely we should return the data models, keep those for as long as possible, then do a final conversion/extraction if only 1 or 2 fields are needed? We are ditching all that information as soon as the acitivity finishes. But I guess temporal also gives us this transparency so we can discard them to simplify logic? 
+- [ ] Why `async def execute_tool_calls(*, ...)` ? Hard to follow with the args pattern. At least kwargs? Do we even need that *?
+- [ ] `    output: ToolCommandOutput = await workflow.execute_activity(
+        "execute_bash_command",
+        arg=BashCommandOutput(command=command, timeout=timeout),
+        result_type=ToolCommandOutput,
+        start_to_close_timeout=timedelta(seconds=timeout + 30),
+        retry_policy=RetryPolicy(maximum_attempts=2),
+    )` -> why arbitrary +30? At least let's move these timeout / 30 / 2 to config.py
+
 
 ---
 
