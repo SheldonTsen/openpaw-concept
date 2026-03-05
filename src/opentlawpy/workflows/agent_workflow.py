@@ -108,6 +108,7 @@ class AgentWorkflow:
                         "content": llm_output.response_text,
                     }
                 )
+                # no more tools to call - exit function
                 return
 
             self._conversation_history.append(
