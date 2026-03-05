@@ -1,6 +1,6 @@
 from opentlawpy.activities.file_operations import read_file_activity, write_file_activity
 from opentlawpy.activities.llm_call import create_call_llm_activity
-from opentlawpy.activities.tool_command import execute_bash_command
+from opentlawpy.activities.bash_command import execute_bash_command
 from opentlawpy.activities.tool_loader import load_tools_activity
 from opentlawpy.config import (
     ANTHROPIC_API_KEY,
