@@ -60,8 +60,10 @@ def main() -> None:
     msgs = resp.json()
     if msgs:
         for msg in msgs[:10]:
-            print(f"  [{msg.get('typeMessage')}] {msg.get('chatId')}: "
-                  f"{msg.get('textMessage', '(non-text)')}")
+            print(
+                f"  [{msg.get('typeMessage')}] {msg.get('chatId')}: "
+                f"{msg.get('textMessage', '(non-text)')}"
+            )
     else:
         print("  (none)")
     print()
@@ -73,8 +75,10 @@ def main() -> None:
     msgs = resp.json()
     if msgs:
         for msg in msgs[:10]:
-            print(f"  [{msg.get('typeMessage')}] to {msg.get('chatId')}: "
-                  f"{msg.get('textMessage', '(non-text)')}")
+            print(
+                f"  [{msg.get('typeMessage')}] to {msg.get('chatId')}: "
+                f"{msg.get('textMessage', '(non-text)')}"
+            )
     else:
         print("  (none)")
 

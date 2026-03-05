@@ -27,8 +27,7 @@ async def execute_tool_calls(
     Errors are caught per-tool and returned as error content (not raised).
     """
     tasks = [
-        _execute_single_tool(tool_call=tc, tool_definitions=tool_definitions)
-        for tc in tool_calls
+        _execute_single_tool(tool_call=tc, tool_definitions=tool_definitions) for tc in tool_calls
     ]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -39,11 +38,13 @@ async def execute_tool_calls(
         else:
             content = result
 
-        messages.append({
-            "role": "tool",
-            "tool_call_id": tc["id"],
-            "content": content,
-        })
+        messages.append(
+            {
+                "role": "tool",
+                "tool_call_id": tc["id"],
+                "content": content,
+            }
+        )
 
     return messages
 
