@@ -56,6 +56,9 @@ class AgentWorkflow:
                     {"role": "user", "content": message.text}
                 )
 
+                # try..except so that the workflow does not fail
+                # and still sends an error message to the user 
+                # otherwise the user never gets a response back
                 try:
                     await self._thinking_loop()
                 except ActivityError as exc:
