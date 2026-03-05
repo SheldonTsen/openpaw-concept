@@ -2,13 +2,13 @@ from dataclasses import dataclass
 
 
 @dataclass
-class BashCommandOutput:
+class BashCommandInput:
     command: str
     timeout: int = 30
 
 
 @dataclass
-class ToolCommandOutput:
+class BashCommandOutput:
     stdout: str
     stderr: str
     exit_code: int

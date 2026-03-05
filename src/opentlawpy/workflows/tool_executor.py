@@ -8,8 +8,8 @@ from temporalio.common import RetryPolicy
 from opentlawpy.models.tool_activities import (
     ReadFileInput,
     ReadFileOutput,
+    BashCommandInput,
     BashCommandOutput,
-    ToolCommandOutput,
     WriteFileInput,
     WriteFileOutput,
 )
@@ -75,10 +75,10 @@ async def _execute_single_tool(
 
     timeout = args.get("timeout", 30)
 
-    output: ToolCommandOutput = await workflow.execute_activity(
+    output: BashCommandOutput = await workflow.execute_activity(
         "execute_bash_command",
-        arg=BashCommandOutput(command=command, timeout=timeout),
-        result_type=ToolCommandOutput,
+        arg=BashCommandInput(command=command, timeout=timeout),
+        result_type=BashCommandOutput,
         start_to_close_timeout=timedelta(seconds=timeout + 30),
         retry_policy=RetryPolicy(maximum_attempts=2),
     )
