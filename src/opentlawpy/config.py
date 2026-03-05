@@ -13,9 +13,14 @@ LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "openrouter")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 LLM_MODEL = os.environ.get("LLM_MODEL", "claude-sonnet-4-5-20250929")
 OPENROUTER_TIMEOUT = float(os.environ.get("OPENROUTER_TIMEOUT", "120.0"))
-SYSTEM_PROMPT = "You are a helpful assistant."
+SYSTEM_PROMPT = """You are a helpful assistant.
+
+When multiple tool calls are independent of each other, call them all in the same
+response rather than sequentially.
+"""
 TOOLS_DIR = os.path.join(os.path.dirname(__file__), "tools")
 DEFAULT_TOOL_PRIORITY = 999
 WORKSPACE_DIR = os.environ.get("WORKSPACE_DIR", "./workspace")
 MAX_COMMAND_TIMEOUT = 300
 MAX_COMMAND_OUTPUT_BYTES = 100_000
+MAX_TOOL_ITERATIONS = 20

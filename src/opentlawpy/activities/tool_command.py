@@ -5,13 +5,13 @@ import os
 from temporalio import activity
 
 from opentlawpy.config import MAX_COMMAND_OUTPUT_BYTES, MAX_COMMAND_TIMEOUT, WORKSPACE_DIR
-from opentlawpy.models.tool_activities import ToolCommandInput, ToolCommandOutput
+from opentlawpy.models.tool_activities import BashCommandOutput, ToolCommandOutput
 
 logger = logging.getLogger(__name__)
 
 
-@activity.defn(name="execute_tool_command")
-async def execute_tool_command(input: ToolCommandInput) -> ToolCommandOutput:
+@activity.defn(name="execute_bash_command")
+async def execute_bash_command(input: BashCommandOutput) -> ToolCommandOutput:
     timeout = min(input.timeout, MAX_COMMAND_TIMEOUT)
     cwd = os.path.abspath(WORKSPACE_DIR)
     os.makedirs(cwd, exist_ok=True)
