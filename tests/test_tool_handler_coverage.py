@@ -5,6 +5,7 @@ import inspect
 import pkgutil
 
 import opentlawpy.activities as _activities_pkg
+from opentlawpy.models.tools import ToolTier
 from opentlawpy.utils.tool_loader import load_tools
 
 # Discover all registered activity names by scanning every module in the activities package
@@ -20,7 +21,7 @@ for module_info in pkgutil.iter_modules(_activities_pkg.__path__):
 
 def _load_all_tools():
     """Load all tools (all tiers) so nothing is filtered out."""
-    return load_tools(include_tiers=["essential", "common", "advanced", "experimental"])
+    return load_tools(include_tiers=list(ToolTier))
 
 
 def test_every_tool_has_handler():
@@ -35,6 +36,19 @@ def test_every_tool_has_handler():
         )
         assert callable(mod.handle), (
             f"handle in '{tool.name}' handler is not callable"
+        )
+
+
+def test_all_tools_use_valid_tier():
+    """Every TOOL.md must use a tier from the ToolTier enum."""
+    tools = _load_all_tools()
+    valid_tiers = set(ToolTier)
+
+    for tool in tools:
+        tier = tool.metadata.get("tier", "common")
+        assert tier in valid_tiers, (
+            f"Tool '{tool.name}' has invalid tier '{tier}'. "
+            f"Valid tiers: {sorted(valid_tiers)}"
         )
 
 
