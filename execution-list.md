@@ -180,21 +180,21 @@ Addendum — OpenRouter (free) support:
 - [x] All 26 tests pass, ruff clean
 
 ### 3.3 Agent Thinking Loop (With Tools)
-- [ ] Update `agent_workflow.py`:
+- [x] Update `agent_workflow.py`:
   - Pass tool definitions to LLM call
   - If LLM returns tool_calls → execute tools (parallel with asyncio.gather)
   - Feed tool results back to LLM
   - Loop until LLM returns no tool_calls (task complete)
   - Max 20 iterations safety limit
-- [ ] Test: "What files are in the workspace?" → LLM calls bash(ls) → returns list
-- [ ] Test: "Create a file called hello.txt with 'hi'" → LLM calls write_file → confirms
-- [ ] Test: multi-step task → LLM chains multiple tool calls
+- [x] Test: "What files are in the workspace?" → LLM calls bash(ls) → returns list
+- [x] Test: "Create a file called hello.txt with 'hi'" → LLM calls write_file → confirms
+- [x] Test: multi-step task → LLM chains multiple tool calls
 
 Addendum:
 - [ ] Very nested structure of calling tools - `execute_tool_calls` -> see if can make more flat
 - [ ] Fix web_search tool
 - [ ] Check why need to load tools every time.
-- [ ] Add f-string to "I've reached my thinking limit for this message."
+- [x] Add f-string to "I've reached my thinking limit for this message."
 - [ ] Install ddg and curl? Or upgrade prompt so LLM can always self-install
 - [ ] Change `src/opentlawpy/activities/tool_command.py` to `./../bash_command.py`
 - [ ] why `async def _execute_activity_tool(*, tool_name: str, args: dict) -> str:` returns str even though we've defined nice data models. Surely we should return the data models, keep those for as long as possible, then do a final conversion/extraction if only 1 or 2 fields are needed? We are ditching all that information as soon as the acitivity finishes. But I guess temporal also gives us this transparency so we can discard them to simplify logic? 

@@ -11,7 +11,11 @@ from opentlawpy.llm.anthropic_client import AnthropicClient
 
 
 async def main() -> None:
-    print(f"API key: {ANTHROPIC_API_KEY[:12]}...{ANTHROPIC_API_KEY[-4:]}" if ANTHROPIC_API_KEY else "API key: EMPTY")
+    print(
+        f"API key: {ANTHROPIC_API_KEY[:12]}...{ANTHROPIC_API_KEY[-4:]}"
+        if ANTHROPIC_API_KEY
+        else "API key: EMPTY"
+    )
     print(f"Base URL: {ANTHROPIC_BASE_URL or '(default)'}")
     print(f"Model: {LLM_MODEL}")
 

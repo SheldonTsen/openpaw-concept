@@ -11,7 +11,12 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from opentlawpy.activities.whatsapp import create_send_whatsapp_message_activity
-from opentlawpy.config import MY_WHATSAPP_NUMBER, NEONIZE_DB_PATH, TEMPORAL_ADDRESS, WHATSAPP_TASK_QUEUE
+from opentlawpy.config import (
+    MY_WHATSAPP_NUMBER,
+    NEONIZE_DB_PATH,
+    TEMPORAL_ADDRESS,
+    WHATSAPP_TASK_QUEUE,
+)
 from opentlawpy.logging import setup_logging
 from opentlawpy.whatsapp.listener import WhatsAppListener
 from opentlawpy.worker.worker import create_temporal_client

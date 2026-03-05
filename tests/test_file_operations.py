@@ -83,8 +83,6 @@ async def test_write_file_creates_directories(tmp_path):
 
 @pytest.mark.asyncio
 async def test_write_file_path_traversal():
-    result = await write_file_activity(
-        WriteFileInput(path="../../../tmp/evil.txt", content="bad")
-    )
+    result = await write_file_activity(WriteFileInput(path="../../../tmp/evil.txt", content="bad"))
     assert result.success is False
     assert "traversal" in result.error.lower()

@@ -69,10 +69,7 @@ async def on_pair_status(_: NewAClient, msg: PairStatusEv):
 
 @client.event(MessageEv)
 async def on_message(client: NewAClient, message: MessageEv):
-    text = (
-        message.Message.conversation
-        or message.Message.extendedTextMessage.text
-    )
+    text = message.Message.conversation or message.Message.extendedTextMessage.text
 
     if not text:
         return
