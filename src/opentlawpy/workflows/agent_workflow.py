@@ -5,6 +5,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
+    from opentlawpy.activities.tool_loader import load_tools_activity
     from opentlawpy.config import (
         LLM_MODEL,
         MAX_TOOL_ITERATIONS,
@@ -13,9 +14,7 @@ with workflow.unsafe.imports_passed_through():
         WORKFLOW_TIMEOUT_MINUTES,
     )
     from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
-    from opentlawpy.utils.tool_loader import load_tools
     from opentlawpy.workflows.tool_executor import execute_tool_calls
-    from opentlawpy.activities.tool_loader import load_tools_activity
 
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
 
@@ -96,7 +95,6 @@ class AgentWorkflow:
             # Execute tools in parallel, add results to history
             tool_results = await execute_tool_calls(
                 tool_calls=llm_output.tool_calls,
-                tool_definitions=tools,
             )
             self._conversation_history.extend(tool_results)
         else:
@@ -104,7 +102,10 @@ class AgentWorkflow:
             self._conversation_history.append(
                 {
                     "role": "assistant",
-                    "content": f"I've reached my thinking limit for this message ({MAX_TOOL_ITERATIONS} iterations).",
+                    "content": (
+                        f"I've reached my thinking limit for this message "
+                        f"({MAX_TOOL_ITERATIONS} iterations)."
+                    ),
                 }
             )
 

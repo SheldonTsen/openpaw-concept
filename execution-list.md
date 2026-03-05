@@ -191,14 +191,20 @@ Addendum — OpenRouter (free) support:
 - [x] Test: multi-step task → LLM chains multiple tool calls
 
 Addendum:
-- [ ] Very nested structure of calling tools - `execute_tool_calls` -> see if can make more flat
+- [x] Very nested structure of calling tools - `execute_tool_calls` -> see if can make more flat
+  - Refactored to flat handler pattern: one module per tool in `src/opentlawpy/tool_handlers/`
+  - importlib discovery: tool name "bash" -> `opentlawpy.tool_handlers.bash.handle(args)`
+  - Eliminated `_execute_single_tool`, `_execute_activity_tool`, `_find_tool`, `_build_command`
+  - Removed `tool_definitions` parameter from `execute_tool_calls`
+  - Shared `_run_bash.py` helper for CLI tools (bash, git, python, calculator, grep)
+- [x] Why `async def execute_tool_calls(*, ...)` ? Hard to follow with the args pattern. At least kwargs? Do we even need that *?
+  - Removed `*` — convention is kwargs at call sites per CLAUDE.md
 - [ ] Fix web_search tool
 - [ ] Check why need to load tools every time.
 - [x] Add f-string to "I've reached my thinking limit for this message."
 - [ ] Install ddg and curl? Or upgrade prompt so LLM can always self-install
 - [x] Change `src/opentlawpy/activities/tool_command.py` to `./../bash_command.py`
-- [ ] why `async def _execute_activity_tool(*, tool_name: str, args: dict) -> str:` returns str even though we've defined nice data models. Surely we should return the data models, keep those for as long as possible, then do a final conversion/extraction if only 1 or 2 fields are needed? We are ditching all that information as soon as the acitivity finishes. But I guess temporal also gives us this transparency so we can discard them to simplify logic? 
-- [ ] Why `async def execute_tool_calls(*, ...)` ? Hard to follow with the args pattern. At least kwargs? Do we even need that *?
+- [x] why `async def _execute_activity_tool(*, tool_name: str, args: dict) -> str:` returns str even though we've defined nice data models. Surely we should return the data models, keep those for as long as possible, then do a final conversion/extraction if only 1 or 2 fields are needed? We are ditching all that information as soon as the acitivity finishes. But I guess temporal also gives us this transparency so we can discard them to simplify logic?
 - [ ] `    output: ToolCommandOutput = await workflow.execute_activity(
         "execute_bash_command",
         arg=BashCommandOutput(command=command, timeout=timeout),
@@ -206,7 +212,14 @@ Addendum:
         start_to_close_timeout=timedelta(seconds=timeout + 30),
         retry_policy=RetryPolicy(maximum_attempts=2),
     )` -> why arbitrary +30? At least let's move these timeout / 30 / 2 to config.py
-
+- [ ] Is the extra description in TOOLS.md even used?
+- [x] What if reference in TOOL.md to activity is invalid? How will that be handled? The workflow shouldn't fail ideally, and return to the main loop. Giving the LLM a chance to respond and maybe swap to bash if the tool is broken.
+  - Runtime: missing handler → `ModuleNotFoundError` caught → error string fed back to LLM. Bad activity ref → exception caught by `asyncio.gather(return_exceptions=True)` → same. Workflow never crashes.
+  - Dev time: `test_activity_tools_reference_registered_activities` catches mismatches before they ship.
+- [ ] Change name to whatsapp-listener instead of just listener
+- [x] Write integration test to loop over tools folder and check if handler + activity is defined if tool type is activity ?
+  - `tests/test_tool_handler_coverage.py`: 2 tests — every TOOL.md has a handler module, activity tools reference registered activities
+- [ ] Add check for tool tier based on enum
 
 ---
 
