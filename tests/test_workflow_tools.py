@@ -8,10 +8,10 @@ from opentlawpy.config import WHATSAPP_TASK_QUEUE
 from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
 from opentlawpy.models.tool_activities import (
-    ReadFileInput,
-    ReadFileOutput,
     BashCommandInput,
     BashCommandOutput,
+    ReadFileInput,
+    ReadFileOutput,
     WriteFileInput,
     WriteFileOutput,
 )
@@ -345,3 +345,48 @@ async def test_workflow_multiple_parallel_tools():
     assert len(tool_msgs) == 2
     tool_call_ids = {m["tool_call_id"] for m in tool_msgs}
     assert tool_call_ids == {"call_a", "call_b"}
+
+
+async def test_workflow_llm_failure_sends_error_message():
+    """LLM activity fails after retries — user gets an error message on WhatsApp."""
+    _clear_all()
+
+    @activity.defn(name="call_llm")
+    async def mock_failing_llm(input: LLMCallInput) -> LLMCallOutput:
+        llm_calls.append(input)
+        raise RuntimeError("LLM provider is down")
+
+    async with await WorkflowEnvironment.start_time_skipping() as env:
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=[
+                    mock_failing_llm,
+                    mock_execute_bash_command,
+                    mock_read_file,
+                    mock_write_file,
+                    mock_load_tools,
+                ],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send],
+            ),
+        ):
+            handle = await env.client.start_workflow(
+                AgentWorkflow.run,
+                arg="1234567890",
+                id="test-wf-llm-fail",
+                task_queue=TASK_QUEUE,
+                start_signal="new_message",
+                start_signal_args=["1234567890", "Hello"],
+            )
+            await handle.result()
+
+    # User should still get a WhatsApp message
+    assert len(send_calls) == 1
+    assert "trouble processing" in send_calls[0].text
