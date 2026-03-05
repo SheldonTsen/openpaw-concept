@@ -24,9 +24,16 @@ class AgentWorkflow:
     def __init__(self) -> None:
         self._pending_messages: list[IncomingMessage] = []
         self._conversation_history: list[dict] = []
+        self._tool_defs_for_llm: list[dict] = []
 
     @workflow.run
     async def run(self, chat_id: str) -> None:
+        tools = await workflow.execute_activity(
+            load_tools_activity,
+            start_to_close_timeout=timedelta(seconds=10),
+        )
+        self._tool_defs_for_llm = [t.to_llm_format() for t in tools]
+
         while True:
             try:
                 await workflow.wait_condition(
@@ -52,12 +59,6 @@ class AgentWorkflow:
     async def _handle_message(self, chat_id: str, message: IncomingMessage) -> None:
         self._conversation_history.append({"role": "user", "content": message.text})
 
-        tools = await workflow.execute_activity(
-            load_tools_activity,
-            start_to_close_timeout=timedelta(seconds=10),
-        )
-        tool_defs_for_llm = [t.to_llm_format() for t in tools]
-
         for _ in range(MAX_TOOL_ITERATIONS):
             messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._conversation_history
 
@@ -66,7 +67,7 @@ class AgentWorkflow:
                 arg=LLMCallInput(
                     messages=messages,
                     model=LLM_MODEL,
-                    tools=tool_defs_for_llm,
+                    tools=self._tool_defs_for_llm,
                 ),
                 result_type=LLMCallOutput,
                 start_to_close_timeout=timedelta(seconds=120),

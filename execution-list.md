@@ -200,12 +200,13 @@ Addendum:
 - [x] Why `async def execute_tool_calls(*, ...)` ? Hard to follow with the args pattern. At least kwargs? Do we even need that *?
   - Removed `*` — convention is kwargs at call sites per CLAUDE.md
 - [ ] Fix web_search tool
-- [ ] Check why need to load tools every time.
+- [x] Check why need to load tools every time.
+  - No reason — TOOL.md files are baked into Docker image. Moved to once at workflow start, cached in `self._tool_defs_for_llm`.
 - [x] Add f-string to "I've reached my thinking limit for this message."
-- [ ] Install ddg and curl? Or upgrade prompt so LLM can always self-install
+- [x] Install ddg and curl? Or upgrade prompt so LLM can always self-install
 - [x] Change `src/opentlawpy/activities/tool_command.py` to `./../bash_command.py`
 - [x] why `async def _execute_activity_tool(*, tool_name: str, args: dict) -> str:` returns str even though we've defined nice data models. Surely we should return the data models, keep those for as long as possible, then do a final conversion/extraction if only 1 or 2 fields are needed? We are ditching all that information as soon as the acitivity finishes. But I guess temporal also gives us this transparency so we can discard them to simplify logic?
-- [ ] `    output: ToolCommandOutput = await workflow.execute_activity(
+- [x] `    output: ToolCommandOutput = await workflow.execute_activity(
         "execute_bash_command",
         arg=BashCommandOutput(command=command, timeout=timeout),
         result_type=ToolCommandOutput,
@@ -218,8 +219,11 @@ Addendum:
   - Dev time: `test_activity_tools_reference_registered_activities` catches mismatches before they ship.
 - [ ] Change name to whatsapp-listener instead of just listener
 - [x] Write integration test to loop over tools folder and check if handler + activity is defined if tool type is activity ?
-  - `tests/test_tool_handler_coverage.py`: 2 tests — every TOOL.md has a handler module, activity tools reference registered activities
-- [ ] Add check for tool tier based on enum
+  - `tests/test_tool_handler_coverage.py`: 3 tests — every TOOL.md has a handler module, activity tools reference registered activities, all tiers valid
+- [x] Add check for tool tier based on enum
+  - Added `ToolTier` StrEnum to `models/tools.py` (essential, common, specialized, experimental)
+  - `tool_loader.py` DEFAULT_TIERS uses enum values
+  - `test_all_tools_use_valid_tier` validates every TOOL.md tier against the enum
 
 ---
 
