@@ -32,6 +32,7 @@ class AgentWorkflow:
         tools = await workflow.execute_activity(
             load_tools_activity,
             start_to_close_timeout=timedelta(seconds=10),
+            retry_policy=RetryPolicy(maximum_attempts=1),
         )
         self._tool_defs_for_llm = [t.to_llm_format() for t in tools]
 
