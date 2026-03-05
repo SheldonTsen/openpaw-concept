@@ -180,15 +180,15 @@ Addendum — OpenRouter (free) support:
 - [x] All 26 tests pass, ruff clean
 
 ### 3.3 Agent Thinking Loop (With Tools)
-- [ ] Update `agent_workflow.py`:
+- [x] Update `agent_workflow.py`:
   - Pass tool definitions to LLM call
   - If LLM returns tool_calls → execute tools (parallel with asyncio.gather)
   - Feed tool results back to LLM
   - Loop until LLM returns no tool_calls (task complete)
   - Max 20 iterations safety limit
-- [ ] Test: "What files are in the workspace?" → LLM calls bash(ls) → returns list
-- [ ] Test: "Create a file called hello.txt with 'hi'" → LLM calls write_file → confirms
-- [ ] Test: multi-step task → LLM chains multiple tool calls
+- [x] Test: "What files are in the workspace?" → LLM calls bash(ls) → returns list
+- [x] Test: "Create a file called hello.txt with 'hi'" → LLM calls write_file → confirms
+- [x] Test: multi-step task → LLM chains multiple tool calls
 
 Addendum:
 - [ ] Very nested structure of calling tools - `execute_tool_calls` -> see if can make more flat

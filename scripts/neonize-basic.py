@@ -10,6 +10,7 @@ Usage:
 
 No environment variables needed. Auth state is stored locally in neonize.db.
 """
+
 import logging
 import os
 import signal
@@ -71,10 +72,7 @@ def on_pair_status(_: NewClient, msg: PairStatusEv):
 
 @client.event(MessageEv)
 def on_message(_: NewClient, message: MessageEv):
-    text = (
-        message.Message.conversation
-        or message.Message.extendedTextMessage.text
-    )
+    text = message.Message.conversation or message.Message.extendedTextMessage.text
 
     if not text:
         return
@@ -95,7 +93,6 @@ def on_message(_: NewClient, message: MessageEv):
     # Exit
     event.set()
     os._exit(0)
-
 
 
 if __name__ == "__main__":
