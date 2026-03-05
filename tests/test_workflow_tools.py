@@ -10,8 +10,8 @@ from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
 from opentlawpy.models.tool_activities import (
     ReadFileInput,
     ReadFileOutput,
+    BashCommandInput,
     BashCommandOutput,
-    ToolCommandOutput,
     WriteFileInput,
     WriteFileOutput,
 )
@@ -23,7 +23,7 @@ TASK_QUEUE = "test-tool-tasks"
 # Track activity calls for assertions
 send_calls: list[SendMessageInput] = []
 llm_calls: list[LLMCallInput] = []
-tool_command_calls: list[BashCommandOutput] = []
+tool_command_calls: list[BashCommandInput] = []
 read_file_calls: list[ReadFileInput] = []
 write_file_calls: list[WriteFileInput] = []
 
@@ -35,9 +35,9 @@ async def mock_send(input: SendMessageInput) -> SendMessageOutput:
 
 
 @activity.defn(name="execute_bash_command")
-async def mock_execute_bash_command(input: BashCommandOutput) -> ToolCommandOutput:
+async def mock_execute_bash_command(input: BashCommandInput) -> BashCommandOutput:
     tool_command_calls.append(input)
-    return ToolCommandOutput(stdout="file1.txt\nfile2.txt", stderr="", exit_code=0, success=True)
+    return BashCommandOutput(stdout="file1.txt\nfile2.txt", stderr="", exit_code=0, success=True)
 
 
 @activity.defn(name="read_file_activity")
@@ -215,9 +215,9 @@ async def test_workflow_tool_error_fed_back():
     call_count = 0
 
     @activity.defn(name="execute_bash_command")
-    async def mock_failing_command(input: BashCommandOutput) -> ToolCommandOutput:
+    async def mock_failing_command(input: BashCommandInput) -> BashCommandOutput:
         tool_command_calls.append(input)
-        return ToolCommandOutput(
+        return BashCommandOutput(
             stdout="",
             stderr="No such file or directory",
             exit_code=1,
