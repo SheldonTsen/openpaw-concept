@@ -8,10 +8,10 @@ from opentlawpy.config import WHATSAPP_TASK_QUEUE
 from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
 from opentlawpy.models.tool_activities import (
-    ReadFileInput,
-    ReadFileOutput,
     BashCommandInput,
     BashCommandOutput,
+    ReadFileInput,
+    ReadFileOutput,
     WriteFileInput,
     WriteFileOutput,
 )
@@ -345,3 +345,120 @@ async def test_workflow_multiple_parallel_tools():
     assert len(tool_msgs) == 2
     tool_call_ids = {m["tool_call_id"] for m in tool_msgs}
     assert tool_call_ids == {"call_a", "call_b"}
+
+
+async def test_workflow_llm_failure_sends_error_message():
+    """LLM activity fails after retries — user gets an error message on WhatsApp."""
+    _clear_all()
+
+    @activity.defn(name="call_llm")
+    async def mock_failing_llm(input: LLMCallInput) -> LLMCallOutput:
+        llm_calls.append(input)
+        raise RuntimeError("LLM provider is down")
+
+    async with await WorkflowEnvironment.start_time_skipping() as env:
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=[
+                    mock_failing_llm,
+                    mock_execute_bash_command,
+                    mock_read_file,
+                    mock_write_file,
+                    mock_load_tools,
+                ],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send],
+            ),
+        ):
+            handle = await env.client.start_workflow(
+                AgentWorkflow.run,
+                arg="1234567890",
+                id="test-wf-llm-fail",
+                task_queue=TASK_QUEUE,
+                start_signal="new_message",
+                start_signal_args=["1234567890", "Hello"],
+            )
+            await handle.result()
+
+    # User should still get a WhatsApp message
+    assert len(send_calls) == 1
+    assert "trouble processing" in send_calls[0].text
+
+
+async def test_workflow_tool_activity_failure_fed_back_to_llm():
+    """Tool activity crashes after retries — error fed back to LLM, LLM still responds."""
+    _clear_all()
+    call_count = 0
+
+    def mock_llm(input: LLMCallInput) -> LLMCallOutput:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return _make_tool_response(
+                tool_calls=[
+                    {
+                        "id": "call_fail",
+                        "type": "function",
+                        "function": {"name": "bash", "arguments": {"command": "rm -rf /"}},
+                    }
+                ],
+            )
+        return _make_text_response("That command failed, sorry.")
+
+    @activity.defn(name="execute_bash_command")
+    async def mock_crashing_command(input: BashCommandInput) -> BashCommandOutput:
+        raise RuntimeError("Container crashed")
+
+    @activity.defn(name="call_llm")
+    async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
+        llm_calls.append(input)
+        return mock_llm(input)
+
+    async with await WorkflowEnvironment.start_time_skipping() as env:
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=[
+                    mock_call_llm,
+                    mock_crashing_command,
+                    mock_read_file,
+                    mock_write_file,
+                    mock_load_tools,
+                ],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send],
+            ),
+        ):
+            handle = await env.client.start_workflow(
+                AgentWorkflow.run,
+                arg="1234567890",
+                id="test-wf-tool-activity-fail",
+                task_queue=TASK_QUEUE,
+                start_signal="new_message",
+                start_signal_args=["1234567890", "Do something"],
+            )
+            await handle.result()
+
+    # LLM called twice: once to get tool call, once after error fed back
+    assert len(llm_calls) == 2
+    # Error was fed to LLM as a tool result
+    second_call_messages = llm_calls[1].messages
+    tool_msgs = [m for m in second_call_messages if m["role"] == "tool"]
+    assert len(tool_msgs) == 1
+    assert "Error" in tool_msgs[0]["content"]
+    # LLM adapted and user got a response
+    assert len(send_calls) == 1
+    assert send_calls[0].text == "That command failed, sorry."

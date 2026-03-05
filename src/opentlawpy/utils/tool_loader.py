@@ -4,9 +4,9 @@ import os
 import yaml
 
 from opentlawpy.config import DEFAULT_TOOL_PRIORITY, TOOLS_DIR
-from opentlawpy.models.tools import ToolDefinition
+from opentlawpy.models.tools import ToolDefinition, ToolTier
 
-DEFAULT_TIERS = ["essential", "common"]
+DEFAULT_TIERS = [ToolTier.ESSENTIAL, ToolTier.COMMON]
 
 
 def _parse_frontmatter(text: str) -> dict:

@@ -1,12 +1,12 @@
 ---
 name: calculator
-description: Perform mathematical calculations and evaluations
+description: Perform mathematical calculations and evaluations using python
 parameters:
   type: object
   properties:
     expression:
       type: string
-      description: Mathematical expression to evaluate
+      description: Mathematical expression to evaluate using python
   required:
     - expression
 metadata:
