@@ -1,4 +1,4 @@
-from unittest.mock import patch   
+from unittest.mock import patch
 
 from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
@@ -65,14 +65,27 @@ MOCK_TOOLS = [
     ToolDefinition(
         name="bash",
         description="Run bash",
-        parameters={"type": "object", "properties": {"command": {"type": "string"}}, "required": ["command"]},
+        parameters={
+            "type": "object",
+            "properties": {"command": {"type": "string"}},
+            "required": ["command"],
+        },
         metadata={"type": "cli", "tier": "essential", "priority": 1},
     ),
     ToolDefinition(
         name="read_file",
         description="Read a file",
-        parameters={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
-        metadata={"type": "activity", "activity": "read_file_activity", "tier": "essential", "priority": 2},
+        parameters={
+            "type": "object",
+            "properties": {"path": {"type": "string"}},
+            "required": ["path"],
+        },
+        metadata={
+            "type": "activity",
+            "activity": "read_file_activity",
+            "tier": "essential",
+            "priority": 2,
+        },
     ),
 ]
 
@@ -113,22 +126,25 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
         return mock_llm_fn(input)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
-            task_queue=TASK_QUEUE,
-            workflows=[AgentWorkflow],
-            activities=[
-                mock_call_llm,
-                mock_execute_bash_command,
-                mock_read_file,
-                mock_write_file,
-                mock_load_tools,
-            ],
-            workflow_runner=UnsandboxedWorkflowRunner(),
-        ), Worker(
-            env.client,
-            task_queue=WHATSAPP_TASK_QUEUE,
-            activities=[mock_send],
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=[
+                    mock_call_llm,
+                    mock_execute_bash_command,
+                    mock_read_file,
+                    mock_write_file,
+                    mock_load_tools,
+                ],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send],
+            ),
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
@@ -166,11 +182,13 @@ async def test_workflow_single_tool_call():
         call_count += 1
         if call_count == 1:
             return _make_tool_response(
-                tool_calls=[{
-                    "id": "call_1",
-                    "type": "function",
-                    "function": {"name": "bash", "arguments": {"command": "ls"}},
-                }],
+                tool_calls=[
+                    {
+                        "id": "call_1",
+                        "type": "function",
+                        "function": {"name": "bash", "arguments": {"command": "ls"}},
+                    }
+                ],
                 text="Let me check...",
             )
         return _make_text_response("Here are the files: file1.txt, file2.txt")
@@ -211,11 +229,13 @@ async def test_workflow_tool_error_fed_back():
         call_count += 1
         if call_count == 1:
             return _make_tool_response(
-                tool_calls=[{
-                    "id": "call_err",
-                    "type": "function",
-                    "function": {"name": "bash", "arguments": {"command": "cat missing.txt"}},
-                }],
+                tool_calls=[
+                    {
+                        "id": "call_err",
+                        "type": "function",
+                        "function": {"name": "bash", "arguments": {"command": "cat missing.txt"}},
+                    }
+                ],
             )
         return _make_text_response("Sorry, the file doesn't exist.")
 
@@ -225,22 +245,25 @@ async def test_workflow_tool_error_fed_back():
         return mock_llm(input)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
-            task_queue=TASK_QUEUE,
-            workflows=[AgentWorkflow],
-            activities=[
-                mock_call_llm,
-                mock_failing_command,
-                mock_read_file,
-                mock_write_file,
-                mock_load_tools,
-            ],
-            workflow_runner=UnsandboxedWorkflowRunner(),
-        ), Worker(
-            env.client,
-            task_queue=WHATSAPP_TASK_QUEUE,
-            activities=[mock_send],
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=[
+                    mock_call_llm,
+                    mock_failing_command,
+                    mock_read_file,
+                    mock_write_file,
+                    mock_load_tools,
+                ],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send],
+            ),
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
@@ -267,11 +290,13 @@ async def test_workflow_max_iterations():
 
     def mock_llm(input: LLMCallInput) -> LLMCallOutput:
         return _make_tool_response(
-            tool_calls=[{
-                "id": f"call_{len(llm_calls)}",
-                "type": "function",
-                "function": {"name": "bash", "arguments": {"command": "echo loop"}},
-            }],
+            tool_calls=[
+                {
+                    "id": f"call_{len(llm_calls)}",
+                    "type": "function",
+                    "function": {"name": "bash", "arguments": {"command": "echo loop"}},
+                }
+            ],
         )
 
     with patch("opentlawpy.workflows.agent_workflow.MAX_TOOL_ITERATIONS", 3):

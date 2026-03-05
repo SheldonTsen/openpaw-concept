@@ -76,18 +76,22 @@ class AgentWorkflow:
 
             if not llm_output.tool_calls:
                 # LLM is done — store final response and break
-                self._conversation_history.append({
-                    "role": "assistant",
-                    "content": llm_output.response_text,
-                })
+                self._conversation_history.append(
+                    {
+                        "role": "assistant",
+                        "content": llm_output.response_text,
+                    }
+                )
                 break
 
             # Store assistant message with tool calls
-            self._conversation_history.append({
-                "role": "assistant",
-                "content": llm_output.response_text or "",
-                "tool_calls": llm_output.tool_calls,
-            })
+            self._conversation_history.append(
+                {
+                    "role": "assistant",
+                    "content": llm_output.response_text or "",
+                    "tool_calls": llm_output.tool_calls,
+                }
+            )
 
             # Execute tools in parallel, add results to history
             tool_results = await execute_tool_calls(
@@ -97,10 +101,12 @@ class AgentWorkflow:
             self._conversation_history.extend(tool_results)
         else:
             # Hit max iterations
-            self._conversation_history.append({
-                "role": "assistant",
-                "content": "I've reached my thinking limit for this message.",
-            })
+            self._conversation_history.append(
+                {
+                    "role": "assistant",
+                    "content": f"I've reached my thinking limit for this message ({MAX_TOOL_ITERATIONS} iterations).",
+                }
+            )
 
         # Extract last assistant content for the WhatsApp reply
         response_text = self._conversation_history[-1]["content"]

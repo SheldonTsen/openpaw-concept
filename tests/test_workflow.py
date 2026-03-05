@@ -45,16 +45,19 @@ async def test_workflow_calls_llm_and_sends_response():
     llm_calls.clear()
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
-            task_queue=TASK_QUEUE,
-            workflows=[AgentWorkflow],
-            activities=[mock_call_llm, mock_load_tools],
-            workflow_runner=UnsandboxedWorkflowRunner(),
-        ), Worker(
-            env.client,
-            task_queue=WHATSAPP_TASK_QUEUE,
-            activities=[mock_send_whatsapp_message],
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=[mock_call_llm, mock_load_tools],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send_whatsapp_message],
+            ),
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
@@ -84,16 +87,19 @@ async def test_workflow_multiple_messages():
     llm_calls.clear()
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
-            task_queue=TASK_QUEUE,
-            workflows=[AgentWorkflow],
-            activities=[mock_call_llm, mock_load_tools],
-            workflow_runner=UnsandboxedWorkflowRunner(),
-        ), Worker(
-            env.client,
-            task_queue=WHATSAPP_TASK_QUEUE,
-            activities=[mock_send_whatsapp_message],
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=[mock_call_llm, mock_load_tools],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send_whatsapp_message],
+            ),
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
@@ -120,16 +126,19 @@ async def test_workflow_sends_conversation_history():
     llm_calls.clear()
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
-            task_queue=TASK_QUEUE,
-            workflows=[AgentWorkflow],
-            activities=[mock_call_llm, mock_load_tools],
-            workflow_runner=UnsandboxedWorkflowRunner(),
-        ), Worker(
-            env.client,
-            task_queue=WHATSAPP_TASK_QUEUE,
-            activities=[mock_send_whatsapp_message],
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=[mock_call_llm, mock_load_tools],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send_whatsapp_message],
+            ),
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
@@ -167,16 +176,19 @@ async def test_system_prompt_prepended_to_every_llm_call():
     llm_calls.clear()
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
-            task_queue=TASK_QUEUE,
-            workflows=[AgentWorkflow],
-            activities=[mock_call_llm, mock_load_tools],
-            workflow_runner=UnsandboxedWorkflowRunner(),
-        ), Worker(
-            env.client,
-            task_queue=WHATSAPP_TASK_QUEUE,
-            activities=[mock_send_whatsapp_message],
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=[mock_call_llm, mock_load_tools],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send_whatsapp_message],
+            ),
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,

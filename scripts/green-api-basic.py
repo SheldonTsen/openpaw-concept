@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 # Load .env from project root
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
+
 def build_url(instance_id: str, token: str, method: str) -> str:
     prefix = instance_id[:4]
     return f"https://{prefix}.api.greenapi.com/waInstance{instance_id}/{method}/{token}"
@@ -90,9 +91,7 @@ def ensure_receive_settings(*, instance_id: str, token: str) -> None:
     print("Settings updated")
 
 
-def send_message(
-    *, instance_id: str, token: str, chat_id: str, message: str
-) -> dict:
+def send_message(*, instance_id: str, token: str, chat_id: str, message: str) -> dict:
     """Send a text message via Green API."""
     url = build_url(instance_id=instance_id, token=token, method="sendMessage")
     payload = {"chatId": chat_id, "message": message}
@@ -102,18 +101,14 @@ def send_message(
     return resp.json()
 
 
-def receive_notification(
-    *, instance_id: str, token: str, receive_timeout: int = 5
-) -> dict | None:
+def receive_notification(*, instance_id: str, token: str, receive_timeout: int = 5) -> dict | None:
     """Receive one notification from the queue.
 
     Uses server-side long-polling (receiveTimeout) so the request blocks
     on Green API's side for up to `receive_timeout` seconds before
     returning empty.  Returns None if queue is empty after the wait.
     """
-    url = build_url(
-        instance_id=instance_id, token=token, method="receiveNotification"
-    )
+    url = build_url(instance_id=instance_id, token=token, method="receiveNotification")
 
     resp = httpx.get(
         url,
@@ -128,9 +123,7 @@ def receive_notification(
     return data
 
 
-def delete_notification(
-    *, instance_id: str, token: str, receipt_id: int
-) -> bool:
+def delete_notification(*, instance_id: str, token: str, receipt_id: int) -> bool:
     """Delete a notification from the queue (acknowledge it)."""
     url = build_url(
         instance_id=instance_id,
@@ -177,13 +170,9 @@ def extract_text_from_notification(notification: dict) -> tuple[str | None, str]
     return None, webhook_type
 
 
-def last_incoming_messages(
-    *, instance_id: str, token: str, minutes: int = 10
-) -> list:
+def last_incoming_messages(*, instance_id: str, token: str, minutes: int = 10) -> list:
     """Fetch recent incoming messages from the journal (independent of notification queue)."""
-    url = build_url(
-        instance_id=instance_id, token=token, method="lastIncomingMessages"
-    )
+    url = build_url(instance_id=instance_id, token=token, method="lastIncomingMessages")
     resp = httpx.get(url, params={"minutes": minutes}, timeout=30.0)
     resp.raise_for_status()
     return resp.json()
@@ -208,8 +197,7 @@ def main() -> None:
 
     if not instance_id or not token:
         print(
-            "Error: GREEN_API_INSTANCE_ID and GREEN_API_TOKEN must be set "
-            "in .env or environment."
+            "Error: GREEN_API_INSTANCE_ID and GREEN_API_TOKEN must be set in .env or environment."
         )
         sys.exit(1)
 
@@ -228,9 +216,7 @@ def main() -> None:
             break
         receipt_id = notif.get("receiptId")
         if receipt_id is not None:
-            delete_notification(
-                instance_id=instance_id, token=token, receipt_id=receipt_id
-            )
+            delete_notification(instance_id=instance_id, token=token, receipt_id=receipt_id)
         drained += 1
     if drained:
         print(f"(drained {drained} stale notification(s) from queue)")
@@ -274,16 +260,10 @@ def main() -> None:
 
         # Always acknowledge the notification
         if receipt_id is not None:
-            delete_notification(
-                instance_id=instance_id, token=token, receipt_id=receipt_id
-            )
+            delete_notification(instance_id=instance_id, token=token, receipt_id=receipt_id)
 
         if text is not None:
-            sender = (
-                notif.get("body", {})
-                .get("senderData", {})
-                .get("senderName", "unknown")
-            )
+            sender = notif.get("body", {}).get("senderData", {}).get("senderName", "unknown")
             label = "Reply" if "incoming" in wh_type else "Echo (self)"
             print(f"\n{label} from {sender}:")
             print(text)
@@ -293,14 +273,14 @@ def main() -> None:
 
     # --- Diagnostic: check if instance received anything at all ---
     print("\nTimed out. Running diagnostic — checking lastIncomingMessages...")
-    recent = last_incoming_messages(
-        instance_id=instance_id, token=token, minutes=10
-    )
+    recent = last_incoming_messages(instance_id=instance_id, token=token, minutes=10)
     if recent:
         print(f"Instance DID receive {len(recent)} message(s) in last 10 min:")
         for msg in recent[:5]:
-            print(f"  [{msg.get('typeMessage')}] from {msg.get('senderId', '?')}: "
-                  f"{msg.get('textMessage', '(non-text)')}")
+            print(
+                f"  [{msg.get('typeMessage')}] from {msg.get('senderId', '?')}: "
+                f"{msg.get('textMessage', '(non-text)')}"
+            )
         print("-> Messages exist but notification queue is empty.")
         print("   Try clearing webhookUrl in the Green API console directly.")
     else:
