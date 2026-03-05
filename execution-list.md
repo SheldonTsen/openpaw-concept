@@ -213,7 +213,9 @@ Addendum:
         retry_policy=RetryPolicy(maximum_attempts=2),
     )` -> why arbitrary +30? At least let's move these timeout / 30 / 2 to config.py
 - [ ] Is the extra description in TOOLS.md even used?
-- [ ] What if reference in TOOL.md to activity is invalid? How will that be handled? The workflow shouldn't fail ideally, and return to the main loop. Giving the LLM a chance to respond and maybe swap to bash if the tool is broken.
+- [x] What if reference in TOOL.md to activity is invalid? How will that be handled? The workflow shouldn't fail ideally, and return to the main loop. Giving the LLM a chance to respond and maybe swap to bash if the tool is broken.
+  - Runtime: missing handler → `ModuleNotFoundError` caught → error string fed back to LLM. Bad activity ref → exception caught by `asyncio.gather(return_exceptions=True)` → same. Workflow never crashes.
+  - Dev time: `test_activity_tools_reference_registered_activities` catches mismatches before they ship.
 - [ ] Change name to whatsapp-listener instead of just listener
 - [x] Write integration test to loop over tools folder and check if handler + activity is defined if tool type is activity ?
   - `tests/test_tool_handler_coverage.py`: 2 tests — every TOOL.md has a handler module, activity tools reference registered activities
