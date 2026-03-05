@@ -224,6 +224,10 @@ Addendum:
   - Added `ToolTier` StrEnum to `models/tools.py` (essential, common, specialized, experimental)
   - `tool_loader.py` DEFAULT_TIERS uses enum values
   - `test_all_tools_use_valid_tier` validates every TOOL.md tier against the enum
+- [x] Handle gracefully if `call_llm` activity timeouts all 3 retries — user never gets a response
+  - Extracted `_thinking_loop()` from `_handle_message`, wrapped in `try/except ActivityError`
+  - On failure: logs error, appends friendly error message to history, still sends WhatsApp reply
+  - `test_workflow_llm_failure_sends_error_message` verifies user gets "trouble processing" message
 
 ---
 

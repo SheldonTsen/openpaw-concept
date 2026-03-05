@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from temporalio.exceptions import ActivityError
 
 with workflow.unsafe.imports_passed_through():
     from opentlawpy.activities.tool_loader import load_tools_activity
@@ -47,18 +48,44 @@ class AgentWorkflow:
                 )
                 return
 
-            # Process all pending messages
             while self._pending_messages:
                 message = self._pending_messages.pop(0)
-                await self._handle_message(chat_id=chat_id, message=message)
+
+                self._conversation_history.append(
+                    {"role": "user", "content": message.text}
+                )
+
+                try:
+                    await self._thinking_loop()
+                except ActivityError as exc:
+                    workflow.logger.error(f"Activity failed for {chat_id}: {exc}")
+                    self._conversation_history.append(
+                        {
+                            "role": "assistant",
+                            "content": (
+                                "Sorry, I'm having trouble processing your message "
+                                "right now. Please try again in a moment."
+                            ),
+                        }
+                    )
+
+                response_text = self._conversation_history[-1]["content"]
+
+                await workflow.execute_activity(
+                    "send_whatsapp_message",
+                    arg=SendMessageInput(
+                        phone_number=chat_id, text=response_text
+                    ),
+                    start_to_close_timeout=timedelta(seconds=30),
+                    retry_policy=RetryPolicy(maximum_attempts=3),
+                    task_queue=WHATSAPP_TASK_QUEUE,
+                )
 
     @workflow.signal
     def new_message(self, sender: str, text: str) -> None:
         self._pending_messages.append(IncomingMessage(sender=sender, text=text))
 
-    async def _handle_message(self, chat_id: str, message: IncomingMessage) -> None:
-        self._conversation_history.append({"role": "user", "content": message.text})
-
+    async def _thinking_loop(self) -> None:
         for _ in range(MAX_TOOL_ITERATIONS):
             messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._conversation_history
 
@@ -75,48 +102,35 @@ class AgentWorkflow:
             )
 
             if not llm_output.tool_calls:
-                # LLM is done — store final response and break
                 self._conversation_history.append(
                     {
                         "role": "assistant",
                         "content": llm_output.response_text,
                     }
                 )
-                break
+                return
 
-            # Store assistant message with tool calls
             self._conversation_history.append(
                 {
                     "role": "assistant",
+                    # openai expects content to be empty for tool calls
                     "content": llm_output.response_text or "",
                     "tool_calls": llm_output.tool_calls,
                 }
             )
 
-            # Execute tools in parallel, add results to history
             tool_results = await execute_tool_calls(
                 tool_calls=llm_output.tool_calls,
             )
             self._conversation_history.extend(tool_results)
-        else:
-            # Hit max iterations
-            self._conversation_history.append(
-                {
-                    "role": "assistant",
-                    "content": (
-                        f"I've reached my thinking limit for this message "
-                        f"({MAX_TOOL_ITERATIONS} iterations)."
-                    ),
-                }
-            )
 
-        # Extract last assistant content for the WhatsApp reply
-        response_text = self._conversation_history[-1]["content"]
-
-        await workflow.execute_activity(
-            "send_whatsapp_message",
-            arg=SendMessageInput(phone_number=chat_id, text=response_text),
-            start_to_close_timeout=timedelta(seconds=30),
-            retry_policy=RetryPolicy(maximum_attempts=3),
-            task_queue=WHATSAPP_TASK_QUEUE,
+        # Hit max iterations
+        self._conversation_history.append(
+            {
+                "role": "assistant",
+                "content": (
+                    f"I've reached my thinking limit for this message "
+                    f"({MAX_TOOL_ITERATIONS} iterations)."
+                ),
+            }
         )
