@@ -1,4 +1,12 @@
 from dataclasses import dataclass, field
+from enum import StrEnum
+
+
+class ToolTier(StrEnum):
+    ESSENTIAL = "essential"
+    COMMON = "common"
+    SPECIALIZED = "specialized"
+    EXPERIMENTAL = "experimental"
 
 
 @dataclass

@@ -108,7 +108,7 @@ class OpenRouterClient:
         message = choice["message"]
         usage = data.get("usage", {})
 
-        logger.info("OpenRouter response: choice=%s message=%s usage=%s", choice, message, usage)
+        logger.info("OpenRouter response: choice=%s usage=%s", choice, usage)
 
         tool_calls = _parse_tool_calls(message.get("tool_calls"))
         finish_reason = choice.get("finish_reason")

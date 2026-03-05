@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from temporalio.exceptions import ActivityError
 
 with workflow.unsafe.imports_passed_through():
     from opentlawpy.activities.tool_loader import load_tools_activity
@@ -24,9 +25,17 @@ class AgentWorkflow:
     def __init__(self) -> None:
         self._pending_messages: list[IncomingMessage] = []
         self._conversation_history: list[dict] = []
+        self._tool_defs_for_llm: list[dict] = []
 
     @workflow.run
     async def run(self, chat_id: str) -> None:
+        tools = await workflow.execute_activity(
+            load_tools_activity,
+            start_to_close_timeout=timedelta(seconds=10),
+            retry_policy=RetryPolicy(maximum_attempts=1),
+        )
+        self._tool_defs_for_llm = [t.to_llm_format() for t in tools]
+
         while True:
             try:
                 await workflow.wait_condition(
@@ -40,24 +49,47 @@ class AgentWorkflow:
                 )
                 return
 
-            # Process all pending messages
             while self._pending_messages:
                 message = self._pending_messages.pop(0)
-                await self._handle_message(chat_id=chat_id, message=message)
+
+                self._conversation_history.append(
+                    {"role": "user", "content": message.text}
+                )
+
+                # try..except so that the workflow does not fail
+                # and still sends an error message to the user 
+                # otherwise the user never gets a response back
+                try:
+                    await self._thinking_loop()
+                except ActivityError as exc:
+                    workflow.logger.error(f"Activity failed for {chat_id}: {exc}")
+                    self._conversation_history.append(
+                        {
+                            "role": "assistant",
+                            "content": (
+                                "Sorry, I'm having trouble processing your message "
+                                "right now. Please try again in a moment."
+                            ),
+                        }
+                    )
+
+                response_text = self._conversation_history[-1]["content"]
+
+                await workflow.execute_activity(
+                    "send_whatsapp_message",
+                    arg=SendMessageInput(
+                        phone_number=chat_id, text=response_text
+                    ),
+                    start_to_close_timeout=timedelta(seconds=30),
+                    retry_policy=RetryPolicy(maximum_attempts=3),
+                    task_queue=WHATSAPP_TASK_QUEUE,
+                )
 
     @workflow.signal
     def new_message(self, sender: str, text: str) -> None:
         self._pending_messages.append(IncomingMessage(sender=sender, text=text))
 
-    async def _handle_message(self, chat_id: str, message: IncomingMessage) -> None:
-        self._conversation_history.append({"role": "user", "content": message.text})
-
-        tools = await workflow.execute_activity(
-            load_tools_activity,
-            start_to_close_timeout=timedelta(seconds=10),
-        )
-        tool_defs_for_llm = [t.to_llm_format() for t in tools]
-
+    async def _thinking_loop(self) -> None:
         for _ in range(MAX_TOOL_ITERATIONS):
             messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._conversation_history
 
@@ -66,7 +98,7 @@ class AgentWorkflow:
                 arg=LLMCallInput(
                     messages=messages,
                     model=LLM_MODEL,
-                    tools=tool_defs_for_llm,
+                    tools=self._tool_defs_for_llm,
                 ),
                 result_type=LLMCallOutput,
                 start_to_close_timeout=timedelta(seconds=120),
@@ -74,48 +106,36 @@ class AgentWorkflow:
             )
 
             if not llm_output.tool_calls:
-                # LLM is done — store final response and break
                 self._conversation_history.append(
                     {
                         "role": "assistant",
                         "content": llm_output.response_text,
                     }
                 )
-                break
+                # no more tools to call - exit function
+                return
 
-            # Store assistant message with tool calls
             self._conversation_history.append(
                 {
                     "role": "assistant",
+                    # openai expects content to be empty for tool calls
                     "content": llm_output.response_text or "",
                     "tool_calls": llm_output.tool_calls,
                 }
             )
 
-            # Execute tools in parallel, add results to history
             tool_results = await execute_tool_calls(
                 tool_calls=llm_output.tool_calls,
             )
             self._conversation_history.extend(tool_results)
-        else:
-            # Hit max iterations
-            self._conversation_history.append(
-                {
-                    "role": "assistant",
-                    "content": (
-                        f"I've reached my thinking limit for this message "
-                        f"({MAX_TOOL_ITERATIONS} iterations)."
-                    ),
-                }
-            )
 
-        # Extract last assistant content for the WhatsApp reply
-        response_text = self._conversation_history[-1]["content"]
-
-        await workflow.execute_activity(
-            "send_whatsapp_message",
-            arg=SendMessageInput(phone_number=chat_id, text=response_text),
-            start_to_close_timeout=timedelta(seconds=30),
-            retry_policy=RetryPolicy(maximum_attempts=3),
-            task_queue=WHATSAPP_TASK_QUEUE,
+        # Hit max iterations
+        self._conversation_history.append(
+            {
+                "role": "assistant",
+                "content": (
+                    f"I've reached my thinking limit for this message "
+                    f"({MAX_TOOL_ITERATIONS} iterations)."
+                ),
+            }
         )
