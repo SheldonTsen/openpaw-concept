@@ -1,6 +1,8 @@
 import asyncio
 import importlib
 
+from temporalio import workflow
+
 
 async def execute_tool_calls(tool_calls: list[dict]) -> list[dict]:
     """Execute tool calls in parallel, returning tool result messages.
@@ -39,7 +41,8 @@ async def _dispatch(tool_call: dict) -> str:
     args = func["arguments"]
 
     try:
-        mod = importlib.import_module(f"opentlawpy.tool_handlers.{name}")
+        with workflow.unsafe.imports_passed_through():
+            mod = importlib.import_module(f"opentlawpy.tool_handlers.{name}")
     except ModuleNotFoundError:
         return f"Error: Unknown tool '{name}'"
 
