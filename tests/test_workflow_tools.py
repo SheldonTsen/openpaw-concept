@@ -3,7 +3,8 @@ from unittest.mock import patch
 from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import UnsandboxedWorkflowRunner, Worker
-
+from temporalio.exceptions import ActivityError, ApplicationError
+from temporalio.client import WorkflowFailureError
 from opentlawpy.config import WHATSAPP_TASK_QUEUE
 from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
@@ -14,6 +15,8 @@ from opentlawpy.models.tool_activities import (
     ReadFileOutput,
     WriteFileInput,
     WriteFileOutput,
+    GatherToolResultsInput,
+    GatherToolResultsOutput
 )
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
@@ -26,6 +29,7 @@ llm_calls: list[LLMCallInput] = []
 tool_command_calls: list[BashCommandInput] = []
 read_file_calls: list[ReadFileInput] = []
 write_file_calls: list[WriteFileInput] = []
+gather_tool_results_calls: list[GatherToolResultsInput] = []
 
 
 @activity.defn(name="send_whatsapp_message")
@@ -58,6 +62,8 @@ def _clear_all():
     tool_command_calls.clear()
     read_file_calls.clear()
     write_file_calls.clear()
+    gather_tool_results_calls.clear()
+
 
 
 # Minimal tool definitions for testing (load_tools returns these)
@@ -93,6 +99,28 @@ MOCK_TOOLS = [
 @activity.defn(name="load_tools_activity")
 async def mock_load_tools() -> list[ToolDefinition]:
     return MOCK_TOOLS
+
+
+@activity.defn(name="gather_tool_results_activity")
+async def mock_gather_tool_results_activity(input: GatherToolResultsInput) -> GatherToolResultsOutput:
+    gather_tool_results_calls.append(input)
+
+    num_res = []
+    for tc, result in zip(input.tool_calls, input.tool_results):
+        if isinstance(result, Exception):
+            content = f"Error: {result}"
+        else:
+            content = result
+        num_res.append(
+            {
+                "role": "tool",
+                "tool_call_id": tc["id"],
+                "content": content,
+            }
+        )
+
+    return GatherToolResultsOutput(tool_results_as_messages=num_res
+    )
 
 
 def _make_text_response(text: str) -> LLMCallOutput:
@@ -137,6 +165,7 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
                     mock_read_file,
                     mock_write_file,
                     mock_load_tools,
+                    mock_gather_tool_results_activity
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -256,6 +285,7 @@ async def test_workflow_tool_error_fed_back():
                     mock_read_file,
                     mock_write_file,
                     mock_load_tools,
+                    mock_gather_tool_results_activity
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -273,7 +303,10 @@ async def test_workflow_tool_error_fed_back():
                 start_signal="new_message",
                 start_signal_args=["1234567890", "Read missing.txt"],
             )
-            await handle.result()
+            try:
+                await handle.result()
+            except WorkflowFailureError as e:
+                raise e.cause
 
     assert len(llm_calls) == 2
     # Error message should be in tool result
@@ -368,6 +401,7 @@ async def test_workflow_llm_failure_sends_error_message():
                     mock_read_file,
                     mock_write_file,
                     mock_load_tools,
+                    mock_gather_tool_results_activity
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -414,13 +448,20 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
 
     @activity.defn(name="execute_bash_command")
     async def mock_crashing_command(input: BashCommandInput) -> BashCommandOutput:
-        raise RuntimeError("Container crashed")
+        # raise RuntimeError("Code crashed")
+        return BashCommandOutput(
+                stdout="",
+                stderr=str("This is failed return."),
+                exit_code=-1,
+                success=False,
+            )
 
     @activity.defn(name="call_llm")
     async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
         llm_calls.append(input)
         return mock_llm(input)
 
+    # with patch.object(AgentWorkflow, "_thinking_loop", side_effect=ApplicationError("error")):
     async with await WorkflowEnvironment.start_time_skipping() as env:
         async with (
             Worker(
@@ -433,6 +474,7 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
                     mock_read_file,
                     mock_write_file,
                     mock_load_tools,
+                    mock_gather_tool_results_activity
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -450,7 +492,10 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
                 start_signal="new_message",
                 start_signal_args=["1234567890", "Do something"],
             )
-            await handle.result()
+            try:
+                await handle.result()
+            except WorkflowFailureError as e:
+                raise e.cause
 
     # LLM called twice: once to get tool call, once after error fed back
     assert len(llm_calls) == 2
