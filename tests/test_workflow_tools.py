@@ -448,7 +448,6 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
 
     @activity.defn(name="execute_bash_command")
     async def mock_crashing_command(input: BashCommandInput) -> BashCommandOutput:
-        # raise RuntimeError("Code crashed")
         return BashCommandOutput(
             stdout="",
             stderr=str("This is failed return."),
@@ -461,7 +460,6 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
         llm_calls.append(input)
         return mock_llm(input)
 
-    # with patch.object(AgentWorkflow, "_thinking_loop", side_effect=ApplicationError("error")):
     async with await WorkflowEnvironment.start_time_skipping() as env:
         async with (
             Worker(

@@ -228,7 +228,6 @@ Addendum:
   - Extracted `_thinking_loop()` from `_handle_message`, wrapped in `try/except ActivityError`
   - On failure: logs error, appends friendly error message to history, still sends WhatsApp reply
   - `test_workflow_llm_failure_sends_error_message` verifies user gets "trouble processing" message
-- [ ] When `ls` returns nothing - results zip is weird.
 - [ ] Change `src/opentlawpy/activities/tool_command.py` name to `bash_command.py`
 
 ---
