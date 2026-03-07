@@ -147,6 +147,12 @@ Addendum — OpenRouter (free) support:
 - [x] Pass `OPENROUTER_API_KEY` and `LLM_PROVIDER` through `docker-compose.yaml` + `.env.example`
 - [x] Unit tests: 3 tests for OpenRouterClient (request body, missing usage, HTTP error)
 
+Addendum — Local MLX model support:
+- [x] Create `src/opentlawpy/llm/openai_client.py` — generic OpenAI-compatible client (works with MLX LM server, vLLM, etc.)
+- [x] Add `LOCAL_MODEL_URL` to `config.py` (default `http://localhost:8080/v1`)
+- [x] Add `elif LLM_PROVIDER == "local"` branch in `create_activities.py`
+- [x] Create `scripts/start-mlx-server.sh` — starts MLX LM server with configurable model/port
+
 ### 2.3 System Prompt (DONE)
 - [x] Add `SYSTEM_PROMPT` constant to `config.py`
 - [x] Workflow prepends system prompt as `{"role": "system", ...}` to every LLM call (not stored in conversation history)
