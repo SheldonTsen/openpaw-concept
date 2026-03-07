@@ -31,12 +31,8 @@ def test_every_tool_has_handler():
 
     for tool in tools:
         mod = importlib.import_module(f"opentlawpy.tool_handlers.{tool.name}")
-        assert hasattr(mod, "handle"), (
-            f"Handler module for '{tool.name}' missing handle() function"
-        )
-        assert callable(mod.handle), (
-            f"handle in '{tool.name}' handler is not callable"
-        )
+        assert hasattr(mod, "handle"), f"Handler module for '{tool.name}' missing handle() function"
+        assert callable(mod.handle), f"handle in '{tool.name}' handler is not callable"
 
 
 def test_all_tools_use_valid_tier():
@@ -47,8 +43,7 @@ def test_all_tools_use_valid_tier():
     for tool in tools:
         tier = tool.metadata.get("tier", "common")
         assert tier in valid_tiers, (
-            f"Tool '{tool.name}' has invalid tier '{tier}'. "
-            f"Valid tiers: {sorted(valid_tiers)}"
+            f"Tool '{tool.name}' has invalid tier '{tier}'. Valid tiers: {sorted(valid_tiers)}"
         )
 
 

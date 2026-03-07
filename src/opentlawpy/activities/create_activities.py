@@ -11,7 +11,6 @@ from opentlawpy.config import (
 )
 
 
-
 def create_activities() -> list:
     if LLM_PROVIDER == "anthropic":
         from opentlawpy.llm.anthropic_client import AnthropicClient

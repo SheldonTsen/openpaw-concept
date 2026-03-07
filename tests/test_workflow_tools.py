@@ -16,7 +16,7 @@ from opentlawpy.models.tool_activities import (
     WriteFileInput,
     WriteFileOutput,
     GatherToolResultsInput,
-    GatherToolResultsOutput
+    GatherToolResultsOutput,
 )
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
@@ -65,7 +65,6 @@ def _clear_all():
     gather_tool_results_calls.clear()
 
 
-
 # Minimal tool definitions for testing (load_tools returns these)
 MOCK_TOOLS = [
     ToolDefinition(
@@ -102,7 +101,9 @@ async def mock_load_tools() -> list[ToolDefinition]:
 
 
 @activity.defn(name="gather_tool_results_activity")
-async def mock_gather_tool_results_activity(input: GatherToolResultsInput) -> GatherToolResultsOutput:
+async def mock_gather_tool_results_activity(
+    input: GatherToolResultsInput,
+) -> GatherToolResultsOutput:
     gather_tool_results_calls.append(input)
 
     num_res = []
@@ -119,8 +120,7 @@ async def mock_gather_tool_results_activity(input: GatherToolResultsInput) -> Ga
             }
         )
 
-    return GatherToolResultsOutput(tool_results_as_messages=num_res
-    )
+    return GatherToolResultsOutput(tool_results_as_messages=num_res)
 
 
 def _make_text_response(text: str) -> LLMCallOutput:
@@ -165,7 +165,7 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
                     mock_read_file,
                     mock_write_file,
                     mock_load_tools,
-                    mock_gather_tool_results_activity
+                    mock_gather_tool_results_activity,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -285,7 +285,7 @@ async def test_workflow_tool_error_fed_back():
                     mock_read_file,
                     mock_write_file,
                     mock_load_tools,
-                    mock_gather_tool_results_activity
+                    mock_gather_tool_results_activity,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -401,7 +401,7 @@ async def test_workflow_llm_failure_sends_error_message():
                     mock_read_file,
                     mock_write_file,
                     mock_load_tools,
-                    mock_gather_tool_results_activity
+                    mock_gather_tool_results_activity,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -450,11 +450,11 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
     async def mock_crashing_command(input: BashCommandInput) -> BashCommandOutput:
         # raise RuntimeError("Code crashed")
         return BashCommandOutput(
-                stdout="",
-                stderr=str("This is failed return."),
-                exit_code=-1,
-                success=False,
-            )
+            stdout="",
+            stderr=str("This is failed return."),
+            exit_code=-1,
+            success=False,
+        )
 
     @activity.defn(name="call_llm")
     async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
@@ -474,7 +474,7 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
                     mock_read_file,
                     mock_write_file,
                     mock_load_tools,
-                    mock_gather_tool_results_activity
+                    mock_gather_tool_results_activity,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),

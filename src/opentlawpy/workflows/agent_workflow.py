@@ -18,10 +18,7 @@ with workflow.unsafe.imports_passed_through():
         WORKFLOW_TIMEOUT_MINUTES,
     )
     from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
-    from opentlawpy.models.tool_activities import (
-        GatherToolResultsInput,
-        GatherToolResultsOutput
-    )
+    from opentlawpy.models.tool_activities import GatherToolResultsInput, GatherToolResultsOutput
 
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
 
@@ -60,12 +57,10 @@ class AgentWorkflow:
             while self._pending_messages:
                 message = self._pending_messages.pop(0)
 
-                self._conversation_history.append(
-                    {"role": "user", "content": message.text}
-                )
+                self._conversation_history.append({"role": "user", "content": message.text})
 
                 # try..except so that the workflow does not fail
-                # and still sends an error message to the user 
+                # and still sends an error message to the user
                 # otherwise the user never gets a response back
                 try:
                     await self._thinking_loop()
@@ -86,9 +81,7 @@ class AgentWorkflow:
 
                 await workflow.execute_activity(
                     "send_whatsapp_message",
-                    arg=SendMessageInput(
-                        phone_number=chat_id, text=response_text
-                    ),
+                    arg=SendMessageInput(phone_number=chat_id, text=response_text),
                     start_to_close_timeout=timedelta(seconds=30),
                     retry_policy=RetryPolicy(maximum_attempts=3),
                     task_queue=WHATSAPP_TASK_QUEUE,
@@ -140,12 +133,10 @@ class AgentWorkflow:
             tasks = [_dispatch(tool_call=tc) for tc in llm_output.tool_calls]
             tool_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-
             gather_tool_results_output: GatherToolResultsOutput = await workflow.execute_activity(
                 gather_tool_results_activity,
                 arg=GatherToolResultsInput(
-                    tool_calls=llm_output.tool_calls,
-                    tool_results=tool_results
+                    tool_calls=llm_output.tool_calls, tool_results=tool_results
                 ),
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=RetryPolicy(maximum_attempts=2),
