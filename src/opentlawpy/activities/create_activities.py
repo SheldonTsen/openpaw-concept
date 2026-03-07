@@ -1,5 +1,6 @@
 from opentlawpy.activities.file_operations import read_file_activity, write_file_activity
 from opentlawpy.activities.llm_call import create_call_llm_activity
+from opentlawpy.activities.gather_tool_results import gather_tool_results_activity
 from opentlawpy.activities.bash_command import execute_bash_command
 from opentlawpy.activities.tool_loader import load_tools_activity
 from opentlawpy.config import (
@@ -8,6 +9,7 @@ from opentlawpy.config import (
     LLM_PROVIDER,
     OPENROUTER_API_KEY,
 )
+
 
 
 def create_activities() -> list:
@@ -26,4 +28,5 @@ def create_activities() -> list:
         read_file_activity,
         write_file_activity,
         load_tools_activity,
+        gather_tool_results_activity,
     ]
