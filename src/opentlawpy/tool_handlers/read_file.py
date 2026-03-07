@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from temporalio import workflow
@@ -5,8 +6,11 @@ from temporalio.common import RetryPolicy
 
 from opentlawpy.models.tool_activities import ReadFileInput, ReadFileOutput
 
+logger = logging.getLogger(__name__)
+
 
 async def handle(args: dict) -> str:
+    logger.info("Calling read_file_activity.")
     output: ReadFileOutput = await workflow.execute_activity(
         "read_file_activity",
         arg=ReadFileInput(

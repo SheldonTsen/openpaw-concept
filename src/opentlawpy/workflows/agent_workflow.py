@@ -1,4 +1,6 @@
+import logging
 import asyncio
+import importlib
 from datetime import timedelta
 
 from temporalio import workflow
@@ -7,6 +9,7 @@ from temporalio.exceptions import ActivityError
 
 with workflow.unsafe.imports_passed_through():
     from opentlawpy.activities.tool_loader import load_tools_activity
+    from opentlawpy.activities.gather_tool_results import gather_tool_results_activity
     from opentlawpy.config import (
         LLM_MODEL,
         MAX_TOOL_ITERATIONS,
@@ -15,9 +18,11 @@ with workflow.unsafe.imports_passed_through():
         WORKFLOW_TIMEOUT_MINUTES,
     )
     from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
-    from opentlawpy.workflows.tool_executor import execute_tool_calls
+    from opentlawpy.models.tool_activities import GatherToolResultsInput, GatherToolResultsOutput
 
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
+
+logger = logging.getLogger(__name__)
 
 
 @workflow.defn
@@ -52,12 +57,10 @@ class AgentWorkflow:
             while self._pending_messages:
                 message = self._pending_messages.pop(0)
 
-                self._conversation_history.append(
-                    {"role": "user", "content": message.text}
-                )
+                self._conversation_history.append({"role": "user", "content": message.text})
 
                 # try..except so that the workflow does not fail
-                # and still sends an error message to the user 
+                # and still sends an error message to the user
                 # otherwise the user never gets a response back
                 try:
                     await self._thinking_loop()
@@ -68,7 +71,8 @@ class AgentWorkflow:
                             "role": "assistant",
                             "content": (
                                 "Sorry, I'm having trouble processing your message "
-                                "right now. Please try again in a moment."
+                                "right now. Please try again in a moment. This is likely "
+                                "an internal error."
                             ),
                         }
                     )
@@ -77,9 +81,7 @@ class AgentWorkflow:
 
                 await workflow.execute_activity(
                     "send_whatsapp_message",
-                    arg=SendMessageInput(
-                        phone_number=chat_id, text=response_text
-                    ),
+                    arg=SendMessageInput(phone_number=chat_id, text=response_text),
                     start_to_close_timeout=timedelta(seconds=30),
                     retry_policy=RetryPolicy(maximum_attempts=3),
                     task_queue=WHATSAPP_TASK_QUEUE,
@@ -106,6 +108,7 @@ class AgentWorkflow:
             )
 
             if not llm_output.tool_calls:
+                workflow.logger.info(f"No more tool calls. Exiting loop.")
                 self._conversation_history.append(
                     {
                         "role": "assistant",
@@ -115,6 +118,7 @@ class AgentWorkflow:
                 # no more tools to call - exit function
                 return
 
+            workflow.logger.info(f"Appending tool_call results to conversation history.")
             self._conversation_history.append(
                 {
                     "role": "assistant",
@@ -124,12 +128,24 @@ class AgentWorkflow:
                 }
             )
 
-            tool_results = await execute_tool_calls(
-                tool_calls=llm_output.tool_calls,
+            # execute tool calls in parallel
+            workflow.logger.info(f"Calling execute_tool_calls with: {llm_output.tool_calls}")
+            tasks = [_dispatch(tool_call=tc) for tc in llm_output.tool_calls]
+            tool_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            gather_tool_results_output: GatherToolResultsOutput = await workflow.execute_activity(
+                gather_tool_results_activity,
+                arg=GatherToolResultsInput(
+                    tool_calls=llm_output.tool_calls, tool_results=tool_results
+                ),
+                start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=RetryPolicy(maximum_attempts=2),
             )
-            self._conversation_history.extend(tool_results)
+
+            self._conversation_history.extend(gather_tool_results_output.tool_results_as_messages)
 
         # Hit max iterations
+        workflow.logger.info(f"Maximum tool calls reached.")
         self._conversation_history.append(
             {
                 "role": "assistant",
@@ -139,3 +155,22 @@ class AgentWorkflow:
                 ),
             }
         )
+
+
+async def _dispatch(tool_call: dict) -> str:
+    """Dispatch a single tool call to its handler via importlib convention.
+
+    Tool name "bash" → opentlawpy.tool_handlers.bash → handle(args).
+    """
+    logger.info(f"Dispatching tool call for {tool_call}")
+    func = tool_call["function"]
+    name = func["name"]
+    args = func["arguments"]
+
+    try:
+        with workflow.unsafe.imports_passed_through():
+            mod = importlib.import_module(f"opentlawpy.tool_handlers.{name}")
+    except ModuleNotFoundError:
+        return f"Error: Unknown tool '{name}'"
+
+    return await mod.handle(args)
