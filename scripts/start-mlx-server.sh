@@ -29,4 +29,5 @@ mlx_lm.server \
     --port "$PORT" \
     --max-tokens 4096 \
     --prefill-step-size 4096 \
-    --prompt-cache-size 4
+    --prompt-cache-size 4 \
+    --log-level DEBUG
