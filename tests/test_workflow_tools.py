@@ -35,7 +35,7 @@ gather_tool_results_calls: list[GatherToolResultsInput] = []
 @activity.defn(name="send_whatsapp_message")
 async def mock_send(input: SendMessageInput) -> SendMessageOutput:
     send_calls.append(input)
-    return SendMessageOutput(success=True)
+    return SendMessageOutput(text=input.text)
 
 
 @activity.defn(name="execute_bash_command")

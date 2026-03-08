@@ -30,5 +30,7 @@ mlx_lm.server \
     --max-tokens 4096 \
     --prefill-step-size 4096 \
     --prompt-cache-size 4 \
-    --chat-template-args '{"enable_thinking": false}' \
     --log-level DEBUG
+
+# add this if you want to disable thinking mode
+# --chat-template-args '{"enable_thinking": false}'

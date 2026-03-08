@@ -17,12 +17,8 @@ def create_send_whatsapp_message_activity(
 
     @activity.defn(name="send_whatsapp_message")
     def send_whatsapp_message(input: SendMessageInput) -> SendMessageOutput:
-        try:
-            jid = build_jid(input.phone_number)
-            neonize_client.send_message(jid, input.text)
-            return SendMessageOutput(success=True)
-        except Exception as e:
-            activity.logger.error(f"Failed to send WhatsApp message: {e}")
-            return SendMessageOutput(success=False, error=str(e))
+        jid = build_jid(input.phone_number)
+        neonize_client.send_message(jid, input.text)
+        return SendMessageOutput(text=input.text)
 
     return send_whatsapp_message

@@ -79,13 +79,16 @@ class AgentWorkflow:
 
                 response_text = self._conversation_history[-1]["content"]
 
-                await workflow.execute_activity(
-                    "send_whatsapp_message",
-                    arg=SendMessageInput(phone_number=chat_id, text=response_text),
-                    start_to_close_timeout=timedelta(seconds=30),
-                    retry_policy=RetryPolicy(maximum_attempts=3),
-                    task_queue=WHATSAPP_TASK_QUEUE,
-                )
+                try:
+                    await workflow.execute_activity(
+                        "send_whatsapp_message",
+                        arg=SendMessageInput(phone_number=chat_id, text=response_text),
+                        start_to_close_timeout=timedelta(seconds=30),
+                        retry_policy=RetryPolicy(maximum_attempts=3),
+                        task_queue=WHATSAPP_TASK_QUEUE,
+                    )
+                except ActivityError as exc:
+                    workflow.logger.error(f"Failed to send WhatsApp message for {chat_id}: {exc}")
 
     @workflow.signal
     def new_message(self, sender: str, text: str) -> None:
@@ -103,7 +106,7 @@ class AgentWorkflow:
                     tools=self._tool_defs_for_llm,
                 ),
                 result_type=LLMCallOutput,
-                start_to_close_timeout=timedelta(seconds=60),
+                start_to_close_timeout=timedelta(seconds=90),
                 retry_policy=RetryPolicy(maximum_attempts=3),
             )
 

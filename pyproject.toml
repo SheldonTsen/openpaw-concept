@@ -5,7 +5,7 @@ description = "Temporal-based agentic system with WhatsApp integration"
 requires-python = ">=3.13"
 dependencies = [
     "temporalio<=2.0.0",
-    "neonize<=1.0.0",
+    "neonize==0.3.15.post0",
     "anthropic<=1.0.0",
     "pyyaml>=6.0",
 ]
