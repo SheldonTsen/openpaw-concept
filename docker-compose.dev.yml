@@ -8,7 +8,7 @@ services:
         - action: rebuild
           path: ./pyproject.toml
 
-  listener:
+  whatsapp-listener:
     develop:
       watch:
         - action: sync+restart
