@@ -4,6 +4,7 @@ from opentlawpy.activities.bash_command import execute_bash_command
 from opentlawpy.activities.file_operations import read_file_activity, write_file_activity
 from opentlawpy.activities.gather_tool_results import gather_tool_results_activity
 from opentlawpy.activities.llm_call import create_call_llm_activity
+from opentlawpy.activities.state_io import load_state_activity, save_state_activity
 from opentlawpy.activities.tool_loader import load_tools_activity
 from opentlawpy.config import (
     ANTHROPIC_API_KEY,
@@ -40,4 +41,6 @@ def create_activities() -> list:
         write_file_activity,
         load_tools_activity,
         gather_tool_results_activity,
+        save_state_activity,
+        load_state_activity,
     ]

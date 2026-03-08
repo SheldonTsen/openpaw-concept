@@ -5,6 +5,7 @@ from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 from opentlawpy.config import SYSTEM_PROMPT, WHATSAPP_TASK_QUEUE
 from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
+from opentlawpy.models.state import LoadStateInput, LoadStateOutput, SaveStateInput, SaveStateOutput
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 
@@ -15,6 +16,10 @@ TASK_QUEUE = "test-agent-tasks"
 # Track activity calls for assertions
 send_calls: list[SendMessageInput] = []
 llm_calls: list[LLMCallInput] = []
+save_state_calls: list[SaveStateInput] = []
+
+# Pre-loaded state for testing persistence (set per-test)
+_preloaded_state: LoadStateOutput | None = None
 
 
 @activity.defn(name="send_whatsapp_message")
@@ -39,6 +44,19 @@ async def mock_load_tools() -> list[ToolDefinition]:
     return []
 
 
+@activity.defn(name="save_state_activity")
+async def mock_save_state(input: SaveStateInput) -> SaveStateOutput:
+    save_state_calls.append(input)
+    return SaveStateOutput(success=True)
+
+
+@activity.defn(name="load_state_activity")
+async def mock_load_state(input: LoadStateInput) -> LoadStateOutput:
+    if _preloaded_state is not None:
+        return _preloaded_state
+    return LoadStateOutput(conversation_history=[], found=False)
+
+
 async def test_workflow_calls_llm_and_sends_response():
     """Start workflow with signal, verify it calls call_llm then send_whatsapp_message."""
     send_calls.clear()
@@ -50,7 +68,7 @@ async def test_workflow_calls_llm_and_sends_response():
                 env.client,
                 task_queue=TASK_QUEUE,
                 workflows=[AgentWorkflow],
-                activities=[mock_call_llm, mock_load_tools],
+                activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
             Worker(
@@ -92,7 +110,7 @@ async def test_workflow_multiple_messages():
                 env.client,
                 task_queue=TASK_QUEUE,
                 workflows=[AgentWorkflow],
-                activities=[mock_call_llm, mock_load_tools],
+                activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
             Worker(
@@ -131,7 +149,7 @@ async def test_workflow_sends_conversation_history():
                 env.client,
                 task_queue=TASK_QUEUE,
                 workflows=[AgentWorkflow],
-                activities=[mock_call_llm, mock_load_tools],
+                activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
             Worker(
@@ -181,7 +199,7 @@ async def test_system_prompt_prepended_to_every_llm_call():
                 env.client,
                 task_queue=TASK_QUEUE,
                 workflows=[AgentWorkflow],
-                activities=[mock_call_llm, mock_load_tools],
+                activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
             Worker(
@@ -214,3 +232,62 @@ async def test_system_prompt_prepended_to_every_llm_call():
     for call in llm_calls:
         system_messages = [m for m in call.messages if m["role"] == "system"]
         assert len(system_messages) == 1
+
+
+async def test_workflow_loads_persisted_state():
+    """Workflow loads pre-existing conversation history on startup."""
+    global _preloaded_state
+    send_calls.clear()
+    llm_calls.clear()
+    save_state_calls.clear()
+
+    _preloaded_state = LoadStateOutput(
+        conversation_history=[
+            {"role": "user", "content": "Previous message"},
+            {"role": "assistant", "content": "Previous response"},
+        ],
+        found=True,
+    )
+
+    try:
+        async with await WorkflowEnvironment.start_time_skipping() as env:
+            async with (
+                Worker(
+                    env.client,
+                    task_queue=TASK_QUEUE,
+                    workflows=[AgentWorkflow],
+                    activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
+                    workflow_runner=UnsandboxedWorkflowRunner(),
+                ),
+                Worker(
+                    env.client,
+                    task_queue=WHATSAPP_TASK_QUEUE,
+                    activities=[mock_send_whatsapp_message],
+                ),
+            ):
+                handle = await env.client.start_workflow(
+                    AgentWorkflow.run,
+                    arg="8888888888",
+                    id="test-workflow-persist",
+                    task_queue=TASK_QUEUE,
+                    start_signal="new_message",
+                    start_signal_args=["8888888888", "New message"],
+                )
+
+                await handle.result()
+    finally:
+        _preloaded_state = None
+
+    assert len(llm_calls) == 1
+
+    # LLM should receive restored history + new message
+    messages = llm_calls[0].messages
+    assert messages[0] == SYSTEM_MESSAGE
+    assert messages[1] == {"role": "user", "content": "Previous message"}
+    assert messages[2] == {"role": "assistant", "content": "Previous response"}
+    assert messages[3] == {"role": "user", "content": "New message"}
+
+    # State should have been saved after reply
+    assert len(save_state_calls) >= 1
+    saved_history = save_state_calls[-1].conversation_history
+    assert len(saved_history) == 4  # 2 restored + 1 new user + 1 new assistant
