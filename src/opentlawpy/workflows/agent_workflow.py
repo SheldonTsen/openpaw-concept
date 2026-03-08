@@ -103,7 +103,7 @@ class AgentWorkflow:
                     tools=self._tool_defs_for_llm,
                 ),
                 result_type=LLMCallOutput,
-                start_to_close_timeout=timedelta(seconds=120),
+                start_to_close_timeout=timedelta(seconds=60),
                 retry_policy=RetryPolicy(maximum_attempts=3),
             )
 
