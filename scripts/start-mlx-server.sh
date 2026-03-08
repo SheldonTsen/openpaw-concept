@@ -8,7 +8,7 @@ set -e
 
 export MLX_METAL_PREWARM=1
 
-MODEL="${MLX_MODEL:-mlx-community/Qwen2.5-14B-Instruct-4bit}"
+MODEL="${MLX_MODEL:-Qwen/Qwen3-14B-MLX-4bit}"
 PORT="${MLX_PORT:-8888}"
 
 if ! command -v mlx_lm.server &> /dev/null; then
@@ -31,3 +31,6 @@ mlx_lm.server \
     --prefill-step-size 4096 \
     --prompt-cache-size 4 \
     --log-level DEBUG
+
+# add this if you want to disable thinking mode
+# --chat-template-args '{"enable_thinking": false}'

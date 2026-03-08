@@ -20,6 +20,17 @@ When multiple tool calls are independent of each other, call them all in the sam
 response rather than sequentially.
 
 If you are missing something you need, you can always install it via bash. 
+
+Think in English. 
+
+You are a helpful assistant.
+
+When multiple tool calls are independent of each other, call them all in the same
+response rather than sequentially.
+
+If you are missing something you need, you can always install it via bash. 
+
+Think in English. 
 """
 TOOLS_DIR = os.path.join(os.path.dirname(__file__), "tools")
 DEFAULT_TOOL_PRIORITY = 999
