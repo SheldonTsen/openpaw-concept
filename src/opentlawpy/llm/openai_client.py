@@ -63,7 +63,7 @@ def _serialize_messages(messages: list[dict]) -> list[dict]:
 class OpenAIClient:
     """Generic client for any OpenAI-compatible API (MLX LM server, vLLM, etc.)."""
 
-    def __init__(self, *, base_url: str, api_key: str = "", timeout: float = 120.0):
+    def __init__(self, *, base_url: str, api_key: str = None, timeout: float = 120.0):
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
         self._timeout = timeout
