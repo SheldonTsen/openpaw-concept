@@ -322,7 +322,7 @@ wheels = [
 
 [[package]]
 name = "neonize"
-version = "0.3.14.post0"
+version = "0.3.15.post0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -336,18 +336,18 @@ dependencies = [
     { name = "segno" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/2f/a1dd3e118b51f7baff22f67870f40a1e4adfed10d24d64513869d8161fb4/neonize-0.3.14.post0.tar.gz", hash = "sha256:28d68e25f5705bca03c904a1c0abab493a8b86ed62c16749eb9d8b31efc261f6", size = 416939, upload-time = "2026-01-16T19:25:30.671Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/a0/5e06df362b952fe08381ff10709ab4826640ae2fd86cb3a0ef4bcb5dae03/neonize-0.3.15.post0.tar.gz", hash = "sha256:85495c2667b88ae1dd8c3e292c101e5dcdff0e14c9692a299a2b73eb21239e9c", size = 461933, upload-time = "2026-03-06T05:51:36.868Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/90/ea/7bd2bf394a3e025c7787caa1edb0ec3c3c4583de97c6163ff9bd285306ac/neonize-0.3.14.post0-py3-none-any.whl", hash = "sha256:97ab510a24ac96ef9aaf214613eefa9c51665e712c739077e7596150d99e0412", size = 509520, upload-time = "2026-01-16T19:25:29.19Z" },
-    { url = "https://files.pythonhosted.org/packages/b6/4b/e483682c9369994e846eb5aea42bd9e59c84ec319e18113152d9e7f97524/neonize-0.3.14.post0-py310-none-macosx_12_0_arm64.whl", hash = "sha256:fa6c50ca8939db2ee3a6f8623b1ef8b5f2f9826329a50c98d953d3d6e274c05a", size = 5996555, upload-time = "2026-01-16T19:19:50.481Z" },
-    { url = "https://files.pythonhosted.org/packages/f8/fa/bc05903a6c7010b8dd9499845ab17d8f5bb3874cb152f6be498b75efec35/neonize-0.3.14.post0-py310-none-macosx_12_0_x86_64.whl", hash = "sha256:a649cd8977694f8b133fd03a3d9e24681fceed288ea2894cedeef512357f9b19", size = 6396773, upload-time = "2026-01-16T19:19:48.601Z" },
-    { url = "https://files.pythonhosted.org/packages/0d/0d/b43cb840262b2a46d574fabd7d11103137af6a997bf2139a5c85c1bd8787/neonize-0.3.14.post0-py310-none-manylinux2014_aarch64.whl", hash = "sha256:b3ca6115044c7b8e4b754033417bcafb47da6d027e2135f67e9da8c264faebb8", size = 6202697, upload-time = "2026-01-16T19:22:54.41Z" },
-    { url = "https://files.pythonhosted.org/packages/a4/5b/e56a601d3717eed4acc4ce78ab5c2f8571eb314c97a2a2c23762f501e734/neonize-0.3.14.post0-py310-none-manylinux2014_i686.whl", hash = "sha256:cf8b89b5a2b7d36b6f8897967ba602c6cbd20662cb4990e8bffca1db34cd3230", size = 9133514, upload-time = "2026-01-16T19:24:14.326Z" },
-    { url = "https://files.pythonhosted.org/packages/8a/4c/19c2095c98d456902a01daae3ecb51f696a26b64f378601ef22371c482f3/neonize-0.3.14.post0-py310-none-manylinux2014_s390x.whl", hash = "sha256:3a29d6e9ef514d5a67081b42a5596d2e33831c77ef7809988273b1214446f037", size = 6671509, upload-time = "2026-01-16T19:22:50.261Z" },
-    { url = "https://files.pythonhosted.org/packages/77/6d/4c6a520f0ed52125d90e375f5865cf3437191988e08c6636d404e6f0a008/neonize-0.3.14.post0-py310-none-manylinux2014_x86_64.whl", hash = "sha256:9a6ebe18c8203cf8c1b2288f2dc8341a1a39aeda95d7a3c9f19984bd04f74c0d", size = 6679004, upload-time = "2026-01-16T19:22:52.256Z" },
-    { url = "https://files.pythonhosted.org/packages/45/57/6ed240d61d9f4d9272f45b1b121accb546b23edeea6d7a7b303d9e1195e8/neonize-0.3.14.post0-py310-none-win32.whl", hash = "sha256:e041f2553488d3dab098b662c99aa498681150e6eb0ca01ceb6d3ca0d8ef0b65", size = 6492307, upload-time = "2026-01-16T19:24:16.35Z" },
-    { url = "https://files.pythonhosted.org/packages/f3/63/8d22d79a5df84f1de0aaea77933df5020e5779edceb171216c13d2ec9de0/neonize-0.3.14.post0-py310-none-win_amd64.whl", hash = "sha256:6bbe49b111c924ad3042b8b59cde4a52fd79f74b46497de6d237e00ed1dbf3a7", size = 6594106, upload-time = "2026-01-16T19:24:19.68Z" },
-    { url = "https://files.pythonhosted.org/packages/78/f1/330e39f1e19623727ff734c2005b438484b92a33f32cc1ace0173e9a5187/neonize-0.3.14.post0-py310-none-win_arm64.whl", hash = "sha256:99fc955c1276a406cef56e1d2a02a1ca8e547a319db2bd7342fd2ea2ad0cfafb", size = 6001977, upload-time = "2026-01-16T19:24:18.014Z" },
+    { url = "https://files.pythonhosted.org/packages/09/0a/bc71332742dd7a03a1606b90e49ec8fcf8702cecef478a4447757aff9107/neonize-0.3.15.post0-py3-none-any.whl", hash = "sha256:81cc261d8385ca62abed153bca7259780919eec3201be26dc17511da444713ab", size = 557000, upload-time = "2026-03-06T05:51:38.077Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/3d/139f12a73a8877de4105cb433123eaa521067181ca82ccf2176ba45239f2/neonize-0.3.15.post0-py310-none-macosx_12_0_arm64.whl", hash = "sha256:01581bf87add59565e8e69461ba5b244f886ca41a122b68b245a5a146fce74f0", size = 6048276, upload-time = "2026-03-06T05:46:33.198Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/0c/04d23b45547da915e3c320ee2fcf4b43f2821d209d24a7edd82d75c381e9/neonize-0.3.15.post0-py310-none-macosx_12_0_x86_64.whl", hash = "sha256:7936f3cc6f837390e70cb9fcdab9611a3c8ce4f38ac6cb6231c43559ae07d13a", size = 6447103, upload-time = "2026-03-06T05:46:31.429Z" },
+    { url = "https://files.pythonhosted.org/packages/a0/f3/290fdf4fd000175eee4ef542737d1e3683183dc262ad57dca009aea5e960/neonize-0.3.15.post0-py310-none-manylinux2014_aarch64.whl", hash = "sha256:bd4767dfb9656779e1a25d18e0e314b415812d0dec66436115b6b5740677d208", size = 6251036, upload-time = "2026-03-06T05:49:22.839Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/6f/e4640ac0f0e7ca9348e83c976448eff13df49dd28783982e2788c790de34/neonize-0.3.15.post0-py310-none-manylinux2014_i686.whl", hash = "sha256:e75a83b5b518ac9029af990aaa7050b9a4f8188d597897640319e223747f3347", size = 9184813, upload-time = "2026-03-06T05:50:30.09Z" },
+    { url = "https://files.pythonhosted.org/packages/18/7b/26b5ae0e76ff8ce3de91d5a22d1eb638da51b50f8bb9bb94187e67f2ec62/neonize-0.3.15.post0-py310-none-manylinux2014_s390x.whl", hash = "sha256:f39402898d1f8fd393244813517f87dc9758b9f50ca53aae693a1ba21e1c5585", size = 6722334, upload-time = "2026-03-06T05:49:24.926Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/b5/540dcee5ccb884b91b8c2ab023ad8e79ea33c300fcdfb7f1c3f506c2a03a/neonize-0.3.15.post0-py310-none-manylinux2014_x86_64.whl", hash = "sha256:26b40e8208e303fbf612c03d1ba0c31ae938da4f5e1821c06e3385f0d76a28e4", size = 6729160, upload-time = "2026-03-06T05:49:20.842Z" },
+    { url = "https://files.pythonhosted.org/packages/94/d5/4599a06d9060e05bdeadb2fee2790e392dac382c502546c2cbb52708bd0e/neonize-0.3.15.post0-py310-none-win32.whl", hash = "sha256:31fe45b2a58c2ed75584200abfa76987ffc9fa8350e860081e2789c774d8cef0", size = 6542756, upload-time = "2026-03-06T05:50:28.331Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/0b/0fa999fae522fd8f36cf34dc22fc05dd88fc436f5be14d33179aab02e7c9/neonize-0.3.15.post0-py310-none-win_amd64.whl", hash = "sha256:67b5872bf31fe960346022b1c0ab45a818ec5cf842d246319c319dded2350963", size = 6644306, upload-time = "2026-03-06T05:50:32.284Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/95/c88fe4eee07cae4fb95e62856eca30863183d3c54e5742e156930c206621/neonize-0.3.15.post0-py310-none-win_arm64.whl", hash = "sha256:6f5406c25de143d590d30f8fc3efb6dc9e94fb78cc26226d49e358c09df9bfd5", size = 6050952, upload-time = "2026-03-06T05:50:26.979Z" },
 ]
 
 [[package]]
@@ -384,7 +384,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "anthropic", specifier = "<=1.0.0" },
-    { name = "neonize", specifier = "<=1.0.0" },
+    { name = "neonize", specifier = "==0.3.15.post0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.25.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0" },

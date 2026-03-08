@@ -235,6 +235,7 @@ Addendum:
   - On failure: logs error, appends friendly error message to history, still sends WhatsApp reply
   - `test_workflow_llm_failure_sends_error_message` verifies user gets "trouble processing" message
 - [x] Change `src/opentlawpy/activities/tool_command.py` name to `bash_command.py`
+- [ ] [{"error":"failed to get device list: failed to send usync query: websocket not connected","success":false}] - need to fix acitivyt to catch this
 
 ---
 
@@ -246,6 +247,7 @@ Addendum:
 - [ ] Create `src/activities/state_file_io.py` — read/write state.md
 - [ ] Create `src/utils/state_manager.py` — parse/serialize state.md (YAML frontmatter + markdown)
 - [ ] Workflow loads state.md on startup, saves after each message
+- [ ] State files in state/ folder that is mounted onto container
 
 ### 4.2 Conversation Compaction
 - [ ] Create `src/activities/conversation_compaction.py`
