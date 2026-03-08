@@ -24,6 +24,15 @@ docker compose logs listener # scan the bar code to link
 cp .env.example .env
 # fill in required details mainly API key and whatsapp phone number
 
+# alternatively - if you don't have a paid API key, use OpenRouter
+OPENROUTER_API_KEY=...
+LLM_MODEL=openrouter/free
+
+# alternatively - run scripts/start-mlx-server.sh for a local model if you machine can handle it. Don't forget to set .env appropriately ie
+LLM_MODEL=  # yes leave blank
+LLM_PROVIDER=local
+LOCAL_MODEL_URL=http://host.docker.internal:8888/v1
+
 # terminal 1
 docker compose -f docker-compose.yaml -f docker-compose.dev.yml watch --remove-orphans
 
