@@ -140,6 +140,9 @@ services:
     env_file: .env
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
+      - STATE_DIR=/app/data/state
+    volumes:
+      - ./data/state:/app/data/state
     networks:
       - temporal-network
     restart: unless-stopped
