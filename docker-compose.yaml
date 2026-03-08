@@ -145,9 +145,9 @@ services:
     restart: unless-stopped
     command: ["uv", "run", "python", "-m", "opentlawpy.worker"]
 
-  listener:
+  whatsapp-listener:
     build: .
-    container_name: opentlawpy-listener
+    container_name: opentlawpy-whatsapp-listener
     depends_on:
       temporal:
         condition: service_healthy
@@ -158,7 +158,7 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
       - NEONIZE_DB_PATH=/data/neonize.db
     volumes:
-      - ./neonize.db:/data/neonize.db
+      - ./data/neonize:/data
     networks:
       - temporal-network
     restart: unless-stopped

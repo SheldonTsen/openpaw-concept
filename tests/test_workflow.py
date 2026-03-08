@@ -20,7 +20,7 @@ llm_calls: list[LLMCallInput] = []
 @activity.defn(name="send_whatsapp_message")
 async def mock_send_whatsapp_message(input: SendMessageInput) -> SendMessageOutput:
     send_calls.append(input)
-    return SendMessageOutput(success=True)
+    return SendMessageOutput(text=input.text)
 
 
 @activity.defn(name="call_llm")

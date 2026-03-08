@@ -223,7 +223,7 @@ Addendum:
 - [x] What if reference in TOOL.md to activity is invalid? How will that be handled? The workflow shouldn't fail ideally, and return to the main loop. Giving the LLM a chance to respond and maybe swap to bash if the tool is broken.
   - Runtime: missing handler → `ModuleNotFoundError` caught → error string fed back to LLM. Bad activity ref → exception caught by `asyncio.gather(return_exceptions=True)` → same. Workflow never crashes.
   - Dev time: `test_activity_tools_reference_registered_activities` catches mismatches before they ship.
-- [ ] Change name to whatsapp-listener instead of just listener
+- [x] Change name to whatsapp-listener instead of just listener
 - [x] Write integration test to loop over tools folder and check if handler + activity is defined if tool type is activity ?
   - `tests/test_tool_handler_coverage.py`: 3 tests — every TOOL.md has a handler module, activity tools reference registered activities, all tiers valid
 - [x] Add check for tool tier based on enum
@@ -234,7 +234,8 @@ Addendum:
   - Extracted `_thinking_loop()` from `_handle_message`, wrapped in `try/except ActivityError`
   - On failure: logs error, appends friendly error message to history, still sends WhatsApp reply
   - `test_workflow_llm_failure_sends_error_message` verifies user gets "trouble processing" message
-- [ ] Change `src/opentlawpy/activities/tool_command.py` name to `bash_command.py`
+- [x] Change `src/opentlawpy/activities/tool_command.py` name to `bash_command.py`
+- [ ] [{"error":"failed to get device list: failed to send usync query: websocket not connected","success":false}] - need to fix acitivyt to catch this
 
 ---
 
@@ -246,6 +247,7 @@ Addendum:
 - [ ] Create `src/activities/state_file_io.py` — read/write state.md
 - [ ] Create `src/utils/state_manager.py` — parse/serialize state.md (YAML frontmatter + markdown)
 - [ ] Workflow loads state.md on startup, saves after each message
+- [ ] State files in state/ folder that is mounted onto container
 
 ### 4.2 Conversation Compaction
 - [ ] Create `src/activities/conversation_compaction.py`

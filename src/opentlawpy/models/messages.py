@@ -15,5 +15,4 @@ class SendMessageInput:
 
 @dataclass
 class SendMessageOutput:
-    success: bool
-    error: str | None = None
+    text: str
