@@ -311,6 +311,10 @@ Addendum:
 
 ---
 
+## Phase 8: Extras
+
+- [ ] Add extra messages to send to user as stuff happens.
+
 ## Quick Commands Reference
 
 ### Development
@@ -366,3 +370,4 @@ docker-compose down
 - `uv sync --extra dev` is needed (not `--dev`) because dev deps are in `[project.optional-dependencies]`
 - Temporal test env: use `WorkflowEnvironment.start_time_skipping()` (not `start_local()`) for auto time advancement
 - Neonize `send_message()` is sync (Go FFI), so the activity is sync and runs on Temporal's thread pool
+
