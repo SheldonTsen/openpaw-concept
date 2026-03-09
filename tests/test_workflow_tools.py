@@ -18,6 +18,7 @@ from opentlawpy.models.tool_activities import (
     GatherToolResultsInput,
     GatherToolResultsOutput,
 )
+from opentlawpy.models.state import LoadStateInput, LoadStateOutput, SaveStateInput, SaveStateOutput
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 
@@ -100,6 +101,16 @@ async def mock_load_tools() -> list[ToolDefinition]:
     return MOCK_TOOLS
 
 
+@activity.defn(name="save_state_activity")
+async def mock_save_state(input: SaveStateInput) -> SaveStateOutput:
+    return SaveStateOutput(success=True)
+
+
+@activity.defn(name="load_state_activity")
+async def mock_load_state(input: LoadStateInput) -> LoadStateOutput:
+    return LoadStateOutput(conversation_history=[], found=False)
+
+
 @activity.defn(name="gather_tool_results_activity")
 async def mock_gather_tool_results_activity(
     input: GatherToolResultsInput,
@@ -166,6 +177,8 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
                     mock_write_file,
                     mock_load_tools,
                     mock_gather_tool_results_activity,
+                    mock_save_state,
+                    mock_load_state,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -286,6 +299,8 @@ async def test_workflow_tool_error_fed_back():
                     mock_write_file,
                     mock_load_tools,
                     mock_gather_tool_results_activity,
+                    mock_save_state,
+                    mock_load_state,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -402,6 +417,8 @@ async def test_workflow_llm_failure_sends_error_message():
                     mock_write_file,
                     mock_load_tools,
                     mock_gather_tool_results_activity,
+                    mock_save_state,
+                    mock_load_state,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -473,6 +490,8 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
                     mock_write_file,
                     mock_load_tools,
                     mock_gather_tool_results_activity,
+                    mock_save_state,
+                    mock_load_state,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
