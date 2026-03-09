@@ -22,7 +22,7 @@ with workflow.unsafe.imports_passed_through():
     from opentlawpy.models.state import LoadStateInput, SaveStateInput
     from opentlawpy.models.tool_activities import GatherToolResultsInput, GatherToolResultsOutput
 
-from opentlawpy.models.messages import IncomingMessage, SendMessageInput, SendMessageOutput
+from opentlawpy.models.messages import IncomingMessage, SendMessageInput
 
 logger = logging.getLogger(__name__)
 

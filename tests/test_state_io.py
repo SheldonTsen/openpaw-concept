@@ -54,9 +54,7 @@ async def test_save_writes_valid_json(state_dir):
     """State file contains valid JSON with expected fields."""
     history = [{"role": "user", "content": "Hi"}]
 
-    await save_state_activity(
-        SaveStateInput(chat_id="json-test", conversation_history=history)
-    )
+    await save_state_activity(SaveStateInput(chat_id="json-test", conversation_history=history))
 
     file_path = state_dir / "json-test" / "state.json"
     with open(file_path) as f:
@@ -83,9 +81,7 @@ async def test_save_overwrites_existing_state(state_dir):
         {"role": "assistant", "content": "response"},
         {"role": "user", "content": "second"},
     ]
-    await save_state_activity(
-        SaveStateInput(chat_id=chat_id, conversation_history=new_history)
-    )
+    await save_state_activity(SaveStateInput(chat_id=chat_id, conversation_history=new_history))
 
     load_result = await load_state_activity(LoadStateInput(chat_id=chat_id))
     assert load_result.conversation_history == new_history
