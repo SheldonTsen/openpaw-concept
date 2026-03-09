@@ -22,7 +22,7 @@ with workflow.unsafe.imports_passed_through():
     from opentlawpy.models.state import LoadStateInput, SaveStateInput
     from opentlawpy.models.tool_activities import GatherToolResultsInput, GatherToolResultsOutput
 
-from opentlawpy.models.messages import IncomingMessage, SendMessageInput
+from opentlawpy.models.messages import IncomingMessage, SendMessageInput, SendMessageOutput
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,11 @@ class AgentWorkflow:
                         "send_whatsapp_message",
                         arg=SendMessageInput(phone_number=chat_id, text=response_text),
                         start_to_close_timeout=timedelta(seconds=30),
-                        retry_policy=RetryPolicy(maximum_attempts=3),
+                        retry_policy=RetryPolicy(
+                            maximum_attempts=3,
+                            initial_interval=timedelta(seconds=5),
+                            backoff_coefficient=2.0,
+                        ),
                         task_queue=WHATSAPP_TASK_QUEUE,
                     )
                 except ActivityError as exc:

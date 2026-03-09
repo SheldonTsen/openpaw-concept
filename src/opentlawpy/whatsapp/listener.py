@@ -43,6 +43,7 @@ class WhatsAppListener:
         def on_message(_client: NewClient, message: MessageEv):
             self._on_message(message=message)
 
+
     def _on_message(self, message: MessageEv) -> None:
         """Handle incoming WhatsApp message (called from neonize's Go thread)."""
         # Filter old messages from WhatsApp's offline queue

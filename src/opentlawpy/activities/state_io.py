@@ -26,8 +26,8 @@ async def save_state_activity(input: SaveStateInput) -> SaveStateOutput:
         json.dump(
             {
                 "chat_id": input.chat_id,
-                "conversation_history": input.conversation_history,
                 "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "conversation_history": input.conversation_history,
             },
             f,
             indent=2,
