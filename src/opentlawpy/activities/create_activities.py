@@ -1,6 +1,7 @@
 import logging
 
 from opentlawpy.activities.bash_command import execute_bash_command
+from opentlawpy.activities.compaction import create_compact_history_activity
 from opentlawpy.activities.file_operations import read_file_activity, write_file_activity
 from opentlawpy.activities.gather_tool_results import gather_tool_results_activity
 from opentlawpy.activities.llm_call import create_call_llm_activity
@@ -36,6 +37,7 @@ def create_activities() -> list:
 
     return [
         create_call_llm_activity(llm_client=llm_client),
+        create_compact_history_activity(llm_client=llm_client),
         execute_bash_command,
         read_file_activity,
         write_file_activity,

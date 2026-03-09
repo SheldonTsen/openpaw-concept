@@ -255,10 +255,18 @@ Addendum:
 - [x] Updated `tests/test_workflow_tools.py` — added mock state activities to all Workers
 - [x] All 49 tests pass, ruff clean on new files
 
-### 4.2 Conversation Compaction
-- [ ] Create `src/activities/conversation_compaction.py`
-- [ ] Trigger when conversation > 100 messages
-- [ ] Keep first 5 + summary + last 20 messages
+### 4.2 Conversation Compaction (DONE)
+- [x] Created `src/opentlawpy/models/compaction.py` — `CompactHistoryInput`, `CompactHistoryOutput` dataclasses
+- [x] Created `src/opentlawpy/activities/compaction.py` — factory pattern: `create_compact_history_activity(llm_client)`, summarizes all-but-last-2 messages via LLM, keeps summary + last 2
+- [x] Added `COMPACTION_THRESHOLD` to `config.py` (default 50, env var override)
+- [x] Updated `agent_workflow.py` — `_maybe_compact_history()` called after each message reply, saves compacted state
+- [x] Registered `compact_history` activity in `create_activities.py`
+- [x] Created `tests/test_compaction.py` — 6 unit tests (short history skip, exactly-2 skip, LLM called correctly, summary format, last exchange preserved, tool call messages handled)
+- [x] Updated `tests/test_workflow.py` — mock compact_history + `test_workflow_triggers_compaction` integration test
+- [x] Updated `tests/test_workflow_tools.py` — mock compact_history added to all Worker definitions
+- [x] All 56 tests pass, ruff clean
+
+Design: simple — summarize everything except last 2 messages into a `[CONVERSATION SUMMARY]` system message. Result: 1 summary + 2 recent = 3 messages. Triggered when history exceeds `COMPACTION_THRESHOLD` (default 50).
 
 ### 4.3 Workflow Duration & Restart
 - [ ] Add max duration (1 hour) to workflow
@@ -278,6 +286,9 @@ Addendum:
 ## Phase 5: Heartbeat & Signals 💓
 
 **Goal**: Agent can check in periodically. Signals fully working.
+
+### 5.0 Pre-work
+- [ ] Go and fix web search
 
 ### 5.1 Heartbeat
 - [ ] Implement heartbeat timer (30 min default)
@@ -329,7 +340,8 @@ Addendum:
 
 ## Phase 8: Extras
 
-- [ ] Add extra messages to send to user as stuff happens.
+- [ ] Add extra messages to send to user as stuff happens.\
+- [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools. 
 
 ## Quick Commands Reference
 
@@ -376,8 +388,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 4 (State Persistence) — 4.1 done
-**Next Milestone**: Phase 4.2 Conversation Compaction
+**Current Phase**: Phase 4 (State Persistence) — 4.1 + 4.2 done
+**Next Milestone**: Phase 4.3 Workflow Duration & Restart
 
 **Blockers**: None
 
