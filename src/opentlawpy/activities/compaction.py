@@ -3,7 +3,7 @@ from typing import Any, Callable
 
 from temporalio import activity
 
-from opentlawpy.config import LLM_MODEL
+from opentlawpy.config import COMPACTION_KEEP_RECENT
 from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
 
 logger = logging.getLogger(__name__)
@@ -23,16 +23,8 @@ def create_compact_history_activity(*, llm_client: Any) -> Callable:
         history = input.conversation_history
         original_count = len(history)
 
-        if original_count <= 2:
-            logger.info("History too short to compact (%d messages), skipping.", original_count)
-            return CompactHistoryOutput(
-                compacted_history=history,
-                original_message_count=original_count,
-                compacted_message_count=original_count,
-            )
-
-        to_summarize = history[:-2]
-        to_keep = history[-2:]
+        to_summarize = history[:-COMPACTION_KEEP_RECENT]
+        to_keep = history[-COMPACTION_KEEP_RECENT:]
 
         messages = (
             [{"role": "system", "content": SUMMARIZATION_PROMPT}]
@@ -42,8 +34,8 @@ def create_compact_history_activity(*, llm_client: Any) -> Callable:
 
         llm_output = await llm_client.chat(
             messages=messages,
-            model=LLM_MODEL,
-            max_tokens=2048,
+            model=input.model,
+            max_tokens=input.max_tokens,
             tools=None,
         )
 
