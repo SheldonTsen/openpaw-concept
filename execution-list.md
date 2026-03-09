@@ -266,7 +266,7 @@ Addendum:
 - [ ] Test: conversation context preserved across workflow restarts
 
 ### 4.4 Global State vs Chat State
-- [ ] Think - need? no need? bad? good? 
+- [ ] Think - need? no need? bad? good? I don't want private stuff leaking but also a global state is useful. 
 - [ ] Add documentation into docs/ about which queue is used for which activities. 
 
 
