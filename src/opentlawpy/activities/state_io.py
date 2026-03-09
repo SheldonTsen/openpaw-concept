@@ -16,12 +16,15 @@ from opentlawpy.models.state import (
 logger = logging.getLogger(__name__)
 
 
+def _state_file_path(chat_id: str) -> str:
+    return os.path.join(STATE_DIR, chat_id, "state.json")
+
+
 @activity.defn
 async def save_state_activity(input: SaveStateInput) -> SaveStateOutput:
-    chat_dir = os.path.join(STATE_DIR, input.chat_id)
-    os.makedirs(chat_dir, exist_ok=True)
+    file_path = _state_file_path(chat_id=input.chat_id)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-    file_path = os.path.join(chat_dir, "state.json")
     with open(file_path, "w") as f:
         json.dump(
             {
@@ -39,7 +42,7 @@ async def save_state_activity(input: SaveStateInput) -> SaveStateOutput:
 
 @activity.defn
 async def load_state_activity(input: LoadStateInput) -> LoadStateOutput:
-    file_path = os.path.join(STATE_DIR, input.chat_id, "state.json")
+    file_path = _state_file_path(chat_id=input.chat_id)
 
     if not os.path.exists(file_path):
         logger.info(f"No state file found for {input.chat_id}")
