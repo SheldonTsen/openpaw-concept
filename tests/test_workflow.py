@@ -3,6 +3,7 @@ from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
 from opentlawpy.config import SYSTEM_PROMPT, WHATSAPP_TASK_QUEUE
+from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
 from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
 from opentlawpy.models.state import LoadStateInput, LoadStateOutput, SaveStateInput, SaveStateOutput
@@ -50,6 +51,15 @@ async def mock_save_state(input: SaveStateInput) -> SaveStateOutput:
     return SaveStateOutput(success=True)
 
 
+@activity.defn(name="compact_history")
+async def mock_compact_history(input: CompactHistoryInput) -> CompactHistoryOutput:
+    return CompactHistoryOutput(
+        compacted_history=input.conversation_history,
+        original_message_count=len(input.conversation_history),
+        compacted_message_count=len(input.conversation_history),
+    )
+
+
 @activity.defn(name="load_state_activity")
 async def mock_load_state(input: LoadStateInput) -> LoadStateOutput:
     if _preloaded_state is not None:
@@ -68,7 +78,13 @@ async def test_workflow_calls_llm_and_sends_response():
                 env.client,
                 task_queue=TASK_QUEUE,
                 workflows=[AgentWorkflow],
-                activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
+                activities=[
+                    mock_call_llm,
+                    mock_compact_history,
+                    mock_load_tools,
+                    mock_save_state,
+                    mock_load_state,
+                ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
             Worker(
@@ -110,7 +126,13 @@ async def test_workflow_multiple_messages():
                 env.client,
                 task_queue=TASK_QUEUE,
                 workflows=[AgentWorkflow],
-                activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
+                activities=[
+                    mock_call_llm,
+                    mock_compact_history,
+                    mock_load_tools,
+                    mock_save_state,
+                    mock_load_state,
+                ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
             Worker(
@@ -149,7 +171,13 @@ async def test_workflow_sends_conversation_history():
                 env.client,
                 task_queue=TASK_QUEUE,
                 workflows=[AgentWorkflow],
-                activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
+                activities=[
+                    mock_call_llm,
+                    mock_compact_history,
+                    mock_load_tools,
+                    mock_save_state,
+                    mock_load_state,
+                ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
             Worker(
@@ -199,7 +227,13 @@ async def test_system_prompt_prepended_to_every_llm_call():
                 env.client,
                 task_queue=TASK_QUEUE,
                 workflows=[AgentWorkflow],
-                activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
+                activities=[
+                    mock_call_llm,
+                    mock_compact_history,
+                    mock_load_tools,
+                    mock_save_state,
+                    mock_load_state,
+                ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
             Worker(
@@ -256,7 +290,13 @@ async def test_workflow_loads_persisted_state():
                     env.client,
                     task_queue=TASK_QUEUE,
                     workflows=[AgentWorkflow],
-                    activities=[mock_call_llm, mock_load_tools, mock_save_state, mock_load_state],
+                    activities=[
+                    mock_call_llm,
+                    mock_compact_history,
+                    mock_load_tools,
+                    mock_save_state,
+                    mock_load_state,
+                ],
                     workflow_runner=UnsandboxedWorkflowRunner(),
                 ),
                 Worker(
@@ -291,3 +331,78 @@ async def test_workflow_loads_persisted_state():
     assert len(save_state_calls) >= 1
     saved_history = save_state_calls[-1].conversation_history
     assert len(saved_history) == 4  # 2 restored + 1 new user + 1 new assistant
+
+
+async def test_workflow_triggers_compaction():
+    """Compaction is triggered when history exceeds COMPACTION_THRESHOLD."""
+    global _preloaded_state
+    send_calls.clear()
+    llm_calls.clear()
+    save_state_calls.clear()
+
+    # Pre-load 50 messages. After user + assistant = 52 > 50 threshold.
+    preloaded_history = []
+    for i in range(50):
+        role = "user" if i % 2 == 0 else "assistant"
+        preloaded_history.append({"role": role, "content": f"Old message {i}"})
+
+    _preloaded_state = LoadStateOutput(
+        conversation_history=preloaded_history,
+        found=True,
+    )
+
+    compact_calls: list[CompactHistoryInput] = []
+
+    @activity.defn(name="compact_history")
+    async def tracking_compact_history(input: CompactHistoryInput) -> CompactHistoryOutput:
+        compact_calls.append(input)
+        summary = {"role": "system", "content": "[CONVERSATION SUMMARY]\nSummary of old messages."}
+        return CompactHistoryOutput(
+            compacted_history=[summary] + input.conversation_history[-2:],
+            original_message_count=len(input.conversation_history),
+            compacted_message_count=3,
+        )
+
+    try:
+        async with await WorkflowEnvironment.start_time_skipping() as env:
+            async with (
+                Worker(
+                    env.client,
+                    task_queue=TASK_QUEUE,
+                    workflows=[AgentWorkflow],
+                    activities=[
+                        mock_call_llm,
+                        tracking_compact_history,
+                        mock_load_tools,
+                        mock_save_state,
+                        mock_load_state,
+                    ],
+                    workflow_runner=UnsandboxedWorkflowRunner(),
+                ),
+                Worker(
+                    env.client,
+                    task_queue=WHATSAPP_TASK_QUEUE,
+                    activities=[mock_send_whatsapp_message],
+                ),
+            ):
+                handle = await env.client.start_workflow(
+                    AgentWorkflow.run,
+                    arg="compact-test-2",
+                    id="test-workflow-compact-2",
+                    task_queue=TASK_QUEUE,
+                    start_signal="new_message",
+                    start_signal_args=["compact-test-2", "Trigger compaction"],
+                )
+
+                await handle.result()
+    finally:
+        _preloaded_state = None
+
+    # 50 preloaded + 1 user + 1 assistant = 52 > 50 threshold → compaction called
+    assert len(compact_calls) == 1
+    assert compact_calls[0].conversation_history[-1]["role"] == "assistant"
+
+    # After compaction, state is saved again (compacted version)
+    # Last save_state call should have the compacted history
+    last_save = save_state_calls[-1]
+    assert len(last_save.conversation_history) == 3  # 1 summary + 2 kept
