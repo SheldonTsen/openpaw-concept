@@ -235,7 +235,7 @@ Addendum:
   - On failure: logs error, appends friendly error message to history, still sends WhatsApp reply
   - `test_workflow_llm_failure_sends_error_message` verifies user gets "trouble processing" message
 - [x] Change `src/opentlawpy/activities/tool_command.py` name to `bash_command.py`
-- [ ] [{"error":"failed to get device list: failed to send usync query: websocket not connected","success":false}] - need to fix acitivyt to catch this
+- [x] [{"error":"failed to get device list: failed to send usync query: websocket not connected","success":false}] - need to fix acitivyt to catch this
 
 ---
 
@@ -243,11 +243,17 @@ Addendum:
 
 **Goal**: Conversation survives workflow restarts. Agent has memory across sessions.
 
-### 4.1 State File I/O
-- [ ] Create `src/activities/state_file_io.py` — read/write state.md
-- [ ] Create `src/utils/state_manager.py` — parse/serialize state.md (YAML frontmatter + markdown)
-- [ ] Workflow loads state.md on startup, saves after each message
-- [ ] State files in state/ folder that is mounted onto container
+### 4.1 State File I/O (DONE)
+- [x] Created `src/opentlawpy/models/state.py` — `ChatState`, `SaveStateInput/Output`, `LoadStateInput/Output` dataclasses
+- [x] Created `src/opentlawpy/activities/state_io.py` — `save_state_activity` and `load_state_activity` (JSON-based, not YAML+markdown — simpler for `list[dict]` history)
+- [x] Added `STATE_DIR` to `config.py` (default `./data/state`, env var override)
+- [x] Updated `agent_workflow.py` — loads state on startup, saves after each WhatsApp reply
+- [x] Registered new activities in `create_activities.py`
+- [x] Added volume mount `./data/state:/app/data/state` to worker in `docker-compose.yaml`
+- [x] Created `tests/test_state_io.py` — 5 tests (round-trip, nonexistent, directory creation, valid JSON, overwrite)
+- [x] Updated `tests/test_workflow.py` — added mock state activities + `test_workflow_loads_persisted_state`
+- [x] Updated `tests/test_workflow_tools.py` — added mock state activities to all Workers
+- [x] All 49 tests pass, ruff clean on new files
 
 ### 4.2 Conversation Compaction
 - [ ] Create `src/activities/conversation_compaction.py`
@@ -258,6 +264,14 @@ Addendum:
 - [ ] Add max duration (1 hour) to workflow
 - [ ] On next message after expiry: listener starts new workflow, loads state.md
 - [ ] Test: conversation context preserved across workflow restarts
+
+### 4.4 Global State vs Chat State
+- [ ] Think - need? no need? bad? good? I don't want private stuff leaking but also a global state is useful. 
+- [ ] Add documentation into docs/ about which queue is used for which activities. 
+
+
+### Addendum
+- [ ] Sync up file names between activities, tests, and models. So imports are always from activities.x import y, from models.x import y. No reason for the file names to be different. 
 
 ---
 
@@ -362,8 +376,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 3 (Tool Execution) — 3.1, 3.2 done
-**Next Milestone**: Phase 3.3 Agent Thinking Loop (With Tools)
+**Current Phase**: Phase 4 (State Persistence) — 4.1 done
+**Next Milestone**: Phase 4.2 Conversation Compaction
 
 **Blockers**: None
 

@@ -1,6 +1,6 @@
-import logging
 import asyncio
 import importlib
+import logging
 from datetime import timedelta
 
 from temporalio import workflow
@@ -8,8 +8,9 @@ from temporalio.common import RetryPolicy
 from temporalio.exceptions import ActivityError
 
 with workflow.unsafe.imports_passed_through():
-    from opentlawpy.activities.tool_loader import load_tools_activity
     from opentlawpy.activities.gather_tool_results import gather_tool_results_activity
+    from opentlawpy.activities.state_io import load_state_activity, save_state_activity
+    from opentlawpy.activities.tool_loader import load_tools_activity
     from opentlawpy.config import (
         LLM_MODEL,
         MAX_TOOL_ITERATIONS,
@@ -18,6 +19,7 @@ with workflow.unsafe.imports_passed_through():
         WORKFLOW_TIMEOUT_MINUTES,
     )
     from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
+    from opentlawpy.models.state import LoadStateInput, SaveStateInput
     from opentlawpy.models.tool_activities import GatherToolResultsInput, GatherToolResultsOutput
 
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
@@ -40,6 +42,18 @@ class AgentWorkflow:
             retry_policy=RetryPolicy(maximum_attempts=1),
         )
         self._tool_defs_for_llm = [t.to_llm_format() for t in tools]
+
+        load_output = await workflow.execute_activity(
+            load_state_activity,
+            arg=LoadStateInput(chat_id=chat_id),
+            start_to_close_timeout=timedelta(seconds=10),
+            retry_policy=RetryPolicy(maximum_attempts=2),
+        )
+        if load_output.found:
+            self._conversation_history = load_output.conversation_history
+            workflow.logger.info(
+                f"Restored {len(self._conversation_history)} messages for {chat_id}"
+            )
 
         while True:
             try:
@@ -84,11 +98,28 @@ class AgentWorkflow:
                         "send_whatsapp_message",
                         arg=SendMessageInput(phone_number=chat_id, text=response_text),
                         start_to_close_timeout=timedelta(seconds=30),
-                        retry_policy=RetryPolicy(maximum_attempts=3),
+                        retry_policy=RetryPolicy(
+                            maximum_attempts=3,
+                            initial_interval=timedelta(seconds=5),
+                            backoff_coefficient=2.0,
+                        ),
                         task_queue=WHATSAPP_TASK_QUEUE,
                     )
                 except ActivityError as exc:
                     workflow.logger.error(f"Failed to send WhatsApp message for {chat_id}: {exc}")
+
+                try:
+                    await workflow.execute_activity(
+                        save_state_activity,
+                        arg=SaveStateInput(
+                            chat_id=chat_id,
+                            conversation_history=self._conversation_history,
+                        ),
+                        start_to_close_timeout=timedelta(seconds=10),
+                        retry_policy=RetryPolicy(maximum_attempts=2),
+                    )
+                except ActivityError as exc:
+                    workflow.logger.error(f"Failed to save state for {chat_id}: {exc}")
 
     @workflow.signal
     def new_message(self, sender: str, text: str) -> None:

@@ -1,8 +1,11 @@
+import logging
 from typing import Callable
 
 from temporalio import activity
 
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
+
+logger = logging.getLogger(__name__)
 
 
 def create_send_whatsapp_message_activity(
@@ -18,6 +21,7 @@ def create_send_whatsapp_message_activity(
     @activity.defn(name="send_whatsapp_message")
     def send_whatsapp_message(input: SendMessageInput) -> SendMessageOutput:
         jid = build_jid(input.phone_number)
+        logger.info(f"Sending message to {input.phone_number}")
         neonize_client.send_message(jid, input.text)
         return SendMessageOutput(text=input.text)
 
