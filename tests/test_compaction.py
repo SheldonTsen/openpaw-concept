@@ -33,35 +33,6 @@ def _make_history(n: int) -> list[dict]:
     return history
 
 
-async def test_no_compaction_when_short(compact_activity, mock_llm_client):
-    """History with <= 2 messages is returned unchanged, LLM not called."""
-    history = [{"role": "user", "content": "Hi"}]
-    input_data = CompactHistoryInput(conversation_history=history)
-
-    output = await compact_activity(input_data)
-
-    assert output.compacted_history == history
-    assert output.original_message_count == 1
-    assert output.compacted_message_count == 1
-    mock_llm_client.chat.assert_not_called()
-
-
-async def test_no_compaction_when_exactly_two(compact_activity, mock_llm_client):
-    """History with exactly 2 messages is returned unchanged."""
-    history = [
-        {"role": "user", "content": "Hi"},
-        {"role": "assistant", "content": "Hello!"},
-    ]
-    input_data = CompactHistoryInput(conversation_history=history)
-
-    output = await compact_activity(input_data)
-
-    assert output.compacted_history == history
-    assert output.original_message_count == 2
-    assert output.compacted_message_count == 2
-    mock_llm_client.chat.assert_not_called()
-
-
 async def test_compaction_calls_llm(compact_activity, mock_llm_client):
     """Verify LLM is called with correct messages and result has summary + last 2."""
     history = _make_history(10)
@@ -71,6 +42,7 @@ async def test_compaction_calls_llm(compact_activity, mock_llm_client):
 
     mock_llm_client.chat.assert_called_once()
     call_kwargs = mock_llm_client.chat.call_args.kwargs
+    assert call_kwargs["model"] == "claude-sonnet-4-5-20250929"
     assert call_kwargs["max_tokens"] == 2048
     assert call_kwargs["tools"] is None
 

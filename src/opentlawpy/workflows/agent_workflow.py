@@ -143,7 +143,10 @@ class AgentWorkflow:
 
         compact_output: CompactHistoryOutput = await workflow.execute_activity(
             "compact_history",
-            arg=CompactHistoryInput(conversation_history=self._conversation_history),
+            arg=CompactHistoryInput(
+                conversation_history=self._conversation_history,
+                model=LLM_MODEL,
+            ),
             result_type=CompactHistoryOutput,
             start_to_close_timeout=timedelta(seconds=120),
             retry_policy=RetryPolicy(maximum_attempts=2),
