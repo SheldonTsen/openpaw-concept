@@ -111,6 +111,11 @@ class AgentWorkflow:
                     workflow.logger.error(f"Failed to send WhatsApp message for {chat_id}: {exc}")
 
                 try:
+                    await self._maybe_compact_history(chat_id=chat_id)
+                except ActivityError as exc:
+                    workflow.logger.error(f"Compaction failed for {chat_id}: {exc}")
+
+                try:
                     await workflow.execute_activity(
                         save_state_activity,
                         arg=SaveStateInput(
@@ -122,11 +127,6 @@ class AgentWorkflow:
                     )
                 except ActivityError as exc:
                     workflow.logger.error(f"Failed to save state for {chat_id}: {exc}")
-
-                try:
-                    await self._maybe_compact_history(chat_id=chat_id)
-                except ActivityError as exc:
-                    workflow.logger.error(f"Compaction failed for {chat_id}: {exc}")
 
     @workflow.signal
     def new_message(self, sender: str, text: str) -> None:
@@ -153,16 +153,6 @@ class AgentWorkflow:
         )
 
         self._conversation_history = compact_output.compacted_history
-
-        await workflow.execute_activity(
-            save_state_activity,
-            arg=SaveStateInput(
-                chat_id=chat_id,
-                conversation_history=self._conversation_history,
-            ),
-            start_to_close_timeout=timedelta(seconds=10),
-            retry_policy=RetryPolicy(maximum_attempts=2),
-        )
 
         workflow.logger.info(
             f"Compacted {compact_output.original_message_count} → "
