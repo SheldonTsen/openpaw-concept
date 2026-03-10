@@ -12,12 +12,14 @@ with workflow.unsafe.imports_passed_through():
     from opentlawpy.activities.state_io import load_state_activity, save_state_activity
     from opentlawpy.activities.tool_loader import load_tools_activity
     from opentlawpy.config import (
+        COMPACTION_THRESHOLD,
         LLM_MODEL,
         MAX_TOOL_ITERATIONS,
         SYSTEM_PROMPT,
         WHATSAPP_TASK_QUEUE,
         WORKFLOW_TIMEOUT_MINUTES,
     )
+    from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
     from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
     from opentlawpy.models.state import LoadStateInput, SaveStateInput
     from opentlawpy.models.tool_activities import GatherToolResultsInput, GatherToolResultsOutput
@@ -109,6 +111,11 @@ class AgentWorkflow:
                     workflow.logger.error(f"Failed to send WhatsApp message for {chat_id}: {exc}")
 
                 try:
+                    await self._maybe_compact_history(chat_id=chat_id)
+                except ActivityError as exc:
+                    workflow.logger.error(f"Compaction failed for {chat_id}: {exc}")
+
+                try:
                     await workflow.execute_activity(
                         save_state_activity,
                         arg=SaveStateInput(
@@ -124,6 +131,33 @@ class AgentWorkflow:
     @workflow.signal
     def new_message(self, sender: str, text: str) -> None:
         self._pending_messages.append(IncomingMessage(sender=sender, text=text))
+
+    async def _maybe_compact_history(self, *, chat_id: str) -> None:
+        if len(self._conversation_history) <= COMPACTION_THRESHOLD:
+            return
+
+        workflow.logger.info(
+            f"Compacting history for {chat_id}: "
+            f"{len(self._conversation_history)} messages exceed threshold {COMPACTION_THRESHOLD}"
+        )
+
+        compact_output: CompactHistoryOutput = await workflow.execute_activity(
+            "compact_history",
+            arg=CompactHistoryInput(
+                conversation_history=self._conversation_history,
+                model=LLM_MODEL,
+            ),
+            result_type=CompactHistoryOutput,
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=RetryPolicy(maximum_attempts=2),
+        )
+
+        self._conversation_history = compact_output.compacted_history
+
+        workflow.logger.info(
+            f"Compacted {compact_output.original_message_count} → "
+            f"{compact_output.compacted_message_count} messages for {chat_id}"
+        )
 
     async def _thinking_loop(self) -> None:
         for _ in range(MAX_TOOL_ITERATIONS):

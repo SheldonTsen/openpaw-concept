@@ -1,24 +1,25 @@
 from unittest.mock import patch
 
 from temporalio import activity
+from temporalio.client import WorkflowFailureError
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import UnsandboxedWorkflowRunner, Worker
-from temporalio.exceptions import ActivityError, ApplicationError
-from temporalio.client import WorkflowFailureError
+
 from opentlawpy.config import WHATSAPP_TASK_QUEUE
+from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
 from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
+from opentlawpy.models.state import LoadStateInput, LoadStateOutput, SaveStateInput, SaveStateOutput
 from opentlawpy.models.tool_activities import (
     BashCommandInput,
     BashCommandOutput,
+    GatherToolResultsInput,
+    GatherToolResultsOutput,
     ReadFileInput,
     ReadFileOutput,
     WriteFileInput,
     WriteFileOutput,
-    GatherToolResultsInput,
-    GatherToolResultsOutput,
 )
-from opentlawpy.models.state import LoadStateInput, LoadStateOutput, SaveStateInput, SaveStateOutput
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 
@@ -106,6 +107,15 @@ async def mock_save_state(input: SaveStateInput) -> SaveStateOutput:
     return SaveStateOutput(success=True)
 
 
+@activity.defn(name="compact_history")
+async def mock_compact_history(input: CompactHistoryInput) -> CompactHistoryOutput:
+    return CompactHistoryOutput(
+        compacted_history=input.conversation_history,
+        original_message_count=len(input.conversation_history),
+        compacted_message_count=len(input.conversation_history),
+    )
+
+
 @activity.defn(name="load_state_activity")
 async def mock_load_state(input: LoadStateInput) -> LoadStateOutput:
     return LoadStateOutput(conversation_history=[], found=False)
@@ -172,6 +182,7 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
                 workflows=[AgentWorkflow],
                 activities=[
                     mock_call_llm,
+                    mock_compact_history,
                     mock_execute_bash_command,
                     mock_read_file,
                     mock_write_file,
@@ -294,6 +305,7 @@ async def test_workflow_tool_error_fed_back():
                 workflows=[AgentWorkflow],
                 activities=[
                     mock_call_llm,
+                    mock_compact_history,
                     mock_failing_command,
                     mock_read_file,
                     mock_write_file,
@@ -412,6 +424,7 @@ async def test_workflow_llm_failure_sends_error_message():
                 workflows=[AgentWorkflow],
                 activities=[
                     mock_failing_llm,
+                    mock_compact_history,
                     mock_execute_bash_command,
                     mock_read_file,
                     mock_write_file,
@@ -485,6 +498,7 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
                 workflows=[AgentWorkflow],
                 activities=[
                     mock_call_llm,
+                    mock_compact_history,
                     mock_crashing_command,
                     mock_read_file,
                     mock_write_file,
