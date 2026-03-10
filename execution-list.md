@@ -271,7 +271,8 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 ### 4.3 Workflow Duration & Restart
 - [ ] Add max duration (1 hour) to workflow
 - [ ] On next message after expiry: listener starts new workflow, loads state.md
-- [ ] Test: conversation context preserved across workflow restarts
+- [x] Test: conversation context preserved across workflow restarts
+  - `test_workflow_restart_preserves_state`: Two sequential workflows with same `chat_id` but different IDs. Workflow 1 processes "First message", saves state, times out. Workflow 2 loads that state, processes "Second message" with full history from workflow 1. Uses closure-based mock activities to bridge state between runs.
 
 ### 4.4 Global State vs Chat State
 - [ ] Think - need? no need? bad? good? I don't want private stuff leaking but also a global state is useful. 

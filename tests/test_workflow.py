@@ -388,3 +388,95 @@ async def test_workflow_triggers_compaction():
     # After compaction, state is saved (compacted version)
     last_save = save_state_calls[-1]
     assert len(last_save.conversation_history) == 3  # 1 summary + 2 kept
+
+
+async def test_workflow_restart_preserves_state():
+    """Workflow 2 loads state saved by workflow 1, proving cross-restart persistence."""
+    send_calls.clear()
+    llm_calls.clear()
+    save_state_calls.clear()
+
+    # Closure to bridge state between the two workflow runs.
+    # Workflow 1's save writes here; workflow 2's load reads it back.
+    saved_history: list[dict] = []
+
+    @activity.defn(name="save_state_activity")
+    async def bridging_save_state(input: SaveStateInput) -> SaveStateOutput:
+        save_state_calls.append(input)
+        saved_history.clear()
+        saved_history.extend(input.conversation_history)
+        return SaveStateOutput(success=True)
+
+    @activity.defn(name="load_state_activity")
+    async def bridging_load_state(input: LoadStateInput) -> LoadStateOutput:
+        if saved_history:
+            return LoadStateOutput(conversation_history=list(saved_history), found=True)
+        return LoadStateOutput(conversation_history=[], found=False)
+
+    activities = [
+        mock_call_llm,
+        mock_compact_history,
+        mock_load_tools,
+        bridging_save_state,
+        bridging_load_state,
+    ]
+
+    chat_id = "restart-test-phone"
+
+    async with await WorkflowEnvironment.start_time_skipping() as env:
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow],
+                activities=activities,
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send_whatsapp_message],
+            ),
+        ):
+            # --- Workflow 1: process "First message", save state, time out ---
+            handle1 = await env.client.start_workflow(
+                AgentWorkflow.run,
+                arg=chat_id,
+                id="test-restart-wf-1",
+                task_queue=TASK_QUEUE,
+                start_signal="new_message",
+                start_signal_args=[chat_id, "First message"],
+            )
+            await handle1.result()
+
+            # Sanity: workflow 1 saved state with user + assistant
+            assert len(save_state_calls) == 1
+            assert saved_history == [
+                {"role": "user", "content": "First message"},
+                {"role": "assistant", "content": "LLM response to: First message"},
+            ]
+
+            # --- Workflow 2: load state from workflow 1, process "Second message" ---
+            handle2 = await env.client.start_workflow(
+                AgentWorkflow.run,
+                arg=chat_id,
+                id="test-restart-wf-2",
+                task_queue=TASK_QUEUE,
+                start_signal="new_message",
+                start_signal_args=[chat_id, "Second message"],
+            )
+            await handle2.result()
+
+    # Workflow 2's LLM call should include full history from workflow 1
+    assert len(llm_calls) == 2
+
+    wf2_messages = llm_calls[1].messages
+    assert wf2_messages == [
+        SYSTEM_MESSAGE,
+        {"role": "user", "content": "First message"},
+        {"role": "assistant", "content": "LLM response to: First message"},
+        {"role": "user", "content": "Second message"},
+    ]
+
+    # Both workflows saved state
+    assert len(save_state_calls) == 2
