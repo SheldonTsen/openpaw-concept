@@ -342,6 +342,7 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 - [ ] Add extra messages to send to user as stuff happens.\
 - [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools. 
+- [ ] Main agentic workflow can decide to spin off other agentic workflows and wait for results?
 
 ## Quick Commands Reference
 
