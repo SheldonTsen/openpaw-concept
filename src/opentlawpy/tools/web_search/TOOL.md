@@ -15,7 +15,7 @@ parameters:
     - query
 metadata:
   type: cli
-  command_template: "ddgr --json --num {num_results} '{query}'"
+  command_template: "python3 -c 'from ddgs import DDGS; ...'"
   tier: common
   priority: 6
   retry_policy:

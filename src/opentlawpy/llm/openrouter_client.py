@@ -3,7 +3,7 @@ import logging
 
 import httpx
 
-from opentlawpy.config import OPENROUTER_TIMEOUT
+from opentlawpy.config import LLM_TIMEOUT_SECONDS
 from opentlawpy.models.llm import LLMCallOutput
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ class OpenRouterClient:
                 url=OPENROUTER_BASE_URL,
                 headers=headers,
                 json=payload,
-                timeout=OPENROUTER_TIMEOUT,
+                timeout=LLM_TIMEOUT_SECONDS,
             )
             if not response.is_success:
                 logger.error("OpenRouter API error %s: %s", response.status_code, response.text)
