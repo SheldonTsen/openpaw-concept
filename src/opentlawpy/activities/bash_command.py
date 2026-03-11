@@ -5,7 +5,7 @@ import os
 from temporalio import activity
 
 from opentlawpy.config import MAX_COMMAND_OUTPUT_BYTES, MAX_COMMAND_TIMEOUT, WORKSPACE_DIR
-from opentlawpy.models.tool_activities import BashCommandInput, BashCommandOutput
+from opentlawpy.models.bash_command import BashCommandInput, BashCommandOutput
 
 logger = logging.getLogger(__name__)
 

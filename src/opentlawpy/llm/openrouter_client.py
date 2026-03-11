@@ -4,7 +4,7 @@ import logging
 import httpx
 
 from opentlawpy.config import LLM_TIMEOUT_SECONDS
-from opentlawpy.models.llm import LLMCallOutput
+from opentlawpy.models.llm_call import LLMCallOutput
 
 logger = logging.getLogger(__name__)
 

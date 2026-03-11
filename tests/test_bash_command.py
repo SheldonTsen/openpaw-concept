@@ -1,7 +1,7 @@
 import pytest
 
 from opentlawpy.activities.bash_command import execute_bash_command
-from opentlawpy.models.tool_activities import BashCommandInput
+from opentlawpy.models.bash_command import BashCommandInput
 
 
 @pytest.fixture(autouse=True)

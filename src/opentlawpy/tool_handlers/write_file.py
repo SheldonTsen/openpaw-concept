@@ -4,7 +4,7 @@ from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
-from opentlawpy.models.tool_activities import WriteFileInput, WriteFileOutput
+from opentlawpy.models.file_operations import WriteFileInput, WriteFileOutput
 
 logger = logging.getLogger(__name__)
 

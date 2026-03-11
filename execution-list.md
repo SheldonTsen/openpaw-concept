@@ -276,7 +276,7 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 ### 4.4 Global State vs Chat State
 - [ ] Think - need? no need? bad? good? I don't want private stuff leaking but also a global state is useful. 
-- [ ] Add documentation into docs/ about which queue is used for which activities. 
+- [x] Add documentation into docs/ about which queue is used for which activities (`docs/task-queues.md`)
 
 
 ### Addendum

@@ -4,7 +4,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 from opentlawpy.config import TEMPORAL_DEFAULT_RETRIES, TEMPORAL_DEFAULT_TIMEOUT
-from opentlawpy.models.tool_activities import BashCommandInput, BashCommandOutput
+from opentlawpy.models.bash_command import BashCommandInput, BashCommandOutput
 
 
 async def run_bash(command: str, timeout: int = 30) -> str:
