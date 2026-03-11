@@ -165,7 +165,11 @@ class AgentWorkflow:
 
     async def _thinking_loop(self) -> None:
         for _ in range(MAX_TOOL_ITERATIONS):
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._conversation_history
+            # temporal will not fail the workflow for non-determinism
+            # if the workflow is replayed from a failure
+            now = workflow.now().strftime("%Y-%m-%d %H:%M %Z")
+            system_content = f"Current time: {now}\n\n{SYSTEM_PROMPT}"
+            messages = [{"role": "system", "content": system_content}] + self._conversation_history
 
             llm_output = await workflow.execute_activity(
                 "call_llm",
