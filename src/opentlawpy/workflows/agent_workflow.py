@@ -14,6 +14,7 @@ with workflow.unsafe.imports_passed_through():
     from opentlawpy.config import (
         COMPACTION_THRESHOLD,
         LLM_MODEL,
+        LLM_TIMEOUT_SECONDS,
         MAX_TOOL_ITERATIONS,
         SYSTEM_PROMPT,
         WHATSAPP_TASK_QUEUE,
@@ -171,7 +172,7 @@ class AgentWorkflow:
                     tools=self._tool_defs_for_llm,
                 ),
                 result_type=LLMCallOutput,
-                start_to_close_timeout=timedelta(seconds=90),
+                start_to_close_timeout=timedelta(seconds=LLM_TIMEOUT_SECONDS + 30),
                 retry_policy=RetryPolicy(maximum_attempts=3),
             )
 
