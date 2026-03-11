@@ -1,7 +1,7 @@
-import requests
 import json
-
 import os
+
+import requests
 
 OPENROUTER_APY_KEY = os.environ["OPENROUTER_API_KEY"]
 
