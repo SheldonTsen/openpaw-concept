@@ -205,7 +205,7 @@ Addendum:
   - Shared `_run_bash.py` helper for CLI tools (bash, git, python, calculator, grep)
 - [x] Why `async def execute_tool_calls(*, ...)` ? Hard to follow with the args pattern. At least kwargs? Do we even need that *?
   - Removed `*` — convention is kwargs at call sites per CLAUDE.md
-- [ ] Fix web_search tool
+- [x] Fix web_search tool
 - [x] Check why need to load tools every time.
   - No reason — TOOL.md files are baked into Docker image. Moved to once at workflow start, cached in `self._tool_defs_for_llm`.
 - [x] Add f-string to "I've reached my thinking limit for this message."
@@ -269,8 +269,8 @@ Addendum:
 Design: simple — summarize everything except last 2 messages into a `[CONVERSATION SUMMARY]` system message. Result: 1 summary + 2 recent = 3 messages. Triggered when history exceeds `COMPACTION_THRESHOLD` (default 50).
 
 ### 4.3 Workflow Duration & Restart
-- [ ] Add max duration (1 hour) to workflow
-- [ ] On next message after expiry: listener starts new workflow, loads state.md
+- [x] Add max duration (1 hour) to workflow
+- [x] On next message after expiry: listener starts new workflow, loads state.md
 - [x] Test: conversation context preserved across workflow restarts
   - `test_workflow_restart_preserves_state`: Two sequential workflows with same `chat_id` but different IDs. Workflow 1 processes "First message", saves state, times out. Workflow 2 loads that state, processes "Second message" with full history from workflow 1. Uses closure-based mock activities to bridge state between runs.
 
