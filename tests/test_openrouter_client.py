@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from opentlawpy.config import LLM_TIMEOUT_SECONDS
 from opentlawpy.llm.openrouter_client import OPENROUTER_BASE_URL, OpenRouterClient
 
 
@@ -50,7 +51,7 @@ async def test_openrouter_client_sends_correct_request():
             "max_tokens": 1024,
             "messages": [{"role": "user", "content": "Hi"}],
         },
-        timeout=120.0,
+        timeout=LLM_TIMEOUT_SECONDS,
     )
 
 

@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from opentlawpy.config import LLM_TIMEOUT_SECONDS
 from opentlawpy.llm.openai_client import OpenAIClient
 
 # does not matter
@@ -49,7 +50,7 @@ async def test_openai_client_sends_correct_request():
             "messages": [{"role": "user", "content": "Hi"}],
             "max_tokens": 1024,
         },
-        timeout=120.0,
+        timeout=LLM_TIMEOUT_SECONDS,
     )
 
 
