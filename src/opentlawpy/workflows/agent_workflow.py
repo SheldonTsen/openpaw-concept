@@ -165,7 +165,11 @@ class AgentWorkflow:
 
     async def _thinking_loop(self) -> None:
         for _ in range(MAX_TOOL_ITERATIONS):
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._conversation_history
+            # temporal will not fail the workflow for non-determinism
+            # if the workflow is replayed from a failure
+            now = workflow.now().strftime("%Y-%m-%d %H:%M %Z")
+            system_content = f"Current time: {now}\n\n{SYSTEM_PROMPT}"
+            messages = [{"role": "system", "content": system_content}] + self._conversation_history
 
             llm_output = await workflow.execute_activity(
                 "call_llm",
@@ -180,7 +184,7 @@ class AgentWorkflow:
             )
 
             if not llm_output.tool_calls:
-                workflow.logger.info(f"No more tool calls. Exiting loop.")
+                workflow.logger.info("No more tool calls. Exiting loop.")
                 self._conversation_history.append(
                     {
                         "role": "assistant",
@@ -190,7 +194,7 @@ class AgentWorkflow:
                 # no more tools to call - exit function
                 return
 
-            workflow.logger.info(f"Appending tool_call results to conversation history.")
+            workflow.logger.info("Appending tool_call results to conversation history.")
             self._conversation_history.append(
                 {
                     "role": "assistant",
@@ -217,7 +221,7 @@ class AgentWorkflow:
             self._conversation_history.extend(gather_tool_results_output.tool_results_as_messages)
 
         # Hit max iterations
-        workflow.logger.info(f"Maximum tool calls reached.")
+        workflow.logger.info(f"Maximum tool calls reached: {MAX_TOOL_ITERATIONS}")
         self._conversation_history.append(
             {
                 "role": "assistant",

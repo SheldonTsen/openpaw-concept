@@ -4,15 +4,13 @@
 
 import asyncio
 import logging
-import os
 import signal
 import sys
 from pathlib import Path
 
 from neonize.aioze.client import NewAClient
 from neonize.aioze.events import ConnectedEv, MessageEv, PairStatusEv, event
-from neonize.utils import log, build_jid
-
+from neonize.utils import build_jid, log
 
 # --- Configuration ---
 DB_PATH = str(Path(__file__).resolve().parent.parent / "neonize.db")
