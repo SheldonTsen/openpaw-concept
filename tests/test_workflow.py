@@ -15,6 +15,7 @@ from opentlawpy.models.state_io import (
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 
+
 def _is_system_message(msg: dict) -> bool:
     """Check that a message is the dynamic system prompt (with current-time prefix)."""
     return (
@@ -22,6 +23,7 @@ def _is_system_message(msg: dict) -> bool:
         and SYSTEM_PROMPT in msg["content"]
         and msg["content"].startswith("Current time:")
     )
+
 
 TASK_QUEUE = "test-agent-tasks"
 

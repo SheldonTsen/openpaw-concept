@@ -20,7 +20,7 @@ from pathlib import Path
 
 from neonize.client import NewClient
 from neonize.events import ConnectedEv, MessageEv, PairStatusEv, event
-from neonize.utils import log, build_jid
+from neonize.utils import build_jid, log
 
 # --- Configuration ---
 DB_PATH = str(Path(__file__).resolve().parent.parent / "neonize.db")

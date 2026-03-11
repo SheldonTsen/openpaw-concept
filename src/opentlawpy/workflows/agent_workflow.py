@@ -184,7 +184,7 @@ class AgentWorkflow:
             )
 
             if not llm_output.tool_calls:
-                workflow.logger.info(f"No more tool calls. Exiting loop.")
+                workflow.logger.info("No more tool calls. Exiting loop.")
                 self._conversation_history.append(
                     {
                         "role": "assistant",
@@ -194,7 +194,7 @@ class AgentWorkflow:
                 # no more tools to call - exit function
                 return
 
-            workflow.logger.info(f"Appending tool_call results to conversation history.")
+            workflow.logger.info("Appending tool_call results to conversation history.")
             self._conversation_history.append(
                 {
                     "role": "assistant",
@@ -221,7 +221,7 @@ class AgentWorkflow:
             self._conversation_history.extend(gather_tool_results_output.tool_results_as_messages)
 
         # Hit max iterations
-        workflow.logger.info(f"Maximum tool calls reached.")
+        workflow.logger.info(f"Maximum tool calls reached: {MAX_TOOL_ITERATIONS}")
         self._conversation_history.append(
             {
                 "role": "assistant",
