@@ -2,7 +2,7 @@ from typing import Any, Callable
 
 from temporalio import activity
 
-from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
+from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
 
 
 def create_call_llm_activity(*, llm_client: Any) -> Callable:

@@ -6,7 +6,7 @@ from datetime import datetime
 from temporalio import activity
 
 from opentlawpy.config import STATE_DIR
-from opentlawpy.models.state import (
+from opentlawpy.models.state_io import (
     LoadStateInput,
     LoadStateOutput,
     SaveStateInput,

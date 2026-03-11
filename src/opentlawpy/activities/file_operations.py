@@ -4,7 +4,7 @@ import os
 from temporalio import activity
 
 from opentlawpy.config import WORKSPACE_DIR
-from opentlawpy.models.tool_activities import (
+from opentlawpy.models.file_operations import (
     ReadFileInput,
     ReadFileOutput,
     WriteFileInput,

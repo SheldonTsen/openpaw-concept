@@ -2,20 +2,6 @@ from dataclasses import dataclass
 
 
 @dataclass
-class BashCommandInput:
-    command: str
-    timeout: int = 30
-
-
-@dataclass
-class BashCommandOutput:
-    stdout: str
-    stderr: str
-    exit_code: int
-    success: bool
-
-
-@dataclass
 class ReadFileInput:
     path: str
     encoding: str = "utf-8"
@@ -40,14 +26,3 @@ class WriteFileOutput:
     success: bool
     bytes_written: int = 0
     error: str | None = None
-
-
-@dataclass
-class GatherToolResultsInput:
-    tool_calls: list[dict]
-    tool_results: list[str]
-
-
-@dataclass
-class GatherToolResultsOutput:
-    tool_results_as_messages: list[dict]

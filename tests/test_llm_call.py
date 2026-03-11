@@ -4,7 +4,7 @@ import pytest
 
 from opentlawpy.activities.llm_call import create_call_llm_activity
 from opentlawpy.llm.anthropic_client import AnthropicClient
-from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
+from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
 
 
 async def test_call_llm_activity_returns_response():

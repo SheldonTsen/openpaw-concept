@@ -6,19 +6,22 @@ from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
 from opentlawpy.config import WHATSAPP_TASK_QUEUE
+from opentlawpy.models.bash_command import BashCommandInput, BashCommandOutput
 from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
-from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
-from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
-from opentlawpy.models.state import LoadStateInput, LoadStateOutput, SaveStateInput, SaveStateOutput
-from opentlawpy.models.tool_activities import (
-    BashCommandInput,
-    BashCommandOutput,
-    GatherToolResultsInput,
-    GatherToolResultsOutput,
+from opentlawpy.models.file_operations import (
     ReadFileInput,
     ReadFileOutput,
     WriteFileInput,
     WriteFileOutput,
+)
+from opentlawpy.models.gather_tool_results import GatherToolResultsInput, GatherToolResultsOutput
+from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
+from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
+from opentlawpy.models.state_io import (
+    LoadStateInput,
+    LoadStateOutput,
+    SaveStateInput,
+    SaveStateOutput,
 )
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow

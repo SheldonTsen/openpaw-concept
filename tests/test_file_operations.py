@@ -1,7 +1,7 @@
 import pytest
 
 from opentlawpy.activities.file_operations import read_file_activity, write_file_activity
-from opentlawpy.models.tool_activities import ReadFileInput, WriteFileInput
+from opentlawpy.models.file_operations import ReadFileInput, WriteFileInput
 
 
 @pytest.fixture(autouse=True)
