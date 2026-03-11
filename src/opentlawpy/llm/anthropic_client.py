@@ -1,6 +1,6 @@
 import anthropic
 
-from opentlawpy.models.llm import LLMCallOutput
+from opentlawpy.models.llm_call import LLMCallOutput
 
 
 class AnthropicClient:

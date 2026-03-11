@@ -4,7 +4,7 @@ import pytest
 
 from opentlawpy.activities.compaction import SUMMARIZATION_PROMPT, create_compact_history_activity
 from opentlawpy.models.compaction import CompactHistoryInput
-from opentlawpy.models.llm import LLMCallOutput
+from opentlawpy.models.llm_call import LLMCallOutput
 
 
 @pytest.fixture
