@@ -15,7 +15,13 @@ from opentlawpy.models.state_io import (
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 
-SYSTEM_MESSAGE = {"role": "system", "content": SYSTEM_PROMPT}
+def _is_system_message(msg: dict) -> bool:
+    """Check that a message is the dynamic system prompt (with current-time prefix)."""
+    return (
+        msg["role"] == "system"
+        and SYSTEM_PROMPT in msg["content"]
+        and msg["content"].startswith("Current time:")
+    )
 
 TASK_QUEUE = "test-agent-tasks"
 
@@ -108,8 +114,8 @@ async def test_workflow_calls_llm_and_sends_response():
             await handle.result()
 
     assert len(llm_calls) == 1
-    assert llm_calls[0].messages == [
-        SYSTEM_MESSAGE,
+    assert _is_system_message(llm_calls[0].messages[0])
+    assert llm_calls[0].messages[1:] == [
         {"role": "user", "content": "Hi there"},
     ]
 
@@ -193,14 +199,14 @@ async def test_workflow_sends_conversation_history():
     assert len(llm_calls) >= 2
 
     # First call: system prompt + first user message
-    assert llm_calls[0].messages == [
-        SYSTEM_MESSAGE,
+    assert _is_system_message(llm_calls[0].messages[0])
+    assert llm_calls[0].messages[1:] == [
         {"role": "user", "content": "Hello"},
     ]
 
     # Second call: system prompt + full history (user + assistant + user)
-    assert llm_calls[1].messages == [
-        SYSTEM_MESSAGE,
+    assert _is_system_message(llm_calls[1].messages[0])
+    assert llm_calls[1].messages[1:] == [
         {"role": "user", "content": "Hello"},
         {"role": "assistant", "content": "LLM response to: Hello"},
         {"role": "user", "content": "How are you?"},
@@ -242,9 +248,9 @@ async def test_system_prompt_prepended_to_every_llm_call():
 
     assert len(llm_calls) >= 2
 
-    # Every LLM call starts with the system prompt
+    # Every LLM call starts with the system prompt (with dynamic time prefix)
     for call in llm_calls:
-        assert call.messages[0] == SYSTEM_MESSAGE
+        assert _is_system_message(call.messages[0])
 
     # System prompt is NOT duplicated in conversation history
     # (only one system message per call, the rest are user/assistant)
@@ -307,7 +313,7 @@ async def test_workflow_loads_persisted_state():
 
     # LLM should receive restored history + new message
     messages = llm_calls[0].messages
-    assert messages[0] == SYSTEM_MESSAGE
+    assert _is_system_message(messages[0])
     assert messages[1] == {"role": "user", "content": "Previous message"}
     assert messages[2] == {"role": "assistant", "content": "Previous response"}
     assert messages[3] == {"role": "user", "content": "New message"}
@@ -476,8 +482,8 @@ async def test_workflow_restart_preserves_state():
     assert len(llm_calls) == 2
 
     wf2_messages = llm_calls[1].messages
-    assert wf2_messages == [
-        SYSTEM_MESSAGE,
+    assert _is_system_message(wf2_messages[0])
+    assert wf2_messages[1:] == [
         {"role": "user", "content": "First message"},
         {"role": "assistant", "content": "LLM response to: First message"},
         {"role": "user", "content": "Second message"},
