@@ -12,7 +12,7 @@ ANTHROPIC_BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "")
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "openrouter")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 LLM_MODEL = os.environ.get("LLM_MODEL", "claude-sonnet-4-5-20250929")
-OPENROUTER_TIMEOUT = float(os.environ.get("OPENROUTER_TIMEOUT", "120.0"))
+LLM_TIMEOUT_SECONDS = float(os.environ.get("LLM_TIMEOUT_SECONDS", "240.0"))
 LOCAL_MODEL_URL = os.environ.get("LOCAL_MODEL_URL", "http://localhost:8888/v1")
 SYSTEM_PROMPT = """You are a helpful assistant.
 
