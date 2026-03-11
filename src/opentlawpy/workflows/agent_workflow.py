@@ -21,9 +21,12 @@ with workflow.unsafe.imports_passed_through():
         WORKFLOW_TIMEOUT_MINUTES,
     )
     from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
-    from opentlawpy.models.llm import LLMCallInput, LLMCallOutput
-    from opentlawpy.models.state import LoadStateInput, SaveStateInput
-    from opentlawpy.models.tool_activities import GatherToolResultsInput, GatherToolResultsOutput
+    from opentlawpy.models.gather_tool_results import (
+        GatherToolResultsInput,
+        GatherToolResultsOutput,
+    )
+    from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
+    from opentlawpy.models.state_io import LoadStateInput, SaveStateInput
 
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
 

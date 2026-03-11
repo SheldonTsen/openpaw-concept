@@ -3,7 +3,7 @@ import json
 import pytest
 
 from opentlawpy.activities.state_io import load_state_activity, save_state_activity
-from opentlawpy.models.state import LoadStateInput, SaveStateInput
+from opentlawpy.models.state_io import LoadStateInput, SaveStateInput
 
 
 @pytest.fixture
