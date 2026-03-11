@@ -1,9 +1,7 @@
 import logging
-import os
 
 from temporalio import activity
 
-from opentlawpy.config import WORKSPACE_DIR
 from opentlawpy.models.gather_tool_results import GatherToolResultsInput, GatherToolResultsOutput
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,4 @@
 import logging
-
 import shlex
 
 from opentlawpy.tool_handlers._run_bash import run_bash

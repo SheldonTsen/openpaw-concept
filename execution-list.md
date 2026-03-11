@@ -280,8 +280,8 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 
 ### Addendum
-- [ ] Sync up file names between activities, tests, and models. So imports are always from activities.x import y, from models.x import y. No reason for the file names to be different. 
-- [ ] Add current time and year now into prompt
+- [x] Sync up file names between activities, tests, and models. So imports are always from activities.x import y, from models.x import y. No reason for the file names to be different. 
+- [x] Add current time and year now into prompt
 
 ---
 

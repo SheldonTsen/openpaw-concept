@@ -1,6 +1,7 @@
-from opentlawpy.utils.tool_loader import load_tools
-from opentlawpy.models.tools import ToolDefinition
 from temporalio import activity
+
+from opentlawpy.models.tools import ToolDefinition
+from opentlawpy.utils.tool_loader import load_tools
 
 
 @activity.defn(name="load_tools_activity")
