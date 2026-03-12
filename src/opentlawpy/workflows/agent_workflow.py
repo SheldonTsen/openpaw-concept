@@ -4,8 +4,9 @@ import logging
 from datetime import timedelta
 
 from temporalio import workflow
-from temporalio.common import RetryPolicy
+from temporalio.common import RetryPolicy, WorkflowIDReusePolicy
 from temporalio.exceptions import ActivityError
+from temporalio.workflow import ParentClosePolicy
 
 with workflow.unsafe.imports_passed_through():
     from opentlawpy.activities.gather_tool_results import gather_tool_results_activity
@@ -27,6 +28,7 @@ with workflow.unsafe.imports_passed_through():
     )
     from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
     from opentlawpy.models.state_io import LoadStateInput, SaveStateInput
+    from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
 
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
 
@@ -60,6 +62,17 @@ class AgentWorkflow:
             workflow.logger.info(
                 f"Restored {len(self._conversation_history)} messages for {chat_id}"
             )
+
+        try:
+            await workflow.start_child_workflow(
+                HeartbeatWorkflow.run,
+                arg=chat_id,
+                id=f"heartbeat-{chat_id}",
+                parent_close_policy=ParentClosePolicy.ABANDON,
+                id_reuse_policy=WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+            )
+        except Exception:
+            workflow.logger.info(f"Heartbeat already running for {chat_id}")
 
         while True:
             try:

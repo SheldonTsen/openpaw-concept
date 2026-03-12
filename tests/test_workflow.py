@@ -4,6 +4,7 @@ from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
 from opentlawpy.config import SYSTEM_PROMPT, WHATSAPP_TASK_QUEUE
 from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
+from opentlawpy.models.heartbeat import PokeAgentInput, PokeAgentOutput
 from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
 from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
 from opentlawpy.models.state_io import (
@@ -14,6 +15,7 @@ from opentlawpy.models.state_io import (
 )
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
+from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
 
 
 def _is_system_message(msg: dict) -> bool:
@@ -75,12 +77,18 @@ async def mock_load_state(input: LoadStateInput) -> LoadStateOutput:
     return LoadStateOutput(conversation_history=[], found=False)
 
 
+@activity.defn(name="poke_agent")
+async def mock_poke_agent(input: PokeAgentInput) -> PokeAgentOutput:
+    return PokeAgentOutput(success=True)
+
+
 DEFAULT_ACTIVITIES = [
     mock_call_llm,
     mock_compact_history,
     mock_load_tools,
     mock_save_state,
     mock_load_state,
+    mock_poke_agent,
 ]
 
 
@@ -94,7 +102,7 @@ async def test_workflow_calls_llm_and_sends_response():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow],
                 activities=DEFAULT_ACTIVITIES,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -136,7 +144,7 @@ async def test_workflow_multiple_messages():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow],
                 activities=DEFAULT_ACTIVITIES,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -175,7 +183,7 @@ async def test_workflow_sends_conversation_history():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow],
                 activities=DEFAULT_ACTIVITIES,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -225,7 +233,7 @@ async def test_system_prompt_prepended_to_every_llm_call():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow],
                 activities=DEFAULT_ACTIVITIES,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -284,13 +292,14 @@ async def test_workflow_loads_persisted_state():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow],
                 activities=[
                     mock_call_llm,
                     mock_compact_history,
                     mock_load_tools,
                     mock_save_state,
                     load_state_with_history,
+                    mock_poke_agent,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -367,13 +376,14 @@ async def test_workflow_triggers_compaction():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow],
                 activities=[
                     mock_call_llm,
                     tracking_compact_history,
                     mock_load_tools,
                     mock_save_state,
                     load_state_with_history,
+                    mock_poke_agent,
                 ],
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -432,6 +442,7 @@ async def test_workflow_restart_preserves_state():
         mock_load_tools,
         bridging_save_state,
         bridging_load_state,
+        mock_poke_agent,
     ]
 
     chat_id = "restart-test-phone"
@@ -441,7 +452,7 @@ async def test_workflow_restart_preserves_state():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow],
                 activities=activities,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),

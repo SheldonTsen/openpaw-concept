@@ -8,6 +8,7 @@ from opentlawpy.config import TASK_QUEUE, TEMPORAL_ADDRESS
 from opentlawpy.logging import setup_logging
 from opentlawpy.worker.worker import create_temporal_client
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
+from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -20,8 +21,8 @@ async def main() -> None:
     worker = Worker(
         client,
         task_queue=TASK_QUEUE,
-        workflows=[AgentWorkflow],
-        activities=create_activities(),
+        workflows=[AgentWorkflow, HeartbeatWorkflow],
+        activities=create_activities(temporal_client=client),
     )
     await worker.run()
 

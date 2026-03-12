@@ -30,7 +30,9 @@ response rather than sequentially.
 
 If you are missing something you need, you can always install it via bash.
 
-Think in English."""
+Think in English.
+
+If you see [HEARTBEAT], this is a regular check in with some tasks for you to do."""
 TOOLS_DIR = os.path.join(os.path.dirname(__file__), "tools")
 DEFAULT_TOOL_PRIORITY = 999
 WORKSPACE_DIR = os.environ.get("WORKSPACE_DIR", "./workspace")
@@ -42,3 +44,6 @@ TEMPORAL_DEFAULT_RETRIES = 3
 TEMPORAL_DEFAULT_TIMEOUT = 60
 COMPACTION_THRESHOLD = int(os.environ.get("COMPACTION_THRESHOLD", "50"))
 COMPACTION_KEEP_RECENT = int(os.environ.get("COMPACTION_KEEP_RECENT", "2"))
+HEARTBEAT_INTERVAL_MINUTES = int(os.environ.get("HEARTBEAT_INTERVAL_MINUTES", "1"))
+# HEARTBEAT_MESSAGE = "[HEARTBEAT] Check in on current status and any pending tasks."
+HEARTBEAT_MESSAGE = "[HEARTBEAT] Say Hi"
