@@ -289,17 +289,28 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 **Goal**: Agent can check in periodically. Signals fully working.
 
-### 5.0 Pre-work
-- [ ] Go and fix web search
 
-### 5.1 Heartbeat
-- [ ] Implement heartbeat timer (30 min default)
-- [ ] On timeout: inject system prompt "Check in and report status"
-- [ ] Configurable via `update_heartbeat` signal
+### 5.1 Heartbeat (DONE)
+- [x] Created `src/opentlawpy/models/heartbeat.py` — `PokeAgentInput`, `PokeAgentOutput` dataclasses
+- [x] Created `src/opentlawpy/activities/poke_agent.py` — factory pattern: `create_poke_agent_activity(temporal_client)`, uses atomic start-or-signal (`id_conflict_policy=USE_EXISTING` + `start_signal="new_message"`) to poke the agent workflow
+- [x] Created `src/opentlawpy/workflows/heartbeat_workflow.py` — `HeartbeatWorkflow`:
+  - Loop: `wait_condition(lambda: self._stopped, timeout=HEARTBEAT_INTERVAL_MINUTES)` → on timeout, call `poke_agent` activity by string name
+  - `@workflow.signal stop()` sets `self._stopped = True` — `wait_condition` returns immediately
+  - `continue_as_new(chat_id)` every 100 pokes to bound event history
+- [x] Added `HEARTBEAT_INTERVAL_MINUTES` (default 30) and `HEARTBEAT_MESSAGE` to `config.py`
+- [x] Updated `agent_workflow.py` — starts `HeartbeatWorkflow` as abandoned child workflow on startup (`ParentClosePolicy.ABANDON`, `WorkflowIDReusePolicy.ALLOW_DUPLICATE`), try/except silences "already running"
+- [x] Updated `worker/__main__.py` — registers `HeartbeatWorkflow` + `poke_agent` activity
+- [x] Created `tests/test_heartbeat.py` — 4 tests:
+  - `test_heartbeat_pokes_agent_after_interval` — poke_agent called after sleep
+  - `test_heartbeat_stop_signal` — clean exit on stop, no poke
+  - `test_heartbeat_stop_during_sleep` — immediate wake on stop after poke
+  - `test_agent_starts_heartbeat` — integration: AgentWorkflow starts HeartbeatWorkflow as child
+- [x] Updated `tests/test_workflow.py` and `tests/test_workflow_tools.py` — added `HeartbeatWorkflow` + `mock_poke_agent` to all Worker registrations
+- [x] All 59 tests pass, ruff clean
 
 ### 5.2 Stop Signal
-- [ ] Implement `stop` signal for graceful shutdown
-- [ ] Test: send stop signal → workflow terminates cleanly
+- [x] Implemented `stop` signal on `HeartbeatWorkflow` for graceful shutdown (done as part of 5.1)
+- [ ] Test: send stop signal → workflow terminates cleanly (additional end-to-end test)
 
 ---
 
@@ -391,8 +402,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 4 (State Persistence) — 4.1 + 4.2 done
-**Next Milestone**: Phase 4.3 Workflow Duration & Restart
+**Current Phase**: Phase 5 (Heartbeat & Signals) — 5.1 done
+**Next Milestone**: Phase 5.2 Stop Signal (end-to-end test)
 
 **Blockers**: None
 

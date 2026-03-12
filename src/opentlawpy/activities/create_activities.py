@@ -1,10 +1,13 @@
 import logging
 
+from temporalio.client import Client
+
 from opentlawpy.activities.bash_command import execute_bash_command
 from opentlawpy.activities.compaction import create_compact_history_activity
 from opentlawpy.activities.file_operations import read_file_activity, write_file_activity
 from opentlawpy.activities.gather_tool_results import gather_tool_results_activity
 from opentlawpy.activities.llm_call import create_call_llm_activity
+from opentlawpy.activities.poke_agent import create_poke_agent_activity
 from opentlawpy.activities.state_io import load_state_activity, save_state_activity
 from opentlawpy.activities.tool_loader import load_tools_activity
 from opentlawpy.config import (
@@ -18,7 +21,7 @@ from opentlawpy.config import (
 logger = logging.getLogger(__name__)
 
 
-def create_activities() -> list:
+def create_activities(*, temporal_client: Client) -> list:
     if LLM_PROVIDER == "anthropic":
         logger.info("Using anthropic client.")
         from opentlawpy.llm.anthropic_client import AnthropicClient
@@ -38,6 +41,7 @@ def create_activities() -> list:
     return [
         create_call_llm_activity(llm_client=llm_client),
         create_compact_history_activity(llm_client=llm_client),
+        create_poke_agent_activity(temporal_client=temporal_client),
         execute_bash_command,
         read_file_activity,
         write_file_activity,
