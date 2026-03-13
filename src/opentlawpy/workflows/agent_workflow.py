@@ -28,6 +28,7 @@ with workflow.unsafe.imports_passed_through():
     )
     from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
     from opentlawpy.models.state_io import LoadStateInput, SaveStateInput
+    from opentlawpy.models.tools import ToolDefinition
     from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
 
 from opentlawpy.models.messages import IncomingMessage, SendMessageInput
@@ -40,6 +41,7 @@ class AgentWorkflow:
     def __init__(self) -> None:
         self._pending_messages: list[IncomingMessage] = []
         self._conversation_history: list[dict] = []
+        self._tool_definitions: list[ToolDefinition] = []
         self._tool_defs_for_llm: list[dict] = []
 
     @workflow.run
@@ -55,12 +57,12 @@ class AgentWorkflow:
         except Exception:
             workflow.logger.info(f"Heartbeat already running for {chat_id}")
 
-        tools = await workflow.execute_activity(
+        self._tool_definitions = await workflow.execute_activity(
             load_tools_activity,
             start_to_close_timeout=timedelta(seconds=10),
             retry_policy=RetryPolicy(maximum_attempts=1),
         )
-        self._tool_defs_for_llm = [t.to_llm_format() for t in tools]
+        self._tool_defs_for_llm = [t.to_llm_format() for t in self._tool_definitions]
 
         load_output = await workflow.execute_activity(
             load_state_activity,
@@ -181,7 +183,13 @@ class AgentWorkflow:
             # temporal will not fail the workflow for non-determinism
             # if the workflow is replayed from a failure
             now = workflow.now().strftime("%Y-%m-%d %H:%M %Z")
-            system_content = f"Current time: {now}\n\n{SYSTEM_PROMPT}"
+            tool_docs = "\n\n".join(
+                f"### {t.name}\n{t.body}" for t in self._tool_definitions
+            )
+            system_content = (
+                f"Current time: {now}\n\n{SYSTEM_PROMPT}"
+                f"\n\n## Tool Documentation\n\n{tool_docs}"
+            )
             messages = [{"role": "system", "content": system_content}] + self._conversation_history
 
             llm_output = await workflow.execute_activity(
