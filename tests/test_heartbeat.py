@@ -2,7 +2,7 @@ from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
-from opentlawpy.config import WHATSAPP_TASK_QUEUE
+from opentlawpy.config import HEARTBEAT_MESSAGE, WHATSAPP_TASK_QUEUE
 from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
 from opentlawpy.models.heartbeat import PokeAgentInput, PokeAgentOutput
 from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
@@ -113,7 +113,7 @@ async def test_heartbeat_pokes_agent_after_interval():
 
     assert len(poke_calls) >= 1
     assert poke_calls[0].chat_id == "test-chat-1"
-    assert poke_calls[0].message != ""
+    assert poke_calls[0].message == HEARTBEAT_MESSAGE
 
 
 async def test_heartbeat_stop_signal():
