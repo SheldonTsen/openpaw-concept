@@ -54,3 +54,11 @@ def test_to_llm_format():
     assert func["description"] == tool.description
     assert func["parameters"] == tool.parameters
     assert "metadata" not in func
+
+
+def test_body_populated_from_markdown():
+    tools = load_tools()
+    for tool in tools:
+        assert tool.body, f"{tool.name} TOOL.md should have a markdown body"
+        llm_func = tool.to_llm_format()["function"]
+        assert "body" not in llm_func, "body should not leak into LLM tool schema"
