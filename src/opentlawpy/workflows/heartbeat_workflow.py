@@ -18,6 +18,10 @@ class HeartbeatWorkflow:
     @workflow.run
     async def run(self, chat_id: str) -> None:
         while not self._stopped:
+            # either we receive a stop signal in which case the workflow ends
+            # or if we hit timeout, the workflow errors and we proceed
+            # with the rest of the logic. This is just a temporal native way
+            # to handle "cron" like stuff.
             try:
                 await workflow.wait_condition(
                     lambda: self._stopped,
