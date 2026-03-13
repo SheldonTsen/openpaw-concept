@@ -216,7 +216,7 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
                 id="test-wf-tools",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["1234567890", "Hello"],
+                start_signal_args=["Hello"],
             )
             await handle.result()
 
@@ -340,7 +340,7 @@ async def test_workflow_tool_error_fed_back():
                 id="test-wf-err",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["1234567890", "Read missing.txt"],
+                start_signal_args=["Read missing.txt"],
             )
             try:
                 await handle.result()
@@ -460,7 +460,7 @@ async def test_workflow_llm_failure_sends_error_message():
                 id="test-wf-llm-fail",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["1234567890", "Hello"],
+                start_signal_args=["Hello"],
             )
             await handle.result()
 
@@ -535,7 +535,7 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
                 id="test-wf-tool-activity-fail",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["1234567890", "Do something"],
+                start_signal_args=["Do something"],
             )
             try:
                 await handle.result()

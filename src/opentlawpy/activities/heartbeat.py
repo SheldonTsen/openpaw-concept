@@ -34,7 +34,7 @@ def create_poke_agent_activity(
                 task_queue=TASK_QUEUE,
                 id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
                 start_signal="new_message",
-                start_signal_args=["system", input.message],
+                start_signal_args=[input.message],
             )
             return PokeAgentOutput(success=True)
         except Exception:

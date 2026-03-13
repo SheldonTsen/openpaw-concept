@@ -118,7 +118,7 @@ async def test_workflow_calls_llm_and_sends_response():
                 id="test-workflow-1",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["1234567890", "Hi there"],
+                start_signal_args=["Hi there"],
             )
 
             await handle.result()
@@ -160,10 +160,10 @@ async def test_workflow_multiple_messages():
                 id="test-workflow-2",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["5555555555", "First message"],
+                start_signal_args=["First message"],
             )
 
-            await handle.signal(AgentWorkflow.new_message, args=["5555555555", "Second message"])
+            await handle.signal(AgentWorkflow.new_message, args=["Second message"])
 
             await handle.result()
 
@@ -199,10 +199,10 @@ async def test_workflow_sends_conversation_history():
                 id="test-workflow-3",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["9999999999", "Hello"],
+                start_signal_args=["Hello"],
             )
 
-            await handle.signal(AgentWorkflow.new_message, args=["9999999999", "How are you?"])
+            await handle.signal(AgentWorkflow.new_message, args=["How are you?"])
 
             await handle.result()
 
@@ -249,10 +249,10 @@ async def test_system_prompt_prepended_to_every_llm_call():
                 id="test-workflow-4",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["7777777777", "Msg1"],
+                start_signal_args=["Msg1"],
             )
 
-            await handle.signal(AgentWorkflow.new_message, args=["7777777777", "Msg2"])
+            await handle.signal(AgentWorkflow.new_message, args=["Msg2"])
 
             await handle.result()
 
@@ -315,7 +315,7 @@ async def test_workflow_loads_persisted_state():
                 id="test-workflow-persist",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["8888888888", "New message"],
+                start_signal_args=["New message"],
             )
 
             await handle.result()
@@ -399,7 +399,7 @@ async def test_workflow_triggers_compaction():
                 id="test-workflow-compact-2",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["compact-test-2", "Trigger compaction"],
+                start_signal_args=["Trigger compaction"],
             )
 
             await handle.result()
@@ -469,7 +469,7 @@ async def test_workflow_restart_preserves_state():
                 id="test-restart-wf-1",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=[chat_id, "First message"],
+                start_signal_args=["First message"],
             )
             await handle1.result()
 
@@ -487,7 +487,7 @@ async def test_workflow_restart_preserves_state():
                 id="test-restart-wf-2",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=[chat_id, "Second message"],
+                start_signal_args=["Second message"],
             )
             await handle2.result()
 

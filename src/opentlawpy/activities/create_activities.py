@@ -6,8 +6,8 @@ from opentlawpy.activities.bash_command import execute_bash_command
 from opentlawpy.activities.compaction import create_compact_history_activity
 from opentlawpy.activities.file_operations import read_file_activity, write_file_activity
 from opentlawpy.activities.gather_tool_results import gather_tool_results_activity
+from opentlawpy.activities.heartbeat import create_poke_agent_activity
 from opentlawpy.activities.llm_call import create_call_llm_activity
-from opentlawpy.activities.poke_agent import create_poke_agent_activity
 from opentlawpy.activities.state_io import load_state_activity, save_state_activity
 from opentlawpy.activities.tool_loader import load_tools_activity
 from opentlawpy.config import (

@@ -84,7 +84,7 @@ class WhatsAppListener:
                 task_queue=TASK_QUEUE,
                 id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
                 start_signal="new_message",
-                start_signal_args=[sender, text],
+                start_signal_args=[text],
             )
             logger.info(f"Routed message to workflow {workflow_id}")
         except Exception:
