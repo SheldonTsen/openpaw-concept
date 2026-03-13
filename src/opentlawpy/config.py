@@ -46,4 +46,4 @@ COMPACTION_THRESHOLD = int(os.environ.get("COMPACTION_THRESHOLD", "50"))
 COMPACTION_KEEP_RECENT = int(os.environ.get("COMPACTION_KEEP_RECENT", "2"))
 HEARTBEAT_INTERVAL_MINUTES = int(os.environ.get("HEARTBEAT_INTERVAL_MINUTES", "1"))
 # HEARTBEAT_MESSAGE = "[HEARTBEAT] Check in on current status and any pending tasks."
-HEARTBEAT_MESSAGE = "[HEARTBEAT] Say Hi"
+HEARTBEAT_MESSAGE = "[HEARTBEAT] Say 'Checking In On You!'"

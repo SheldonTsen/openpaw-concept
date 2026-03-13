@@ -200,7 +200,7 @@ async def test_agent_starts_heartbeat():
                 id="whatsapp-test-chat-4",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["test-chat-4", "Hello"],
+                start_signal_args=["Hello"],
             )
 
             # Agent should process the message and time out

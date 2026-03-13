@@ -44,6 +44,17 @@ class AgentWorkflow:
 
     @workflow.run
     async def run(self, chat_id: str) -> None:
+        try:
+            await workflow.start_child_workflow(
+                HeartbeatWorkflow.run,
+                arg=chat_id,
+                id=f"heartbeat-{chat_id}",
+                parent_close_policy=ParentClosePolicy.ABANDON,
+                id_reuse_policy=WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+            )
+        except Exception:
+            workflow.logger.info(f"Heartbeat already running for {chat_id}")
+
         tools = await workflow.execute_activity(
             load_tools_activity,
             start_to_close_timeout=timedelta(seconds=10),
@@ -62,17 +73,6 @@ class AgentWorkflow:
             workflow.logger.info(
                 f"Restored {len(self._conversation_history)} messages for {chat_id}"
             )
-
-        try:
-            await workflow.start_child_workflow(
-                HeartbeatWorkflow.run,
-                arg=chat_id,
-                id=f"heartbeat-{chat_id}",
-                parent_close_policy=ParentClosePolicy.ABANDON,
-                id_reuse_policy=WorkflowIDReusePolicy.ALLOW_DUPLICATE,
-            )
-        except Exception:
-            workflow.logger.info(f"Heartbeat already running for {chat_id}")
 
         while True:
             try:
@@ -146,8 +146,8 @@ class AgentWorkflow:
                     workflow.logger.error(f"Failed to save state for {chat_id}: {exc}")
 
     @workflow.signal
-    def new_message(self, sender: str, text: str) -> None:
-        self._pending_messages.append(IncomingMessage(sender=sender, text=text))
+    def new_message(self, text: str) -> None:
+        self._pending_messages.append(IncomingMessage(text=text))
 
     async def _maybe_compact_history(self, *, chat_id: str) -> None:
         if len(self._conversation_history) <= COMPACTION_THRESHOLD:
