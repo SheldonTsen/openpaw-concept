@@ -9,9 +9,10 @@ EXPECTED_ALL_TOOLS = {
     "git",
     "grep",
     "calculator",
+    "delegate_task",
 }
 
-EXPECTED_ESSENTIAL_TOOLS = {"bash", "read_file", "write_file", "python"}
+EXPECTED_ESSENTIAL_TOOLS = {"bash", "read_file", "write_file", "python", "delegate_task"}
 
 
 def test_load_all_tools():

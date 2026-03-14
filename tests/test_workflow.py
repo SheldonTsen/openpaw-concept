@@ -16,6 +16,7 @@ from opentlawpy.models.state_io import (
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
+from opentlawpy.workflows.sub_agent_workflow import SubAgentWorkflow
 
 
 def _is_system_message(msg: dict) -> bool:
@@ -102,7 +103,7 @@ async def test_workflow_calls_llm_and_sends_response():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=DEFAULT_ACTIVITIES,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -144,7 +145,7 @@ async def test_workflow_multiple_messages():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=DEFAULT_ACTIVITIES,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -183,7 +184,7 @@ async def test_workflow_sends_conversation_history():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=DEFAULT_ACTIVITIES,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -233,7 +234,7 @@ async def test_system_prompt_prepended_to_every_llm_call():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=DEFAULT_ACTIVITIES,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -292,7 +293,7 @@ async def test_workflow_loads_persisted_state():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=[
                     mock_call_llm,
                     mock_compact_history,
@@ -376,7 +377,7 @@ async def test_workflow_triggers_compaction():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=[
                     mock_call_llm,
                     tracking_compact_history,
@@ -452,7 +453,7 @@ async def test_workflow_restart_preserves_state():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=activities,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
