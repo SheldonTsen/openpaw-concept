@@ -9,13 +9,15 @@ from opentlawpy.models.tools import ToolDefinition, ToolTier
 DEFAULT_TIERS = [ToolTier.ESSENTIAL, ToolTier.COMMON]
 
 
-def _parse_frontmatter(text: str) -> dict:
-    """Extract YAML frontmatter from a TOOL.md file."""
+def _parse_frontmatter(text: str) -> tuple[dict, str]:
+    """Extract YAML frontmatter and markdown body from a TOOL.md file."""
     parts = text.split("---", maxsplit=2)
     if len(parts) < 3:
         msg = "TOOL.md missing YAML frontmatter (expected --- delimiters)"
         raise ValueError(msg)
-    return yaml.safe_load(parts[1])
+    frontmatter = yaml.safe_load(parts[1])
+    body = parts[2].strip()
+    return frontmatter, body
 
 
 def load_tools(
@@ -43,7 +45,7 @@ def load_tools(
         with open(tool_file) as f:
             content = f.read()
 
-        frontmatter = _parse_frontmatter(content)
+        frontmatter, body = _parse_frontmatter(content)
 
         metadata = frontmatter.get("metadata", {})
         tier = metadata.get("tier", "common")
@@ -57,6 +59,7 @@ def load_tools(
                 description=frontmatter["description"],
                 parameters=frontmatter["parameters"],
                 metadata=metadata,
+                body=body,
             )
         )
 

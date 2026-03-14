@@ -83,6 +83,7 @@ MOCK_TOOLS = [
             "required": ["command"],
         },
         metadata={"type": "cli", "tier": "essential", "priority": 1},
+        body="Execute shell commands in a sandboxed container.",
     ),
     ToolDefinition(
         name="read_file",
@@ -98,6 +99,7 @@ MOCK_TOOLS = [
             "tier": "essential",
             "priority": 2,
         },
+        body="Read file contents from the workspace.",
     ),
 ]
 
