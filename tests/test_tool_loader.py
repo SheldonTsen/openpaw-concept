@@ -12,11 +12,11 @@ EXPECTED_ALL_TOOLS = {
     "delegate_task",
 }
 
-EXPECTED_ESSENTIAL_TOOLS = {"bash", "read_file", "write_file", "python", "delegate_task"}
+EXPECTED_ESSENTIAL_TOOLS = {"bash", "python", "delegate_task"}
 
 
 def test_load_all_tools():
-    tools = load_tools(include_tiers=["essential", "common"])
+    tools = load_tools(include_tiers=["essential", "common", "experimental", "specialized"])
     names = {t.name for t in tools}
     assert names == EXPECTED_ALL_TOOLS
 

@@ -16,7 +16,7 @@ parameters:
 metadata:
   type: activity
   activity: read_file_activity
-  tier: essential
+  tier: experimental
   priority: 2
   retry_policy:
     maximum_attempts: 2
