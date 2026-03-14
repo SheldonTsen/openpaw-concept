@@ -16,7 +16,7 @@ parameters:
 metadata:
   type: cli
   command_template: "git {command}"
-  tier: common
+  tier: experimental
   priority: 7
   retry_policy:
     maximum_attempts: 2

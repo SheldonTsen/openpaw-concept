@@ -23,7 +23,7 @@ parameters:
 metadata:
   type: activity
   activity: write_file_activity
-  tier: essential
+  tier: experimental
   priority: 3
   retry_policy:
     maximum_attempts: 2

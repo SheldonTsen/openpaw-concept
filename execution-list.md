@@ -350,7 +350,7 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 ### 7.3 Target 80%+ Coverage (DONE — 73%)
 - [x] `pytest --cov=src --cov-report=term-missing` — 73% total, core workflow/activities 92-100%, remainder is entry points (0%) and tool handlers (33-58%) that need real infra or direct unit tests
 
-59 tests total across 12 test files.
+64 tests total across 13 test files.
 
 ---
 
@@ -362,29 +362,32 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 **Design**: `delegate_task` as a tool — LLM decides when to delegate vs. call tools directly. Sub-agent has its own thinking loop (duplicated, not shared — loops will likely diverge). No heartbeat, no state persistence, no compaction for sub-agents.
 
-- [ ] Create `SubAgentInput` dataclass — `src/opentlawpy/models/sub_agent.py` (task string + optional system prompt)
-- [ ] Add `SUB_AGENT_MAX_ITERATIONS`, `SUB_AGENT_TIMEOUT_MINUTES`, `SUB_AGENT_SYSTEM_PROMPT` to `config.py`
-- [ ] Create `SubAgentWorkflow` — `src/opentlawpy/workflows/sub_agent_workflow.py`
+- [x] Create `SubAgentInput` dataclass — `src/opentlawpy/models/sub_agent.py` (task string + optional system prompt)
+- [x] Add `SUB_AGENT_MAX_ITERATIONS`, `SUB_AGENT_TIMEOUT_MINUTES`, `SUB_AGENT_SYSTEM_PROMPT` to `config.py`
+- [x] Create `SubAgentWorkflow` — `src/opentlawpy/workflows/sub_agent_workflow.py`
   - Own `_thinking_loop` (duplicated from AgentWorkflow, stripped down)
   - Loads tools (filters out `delegate_task` to prevent recursion)
   - Seeds history with task as user message
   - Returns final assistant message as result string
-- [ ] Create `delegate_task` TOOL.md — `src/opentlawpy/tools/delegate_task/TOOL.md`
-- [ ] Create `delegate_task` handler — `src/opentlawpy/tool_handlers/delegate_task.py`
+- [x] Create `delegate_task` TOOL.md — `src/opentlawpy/tools/delegate_task/TOOL.md`
+- [x] Create `delegate_task` handler — `src/opentlawpy/tool_handlers/delegate_task.py`
   - Calls `workflow.execute_child_workflow(SubAgentWorkflow.run, ...)`
   - `ParentClosePolicy.TERMINATE` (kill sub-agent if orchestrator dies)
-- [ ] Register `SubAgentWorkflow` in `worker/__main__.py`
-- [ ] Tests:
+- [x] Register `SubAgentWorkflow` in `worker/__main__.py`
+- [x] Tests (4 tests in `tests/test_sub_agent.py`):
   - Sub-agent completes task and returns result
   - Orchestrator delegates and receives result
   - Sub-agent cannot call `delegate_task` (no recursion)
-  - Sub-agent timeout returns partial results
-  - Parallel delegation (multiple sub-agents concurrently)
+  - Sub-agent max iterations returns partial result
+- [x] Updated existing test files (`test_workflow.py`, `test_workflow_tools.py`) with `SubAgentWorkflow` registration
+- [ ] Parallel delegation (multiple sub-agents concurrently)
 
 ### 8.2 Other Ideas
 
 - [ ] Add extra messages to send to user as stuff happens
 - [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools
+- [ ] Clean up docs - make step by step guide minimal
+- [ ] Clean up tools - or filter them. For local LLM need less context so it responds faster.
 
 ## Quick Commands Reference
 
