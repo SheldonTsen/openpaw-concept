@@ -15,6 +15,7 @@ class ToolDefinition:
     description: str
     parameters: dict
     metadata: dict = field(default_factory=dict)
+    body: str = ""
 
     def to_llm_format(self) -> dict:
         return {
