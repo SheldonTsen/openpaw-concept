@@ -27,6 +27,7 @@ from opentlawpy.models.state_io import (
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
+from opentlawpy.workflows.sub_agent_workflow import SubAgentWorkflow
 
 TASK_QUEUE = "test-tool-tasks"
 
@@ -191,7 +192,7 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=[
                     mock_call_llm,
                     mock_compact_history,
@@ -315,7 +316,7 @@ async def test_workflow_tool_error_fed_back():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=[
                     mock_call_llm,
                     mock_compact_history,
@@ -435,7 +436,7 @@ async def test_workflow_llm_failure_sends_error_message():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=[
                     mock_failing_llm,
                     mock_compact_history,
@@ -510,7 +511,7 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=[
                     mock_call_llm,
                     mock_compact_history,
