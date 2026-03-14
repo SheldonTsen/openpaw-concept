@@ -12,7 +12,7 @@ parameters:
 metadata:
   type: cli
   command_template: "python3 -c \"print({expression})\""
-  tier: common
+  tier: experimental
   priority: 9
   retry_policy:
     maximum_attempts: 2

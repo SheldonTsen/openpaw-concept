@@ -37,11 +37,11 @@ TEMPORAL_DEFAULT_RETRIES = 3
 TEMPORAL_DEFAULT_TIMEOUT = 60
 COMPACTION_THRESHOLD = int(os.environ.get("COMPACTION_THRESHOLD", "50"))
 COMPACTION_KEEP_RECENT = int(os.environ.get("COMPACTION_KEEP_RECENT", "2"))
-HEARTBEAT_INTERVAL_MINUTES = int(os.environ.get("HEARTBEAT_INTERVAL_MINUTES", "10"))
+HEARTBEAT_INTERVAL_MINUTES = int(os.environ.get("HEARTBEAT_INTERVAL_MINUTES", "15"))
 # HEARTBEAT_MESSAGE = "[HEARTBEAT] Check in on current status and any pending tasks."
 HEARTBEAT_MESSAGE = "[HEARTBEAT] Say 'Checking In On You!'"
 SUB_AGENT_MAX_ITERATIONS = int(os.environ.get("SUB_AGENT_MAX_ITERATIONS", "10"))
-SUB_AGENT_TIMEOUT_MINUTES = int(os.environ.get("SUB_AGENT_TIMEOUT_MINUTES", "5"))
+SUB_AGENT_TIMEOUT_MINUTES = int(os.environ.get("SUB_AGENT_TIMEOUT_MINUTES", "10"))
 SUB_AGENT_SYSTEM_PROMPT = """You are a sub-agent executing a specific task.
 Complete the task thoroughly and return a clear, concise summary of your results.
 Do not ask questions — work with what you have.

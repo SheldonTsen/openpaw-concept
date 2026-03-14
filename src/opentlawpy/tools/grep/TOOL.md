@@ -24,7 +24,7 @@ parameters:
 metadata:
   type: cli
   command_template: "grep {case_flag} {recursive_flag} '{pattern}' {path}"
-  tier: common
+  tier: experimental
   priority: 8
   retry_policy:
     maximum_attempts: 2
