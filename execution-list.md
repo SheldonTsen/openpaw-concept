@@ -356,9 +356,35 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 ## Phase 8: Extras
 
-- [ ] Add extra messages to send to user as stuff happens. 
-- [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools. 
-- [ ] Main agentic workflow can decide to spin off other agentic workflows and wait for results?
+### 8.1 Sub-Agent Delegation
+
+**Goal**: Orchestrator keeps its context clean by delegating self-contained tasks to sub-agents. Sub-agents run as Temporal child workflows, do their work, and return a summary string. See `docs/sub-agent-approaches.md` for full analysis.
+
+**Design**: `delegate_task` as a tool — LLM decides when to delegate vs. call tools directly. Sub-agent has its own thinking loop (duplicated, not shared — loops will likely diverge). No heartbeat, no state persistence, no compaction for sub-agents.
+
+- [ ] Create `SubAgentInput` dataclass — `src/opentlawpy/models/sub_agent.py` (task string + optional system prompt)
+- [ ] Add `SUB_AGENT_MAX_ITERATIONS`, `SUB_AGENT_TIMEOUT_MINUTES`, `SUB_AGENT_SYSTEM_PROMPT` to `config.py`
+- [ ] Create `SubAgentWorkflow` — `src/opentlawpy/workflows/sub_agent_workflow.py`
+  - Own `_thinking_loop` (duplicated from AgentWorkflow, stripped down)
+  - Loads tools (filters out `delegate_task` to prevent recursion)
+  - Seeds history with task as user message
+  - Returns final assistant message as result string
+- [ ] Create `delegate_task` TOOL.md — `src/opentlawpy/tools/delegate_task/TOOL.md`
+- [ ] Create `delegate_task` handler — `src/opentlawpy/tool_handlers/delegate_task.py`
+  - Calls `workflow.execute_child_workflow(SubAgentWorkflow.run, ...)`
+  - `ParentClosePolicy.TERMINATE` (kill sub-agent if orchestrator dies)
+- [ ] Register `SubAgentWorkflow` in `worker/__main__.py`
+- [ ] Tests:
+  - Sub-agent completes task and returns result
+  - Orchestrator delegates and receives result
+  - Sub-agent cannot call `delegate_task` (no recursion)
+  - Sub-agent timeout returns partial results
+  - Parallel delegation (multiple sub-agents concurrently)
+
+### 8.2 Other Ideas
+
+- [ ] Add extra messages to send to user as stuff happens
+- [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools
 
 ## Quick Commands Reference
 
@@ -405,8 +431,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 5 (Heartbeat & Signals) — 5.1 done
-**Next Milestone**: Phase 5.2 Stop Signal (end-to-end test)
+**Current Phase**: Phase 8 (Extras) — 8.1 Sub-Agent Delegation
+**Next Milestone**: 8.1 Sub-Agent Delegation
 
 **Blockers**: None
 
