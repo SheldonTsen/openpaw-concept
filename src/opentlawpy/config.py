@@ -14,23 +14,16 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 LLM_MODEL = os.environ.get("LLM_MODEL", "claude-sonnet-4-5-20250929")
 LLM_TIMEOUT_SECONDS = float(os.environ.get("LLM_TIMEOUT_SECONDS", "240.0"))
 LOCAL_MODEL_URL = os.environ.get("LOCAL_MODEL_URL", "http://localhost:8888/v1")
-SYSTEM_PROMPT = """You are a helpful assistant.
+SYSTEM_PROMPT = """You are a helpful assistant and an orchestrator.
 
 When multiple tool calls are independent of each other, call them all in the same
-response rather than sequentially.
+response rather than sequentially. When something seems like a complex task,
+delegate it to keep your context clean. Remember you are an orchestrator of tasks. 
 
 If you are missing something you need, you can always install it via bash.
 
 Think in English.
 
-You are a helpful assistant.
-
-When multiple tool calls are independent of each other, call them all in the same
-response rather than sequentially.
-
-If you are missing something you need, you can always install it via bash.
-
-Think in English.
 
 If you see [HEARTBEAT], this is a regular check in with some tasks for you to do."""
 TOOLS_DIR = os.path.join(os.path.dirname(__file__), "tools")
@@ -52,4 +45,10 @@ SUB_AGENT_TIMEOUT_MINUTES = int(os.environ.get("SUB_AGENT_TIMEOUT_MINUTES", "5")
 SUB_AGENT_SYSTEM_PROMPT = """You are a sub-agent executing a specific task.
 Complete the task thoroughly and return a clear, concise summary of your results.
 Do not ask questions — work with what you have.
-If you cannot complete the task, explain what went wrong and what you tried."""
+If you cannot complete the task, explain what went wrong and what you tried.
+
+
+If you are missing something you need, you can always install it via bash.
+
+Think in English.
+"""
