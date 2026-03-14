@@ -1,6 +1,5 @@
 import logging
 from datetime import timedelta
-from uuid import uuid4
 
 from temporalio import workflow
 from temporalio.workflow import ParentClosePolicy
@@ -17,7 +16,7 @@ async def handle(args: dict) -> str:
     result = await workflow.execute_child_workflow(
         SubAgentWorkflow.run,
         arg=SubAgentInput(task=args["task"]),
-        id=f"sub-{workflow.info().workflow_id}-{uuid4().hex[:8]}",
+        id=f"sub-{workflow.info().workflow_id}-{workflow.uuid4().hex[:8]}",
         parent_close_policy=ParentClosePolicy.TERMINATE,
         execution_timeout=timedelta(minutes=SUB_AGENT_TIMEOUT_MINUTES),
     )
