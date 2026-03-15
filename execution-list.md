@@ -380,14 +380,16 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
   - Sub-agent cannot call `delegate_task` (no recursion)
   - Sub-agent max iterations returns partial result
 - [x] Updated existing test files (`test_workflow.py`, `test_workflow_tools.py`) with `SubAgentWorkflow` registration
-- [ ] Parallel delegation (multiple sub-agents concurrently)
+- [x] Parallel delegation (multiple sub-agents concurrently)
 
 ### 8.2 Other Ideas
 
 - [ ] Add extra messages to send to user as stuff happens
 - [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools
 - [ ] Clean up docs - make step by step guide minimal
-- [ ] Clean up tools - or filter them. For local LLM need less context so it responds faster.
+- [x] Clean up tools - or filter them. For local LLM need less context so it responds faster.
+- [ ] Add local terminal interface
+- [ ] Check ollama interface free 
 
 ## Quick Commands Reference
 

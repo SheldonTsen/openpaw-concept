@@ -7,17 +7,18 @@ This document contains enhancements and sophisticated features to consider **aft
 ## Table of Contents
 
 1. [Gateway Service (Multi-Channel Support)](#gateway-service-multi-channel-support)
-2. [Separate WhatsApp Bot Number](#separate-whatsapp-bot-number)
-3. [Advanced State Compaction](#advanced-state-compaction)
-4. [Multi-Model LLM Strategy](#multi-model-llm-strategy)
-5. [Semantic Memory Search](#semantic-memory-search)
-6. [Cost Tracking & Optimization](#cost-tracking--optimization)
-7. [Advanced Tool System](#advanced-tool-system)
-8. [Multi-Agent Collaboration](#multi-agent-collaboration)
-9. [Security & Sandboxing](#security--sandboxing)
-10. [Observability & Analytics](#observability--analytics)
-11. [Advanced Error Handling](#advanced-error-handling)
-12. [Advanced Parallelization & Scaling](#advanced-parallelization--scaling)
+2. [Multi-Interface Support (Terminal + WhatsApp)](#multi-interface-support-terminal--whatsapp)
+3. [Separate WhatsApp Bot Number](#separate-whatsapp-bot-number)
+4. [Advanced State Compaction](#advanced-state-compaction)
+5. [Multi-Model LLM Strategy](#multi-model-llm-strategy)
+6. [Semantic Memory Search](#semantic-memory-search)
+7. [Cost Tracking & Optimization](#cost-tracking--optimization)
+8. [Advanced Tool System](#advanced-tool-system)
+9. [Multi-Agent Collaboration](#multi-agent-collaboration)
+10. [Security & Sandboxing](#security--sandboxing)
+11. [Observability & Analytics](#observability--analytics)
+12. [Advanced Error Handling](#advanced-error-handling)
+13. [Advanced Parallelization & Scaling](#advanced-parallelization--scaling)
 
 ---
 
@@ -511,7 +512,68 @@ Each has separate conversation (workflow_id)
 
 ---
 
-## 2. Separate WhatsApp Bot Number
+## 2. Multi-Interface Support (Terminal + WhatsApp)
+
+### Current
+- WhatsApp is the only interface
+- `send_whatsapp_message` activity hardcoded in workflow
+- `SendMessageInput.phone_number` is WhatsApp-specific
+- Workflow IDs: `whatsapp-{phone_number}`
+
+### Decision: Keep Interfaces Separate
+
+Each interface is its own process with its own `send_message` activity. The workflow doesn't need to know which interface it's talking to — it just calls `send_whatsapp_message` (or `send_terminal_message`), and the right activity is registered on the right task queue.
+
+**Terminal interface would be:**
+- A Python script that reads stdin, signals the workflow
+- Registers a `send_terminal_message` activity that prints to stdout
+- Uses its own task queue (e.g., `terminal-tasks`)
+- Workflow IDs: `terminal-{session_id}`
+
+**Why not abstract `send_message`?**
+- Adds indirection for no real gain right now
+- WhatsApp and terminal have different constraints (message length limits, formatting, media support)
+- Can always abstract later if a third interface appears
+
+### Context Sharing
+
+**Conversation history: isolated.** Each interface has its own conversation history. A WhatsApp session and a terminal session are different conversations with different workflow IDs.
+
+**Workspace: implicitly shared.** Both interfaces point at the same `workspace/` directory. If the terminal session creates files, WhatsApp can read them. The filesystem _is_ the shared context — no explicit sharing mechanism needed.
+
+**State files: per-interface.** `data/state/whatsapp-{phone}/` vs `data/state/terminal-{session}/`. Each conversation persists independently.
+
+**Why this works:**
+- Nobody does deep work on WhatsApp — it's for quick asks and check-ins
+- Terminal is for focused sessions
+- Sharing conversation history would leak context (e.g., WhatsApp small talk polluting a terminal coding session)
+- But artifacts (files, scripts, outputs) are naturally shared via the workspace
+- If you want to reference terminal work from WhatsApp, the files are already there
+
+### Intermediate Messages ("Extra messages as stuff happens")
+
+Both interfaces need this — send updates during the thinking loop, not just the final response.
+
+Options for when to send intermediate messages:
+1. Before each tool call: "Running bash command..."
+2. After each tool call: "Found 5 files, analyzing..."
+3. On sub-agent delegation: "Delegating task to sub-agent..."
+4. Configurable per-interface (WhatsApp might want fewer updates to avoid spam)
+
+Implementation: call `send_message` activity inside `_thinking_loop` at the desired points. The activity name and task queue determine where the message goes.
+
+### Future: Global Context (if needed)
+
+If we ever want cross-interface context (e.g., "what did I do in my last terminal session?"), options:
+- **Shared state file**: A global `data/state/global.json` that both interfaces read/write
+- **Workspace README**: Agent maintains a `workspace/README.md` summarizing recent work
+- **Query Temporal**: Use Temporal's workflow history to look up past sessions
+
+But this is future work — the workspace filesystem covers 90% of sharing needs.
+
+---
+
+## 3. Separate WhatsApp Bot Number
 
 ### Current (MVP in plan.md)
 - Uses your own WhatsApp number with Neonize
