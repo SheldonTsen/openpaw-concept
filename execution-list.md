@@ -382,14 +382,40 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 - [x] Updated existing test files (`test_workflow.py`, `test_workflow_tools.py`) with `SubAgentWorkflow` registration
 - [x] Parallel delegation (multiple sub-agents concurrently)
 
-### 8.2 Other Ideas
+### 8.2 Terminal CLI Interface (DONE)
+
+**Goal**: Add a terminal/CLI that can interact with the same Temporal workflows — send messages via signal, receive responses via stdout. No Docker needed, runs directly with `uv run opentlawpy-terminal`.
+
+**Design**: Activity-based, mirrors WhatsApp exactly. The CLI runs its own Temporal activity worker on `TERMINAL_TASK_QUEUE`. When the workflow calls `send_terminal_message`, the CLI's worker picks it up and prints to stdout. Routing is based on workflow_id prefix: `terminal-*` → terminal activity, everything else → WhatsApp (backward-compatible).
+
+- [x] Added `TERMINAL_TASK_QUEUE = "terminal-tasks"` to `config.py`
+- [x] Created `src/opentlawpy/activities/terminal.py` — factory pattern with `output_callback` parameter
+- [x] Updated `src/opentlawpy/models/heartbeat.py` — added `workflow_id` field to `PokeAgentInput`
+- [x] Updated `src/opentlawpy/activities/heartbeat.py` — uses `input.workflow_id` instead of constructing it
+- [x] Updated `src/opentlawpy/workflows/heartbeat_workflow.py` — derives parent workflow_id from own id
+- [x] Updated `src/opentlawpy/workflows/agent_workflow.py`:
+  - Added `_get_output_route()` method (deterministic, sandbox-safe)
+  - Replaced hardcoded `send_whatsapp_message` with channel-aware routing
+  - Changed heartbeat child workflow id from `heartbeat-{chat_id}` to `heartbeat-{wf_id}`
+- [x] Created `src/opentlawpy/terminal/__init__.py` (empty) + `terminal/__main__.py` (CLI entry point)
+  - Connects to Temporal, runs activity worker in background, reads stdin via `run_in_executor`
+  - Atomic start-or-signal pattern (same as WhatsApp listener)
+- [x] Added `opentlawpy-terminal` script entry point to `pyproject.toml`
+- [x] Created `tests/test_terminal.py` — 3 tests:
+  - `test_terminal_workflow_routes_to_terminal_activity` — terminal-prefixed workflow routes correctly
+  - `test_non_terminal_workflow_routes_to_whatsapp` — backward compatibility
+  - `test_send_terminal_message_activity_calls_callback` — unit test for activity factory
+- [x] Updated `tests/test_heartbeat.py` — added `SubAgentWorkflow` to worker registration
+- [x] All 67 tests pass, ruff clean
+
+### 8.3 Other Ideas
 
 - [ ] Add extra messages to send to user as stuff happens
 - [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools
 - [ ] Clean up docs - make step by step guide minimal
 - [x] Clean up tools - or filter them. For local LLM need less context so it responds faster.
-- [ ] Add local terminal interface
-- [ ] Check ollama interface free 
+- [x] Add local terminal interface (done in 8.2)
+- [ ] Check ollama interface free
 
 ## Quick Commands Reference
 
@@ -436,8 +462,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 8 (Extras) — 8.1 Sub-Agent Delegation
-**Next Milestone**: 8.1 Sub-Agent Delegation
+**Current Phase**: Phase 8 (Extras) — 8.2 Terminal CLI Interface
+**Next Milestone**: 8.3 Other Ideas
 
 **Blockers**: None
 
