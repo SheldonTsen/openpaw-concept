@@ -416,6 +416,7 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 - [x] Clean up tools - or filter them. For local LLM need less context so it responds faster.
 - [x] Add local terminal interface (done in 8.2)
 - [ ] Check ollama interface free
+- [ ] Rename to openpaw
 
 ## Quick Commands Reference
 
