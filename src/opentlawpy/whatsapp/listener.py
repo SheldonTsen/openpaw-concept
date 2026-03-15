@@ -7,7 +7,8 @@ from neonize.events import ConnectedEv, MessageEv, PairStatusEv
 from temporalio.client import Client
 from temporalio.common import WorkflowIDConflictPolicy
 
-from opentlawpy.config import TASK_QUEUE
+from opentlawpy.config import TASK_QUEUE, WHATSAPP_TASK_QUEUE
+from opentlawpy.models.messages import AgentWorkflowInput
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 
 logger = logging.getLogger(__name__)
@@ -79,7 +80,11 @@ class WhatsAppListener:
         try:
             await self._temporal_client.start_workflow(
                 AgentWorkflow.run,
-                arg=sender,
+                arg=AgentWorkflowInput(
+                    chat_id=sender,
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id=workflow_id,
                 task_queue=TASK_QUEUE,
                 id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,

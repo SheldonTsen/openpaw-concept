@@ -2,6 +2,7 @@ import os
 
 TASK_QUEUE = "agent-tasks"
 WHATSAPP_TASK_QUEUE = "whatsapp-tasks"
+TERMINAL_TASK_QUEUE = "terminal-tasks"
 NAMESPACE = "opentlawpy"
 TEMPORAL_ADDRESS = os.environ.get("TEMPORAL_ADDRESS", "localhost:7233")
 MY_WHATSAPP_NUMBER = os.environ.get("MY_WHATSAPP_NUMBER", "")
@@ -18,7 +19,7 @@ SYSTEM_PROMPT = """You are a helpful assistant and an orchestrator.
 
 When multiple tool calls are independent of each other, call them all in the same
 response rather than sequentially. When something seems like a complex task,
-delegate it to keep your context clean. Remember you are an orchestrator of tasks. 
+delegate it to keep your context clean. Remember you are an orchestrator of tasks.
 
 If you are missing something you need, you can always install it via bash.
 

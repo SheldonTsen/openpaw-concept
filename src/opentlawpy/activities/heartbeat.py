@@ -7,6 +7,7 @@ from temporalio.common import WorkflowIDConflictPolicy
 
 from opentlawpy.config import TASK_QUEUE
 from opentlawpy.models.heartbeat import PokeAgentInput, PokeAgentOutput
+from opentlawpy.models.messages import AgentWorkflowInput
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 
 logger = logging.getLogger(__name__)
@@ -23,13 +24,17 @@ def create_poke_agent_activity(
 
     @activity.defn(name="poke_agent")
     async def poke_agent(input: PokeAgentInput) -> PokeAgentOutput:
-        workflow_id = f"whatsapp-{input.chat_id}"
+        workflow_id = input.workflow_id
         logger.info(f"Poking agent workflow {workflow_id}")
 
         try:
             await temporal_client.start_workflow(
                 AgentWorkflow.run,
-                arg=input.chat_id,
+                arg=AgentWorkflowInput(
+                    chat_id=input.chat_id,
+                    output_activity=input.output_activity,
+                    output_task_queue=input.output_task_queue,
+                ),
                 id=workflow_id,
                 task_queue=TASK_QUEUE,
                 id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
