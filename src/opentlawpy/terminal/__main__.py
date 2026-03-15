@@ -42,7 +42,7 @@ async def _async_main() -> None:
         try:
             while True:
                 try:
-                    text = await loop.run_in_executor(None, input, "You: ")
+                    text = await loop.run_in_executor(None, input, "> ")
                 except EOFError:
                     break
 
