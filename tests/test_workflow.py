@@ -6,7 +6,7 @@ from opentlawpy.config import SYSTEM_PROMPT, WHATSAPP_TASK_QUEUE
 from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
 from opentlawpy.models.heartbeat import PokeAgentInput, PokeAgentOutput
 from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
-from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
+from opentlawpy.models.messages import AgentWorkflowInput, SendMessageInput, SendMessageOutput
 from opentlawpy.models.state_io import (
     LoadStateInput,
     LoadStateOutput,
@@ -115,7 +115,11 @@ async def test_workflow_calls_llm_and_sends_response():
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg="1234567890",
+                arg=AgentWorkflowInput(
+                    chat_id="1234567890",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-workflow-1",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
@@ -157,7 +161,11 @@ async def test_workflow_multiple_messages():
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg="5555555555",
+                arg=AgentWorkflowInput(
+                    chat_id="5555555555",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-workflow-2",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
@@ -196,7 +204,11 @@ async def test_workflow_sends_conversation_history():
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg="9999999999",
+                arg=AgentWorkflowInput(
+                    chat_id="9999999999",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-workflow-3",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
@@ -246,7 +258,11 @@ async def test_system_prompt_prepended_to_every_llm_call():
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg="7777777777",
+                arg=AgentWorkflowInput(
+                    chat_id="7777777777",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-workflow-4",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
@@ -259,12 +275,9 @@ async def test_system_prompt_prepended_to_every_llm_call():
 
     assert len(llm_calls) >= 2
 
-    # Every LLM call starts with the system prompt (with dynamic time prefix)
     for call in llm_calls:
         assert _is_system_message(call.messages[0])
 
-    # System prompt is NOT duplicated in conversation history
-    # (only one system message per call, the rest are user/assistant)
     for call in llm_calls:
         system_messages = [m for m in call.messages if m["role"] == "system"]
         assert len(system_messages) == 1
@@ -312,7 +325,11 @@ async def test_workflow_loads_persisted_state():
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg="8888888888",
+                arg=AgentWorkflowInput(
+                    chat_id="8888888888",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-workflow-persist",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
@@ -323,17 +340,15 @@ async def test_workflow_loads_persisted_state():
 
     assert len(llm_calls) == 1
 
-    # LLM should receive restored history + new message
     messages = llm_calls[0].messages
     assert _is_system_message(messages[0])
     assert messages[1] == {"role": "user", "content": "Previous message"}
     assert messages[2] == {"role": "assistant", "content": "Previous response"}
     assert messages[3] == {"role": "user", "content": "New message"}
 
-    # State should have been saved after reply
     assert len(save_state_calls) >= 1
     saved_history = save_state_calls[-1].conversation_history
-    assert len(saved_history) == 4  # 2 restored + 1 new user + 1 new assistant
+    assert len(saved_history) == 4
 
 
 async def test_workflow_triggers_compaction():
@@ -342,7 +357,6 @@ async def test_workflow_triggers_compaction():
     llm_calls.clear()
     save_state_calls.clear()
 
-    # Pre-load 50 messages. After user + assistant = 52 > 50 threshold.
     preloaded_history = []
     for i in range(50):
         role = "user" if i % 2 == 0 else "assistant"
@@ -396,7 +410,11 @@ async def test_workflow_triggers_compaction():
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg="compact-test-2",
+                arg=AgentWorkflowInput(
+                    chat_id="compact-test-2",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-workflow-compact-2",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
@@ -405,13 +423,11 @@ async def test_workflow_triggers_compaction():
 
             await handle.result()
 
-    # 50 preloaded + 1 user + 1 assistant = 52 > 50 threshold → compaction called
     assert len(compact_calls) == 1
     assert compact_calls[0].conversation_history[-1]["role"] == "assistant"
 
-    # After compaction, state is saved (compacted version)
     last_save = save_state_calls[-1]
-    assert len(last_save.conversation_history) == 3  # 1 summary + 2 kept
+    assert len(last_save.conversation_history) == 3
 
 
 async def test_workflow_restart_preserves_state():
@@ -420,8 +436,6 @@ async def test_workflow_restart_preserves_state():
     llm_calls.clear()
     save_state_calls.clear()
 
-    # Closure to bridge state between the two workflow runs.
-    # Workflow 1's save writes here; workflow 2's load reads it back.
     saved_history: list[dict] = []
 
     @activity.defn(name="save_state_activity")
@@ -447,6 +461,11 @@ async def test_workflow_restart_preserves_state():
     ]
 
     chat_id = "restart-test-phone"
+    wf_input = AgentWorkflowInput(
+        chat_id=chat_id,
+        output_activity="send_whatsapp_message",
+        output_task_queue=WHATSAPP_TASK_QUEUE,
+    )
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
         async with (
@@ -463,10 +482,9 @@ async def test_workflow_restart_preserves_state():
                 activities=[mock_send_whatsapp_message],
             ),
         ):
-            # --- Workflow 1: process "First message", save state, time out ---
             handle1 = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg=chat_id,
+                arg=wf_input,
                 id="test-restart-wf-1",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
@@ -474,17 +492,15 @@ async def test_workflow_restart_preserves_state():
             )
             await handle1.result()
 
-            # Sanity: workflow 1 saved state with user + assistant
             assert len(save_state_calls) == 1
             assert saved_history == [
                 {"role": "user", "content": "First message"},
                 {"role": "assistant", "content": "LLM response to: First message"},
             ]
 
-            # --- Workflow 2: load state from workflow 1, process "Second message" ---
             handle2 = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg=chat_id,
+                arg=wf_input,
                 id="test-restart-wf-2",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
@@ -492,7 +508,6 @@ async def test_workflow_restart_preserves_state():
             )
             await handle2.result()
 
-    # Workflow 2's LLM call should include full history from workflow 1
     assert len(llm_calls) == 2
 
     wf2_messages = llm_calls[1].messages
@@ -503,5 +518,4 @@ async def test_workflow_restart_preserves_state():
         {"role": "user", "content": "Second message"},
     ]
 
-    # Both workflows saved state
     assert len(save_state_calls) == 2
