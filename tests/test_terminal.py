@@ -188,7 +188,7 @@ async def test_send_terminal_message_activity_prints(capsys):
     from opentlawpy.activities.terminal import send_terminal_message
 
     input_msg = SendMessageInput(phone_number="session-123", text="Hello world")
-    result = send_terminal_message(input_msg)
+    result = await send_terminal_message(input_msg)
 
     assert result.text == "Hello world"
     assert "Hello world" in capsys.readouterr().out

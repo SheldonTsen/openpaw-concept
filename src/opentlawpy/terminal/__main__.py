@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
@@ -32,7 +31,6 @@ async def _async_main() -> None:
         client,
         task_queue=task_queue,
         activities=[send_terminal_message],
-        activity_executor=ThreadPoolExecutor(max_workers=2),
     )
 
     session = PromptSession()
