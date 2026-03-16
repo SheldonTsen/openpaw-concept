@@ -2,6 +2,13 @@ from dataclasses import dataclass
 
 
 @dataclass
+class AgentWorkflowInput:
+    chat_id: str
+    output_activity: str
+    output_task_queue: str
+
+
+@dataclass
 class IncomingMessage:
     text: str
 

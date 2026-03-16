@@ -13,7 +13,7 @@ from opentlawpy.models.gather_tool_results import (
 )
 from opentlawpy.models.heartbeat import PokeAgentInput, PokeAgentOutput
 from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
-from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
+from opentlawpy.models.messages import AgentWorkflowInput, SendMessageInput, SendMessageOutput
 from opentlawpy.models.state_io import (
     LoadStateInput,
     LoadStateOutput,
@@ -249,7 +249,11 @@ async def test_orchestrator_delegates_and_receives_result():
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg="1234567890",
+                arg=AgentWorkflowInput(
+                    chat_id="1234567890",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-orchestrator-delegate",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
