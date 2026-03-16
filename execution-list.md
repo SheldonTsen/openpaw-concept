@@ -417,6 +417,7 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 - [x] Add local terminal interface (done in 8.2)
 - [ ] Check ollama interface free
 - [ ] Rename to openpaw
+- [ ] Add some sort of loading when workflow is running
 - [ ] Need to kill heartbeat for terminal session (kill old ones otherwise they keep going). Different from whatsapp?
 
 ## Quick Commands Reference
