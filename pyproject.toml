@@ -9,6 +9,7 @@ dependencies = [
     "anthropic<=1.0.0",
     "pyyaml>=6.0",
     "ddgs>=7.0",
+    "prompt-toolkit<=3.1",
 ]
 
 [project.optional-dependencies]
@@ -18,6 +19,9 @@ dev = [
     "pytest-cov>=6.0",
     "ruff>=0.9.0",
 ]
+
+[project.scripts]
+opentlawpy-terminal = "opentlawpy.terminal.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/opentlawpy"]

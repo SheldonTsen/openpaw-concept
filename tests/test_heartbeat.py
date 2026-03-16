@@ -4,9 +4,9 @@ from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
 from opentlawpy.config import HEARTBEAT_MESSAGE, WHATSAPP_TASK_QUEUE
 from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
-from opentlawpy.models.heartbeat import PokeAgentInput, PokeAgentOutput
+from opentlawpy.models.heartbeat import HeartbeatWorkflowInput, PokeAgentInput, PokeAgentOutput
 from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
-from opentlawpy.models.messages import SendMessageInput, SendMessageOutput
+from opentlawpy.models.messages import AgentWorkflowInput, SendMessageInput, SendMessageOutput
 from opentlawpy.models.state_io import (
     LoadStateInput,
     LoadStateOutput,
@@ -16,6 +16,7 @@ from opentlawpy.models.state_io import (
 from opentlawpy.models.tools import ToolDefinition
 from opentlawpy.workflows.agent_workflow import AgentWorkflow
 from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
+from opentlawpy.workflows.sub_agent_workflow import SubAgentWorkflow
 
 TASK_QUEUE = "test-heartbeat-tasks"
 
@@ -99,7 +100,12 @@ async def test_heartbeat_pokes_agent_after_interval():
         ):
             handle = await env.client.start_workflow(
                 HeartbeatWorkflow.run,
-                arg="test-chat-1",
+                arg=HeartbeatWorkflowInput(
+                    chat_id="test-chat-1",
+                    parent_workflow_id="parent-wf-1",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-heartbeat-1",
                 task_queue=TASK_QUEUE,
             )
@@ -130,7 +136,12 @@ async def test_heartbeat_stop_signal():
         ):
             handle = await env.client.start_workflow(
                 HeartbeatWorkflow.run,
-                arg="test-chat-2",
+                arg=HeartbeatWorkflowInput(
+                    chat_id="test-chat-2",
+                    parent_workflow_id="parent-wf-2",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-heartbeat-2",
                 task_queue=TASK_QUEUE,
             )
@@ -157,7 +168,12 @@ async def test_heartbeat_stop_during_sleep():
         ):
             handle = await env.client.start_workflow(
                 HeartbeatWorkflow.run,
-                arg="test-chat-3",
+                arg=HeartbeatWorkflowInput(
+                    chat_id="test-chat-3",
+                    parent_workflow_id="parent-wf-3",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="test-heartbeat-3",
                 task_queue=TASK_QUEUE,
             )
@@ -184,7 +200,7 @@ async def test_agent_starts_heartbeat():
             Worker(
                 env.client,
                 task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow],
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=AGENT_ACTIVITIES + HEARTBEAT_ACTIVITIES,
                 workflow_runner=UnsandboxedWorkflowRunner(),
             ),
@@ -196,7 +212,11 @@ async def test_agent_starts_heartbeat():
         ):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
-                arg="test-chat-4",
+                arg=AgentWorkflowInput(
+                    chat_id="test-chat-4",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                ),
                 id="whatsapp-test-chat-4",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",

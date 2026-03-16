@@ -6,7 +6,7 @@ from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
     from opentlawpy.config import HEARTBEAT_INTERVAL_MINUTES, HEARTBEAT_MESSAGE
-    from opentlawpy.models.heartbeat import PokeAgentInput, PokeAgentOutput
+    from opentlawpy.models.heartbeat import HeartbeatWorkflowInput, PokeAgentInput, PokeAgentOutput
 
 
 @workflow.defn
@@ -16,7 +16,7 @@ class HeartbeatWorkflow:
         self._poke_count = 0
 
     @workflow.run
-    async def run(self, chat_id: str) -> None:
+    async def run(self, input: HeartbeatWorkflowInput) -> None:
         while not self._stopped:
             # either we receive a stop signal in which case the workflow ends
             # or if we hit timeout, the workflow errors and we proceed
@@ -32,15 +32,20 @@ class HeartbeatWorkflow:
                 pass
 
             if self._stopped:
-                workflow.logger.info(f"Heartbeat stopped for {chat_id}")
+                workflow.logger.info(f"Heartbeat stopped for {input.chat_id}")
                 return
 
-            workflow.logger.info(f"Heartbeat poke #{self._poke_count + 1} for {chat_id}")
+            workflow.logger.info(
+                f"Heartbeat poke #{self._poke_count + 1} for {input.chat_id}"
+            )
 
             await workflow.execute_activity(
                 "poke_agent",
                 arg=PokeAgentInput(
-                    chat_id=chat_id,
+                    chat_id=input.chat_id,
+                    workflow_id=input.parent_workflow_id,
+                    output_activity=input.output_activity,
+                    output_task_queue=input.output_task_queue,
                     message=HEARTBEAT_MESSAGE,
                 ),
                 result_type=PokeAgentOutput,
@@ -50,12 +55,11 @@ class HeartbeatWorkflow:
 
             self._poke_count += 1
 
-            # Continue-as-new every 100 pokes to bound event history
             if self._poke_count >= 100:
                 workflow.logger.info(
-                    f"Continuing-as-new after {self._poke_count} pokes for {chat_id}"
+                    f"Continuing-as-new after {self._poke_count} pokes for {input.chat_id}"
                 )
-                workflow.continue_as_new(chat_id)
+                workflow.continue_as_new(input)
 
     @workflow.signal
     def stop(self) -> None:

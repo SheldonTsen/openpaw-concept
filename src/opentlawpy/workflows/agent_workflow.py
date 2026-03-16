@@ -18,7 +18,6 @@ with workflow.unsafe.imports_passed_through():
         LLM_TIMEOUT_SECONDS,
         MAX_TOOL_ITERATIONS,
         SYSTEM_PROMPT,
-        WHATSAPP_TASK_QUEUE,
         WORKFLOW_TIMEOUT_MINUTES,
     )
     from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
@@ -29,9 +28,10 @@ with workflow.unsafe.imports_passed_through():
     from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
     from opentlawpy.models.state_io import LoadStateInput, SaveStateInput
     from opentlawpy.models.tools import ToolDefinition
+    from opentlawpy.models.heartbeat import HeartbeatWorkflowInput
     from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
 
-from opentlawpy.models.messages import IncomingMessage, SendMessageInput
+from opentlawpy.models.messages import AgentWorkflowInput, IncomingMessage, SendMessageInput
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +45,19 @@ class AgentWorkflow:
         self._tool_defs_for_llm: list[dict] = []
 
     @workflow.run
-    async def run(self, chat_id: str) -> None:
+    async def run(self, input: AgentWorkflowInput) -> None:
+        chat_id = input.chat_id
+        wf_id = workflow.info().workflow_id
         try:
             await workflow.start_child_workflow(
                 HeartbeatWorkflow.run,
-                arg=chat_id,
-                id=f"heartbeat-{chat_id}",
+                arg=HeartbeatWorkflowInput(
+                    chat_id=chat_id,
+                    parent_workflow_id=wf_id,
+                    output_activity=input.output_activity,
+                    output_task_queue=input.output_task_queue,
+                ),
+                id=f"heartbeat-{wf_id}",
                 parent_close_policy=ParentClosePolicy.ABANDON,
                 id_reuse_policy=WorkflowIDReusePolicy.ALLOW_DUPLICATE,
             )
@@ -116,7 +123,7 @@ class AgentWorkflow:
 
                 try:
                     await workflow.execute_activity(
-                        "send_whatsapp_message",
+                        input.output_activity,
                         arg=SendMessageInput(phone_number=chat_id, text=response_text),
                         start_to_close_timeout=timedelta(seconds=30),
                         retry_policy=RetryPolicy(
@@ -124,10 +131,10 @@ class AgentWorkflow:
                             initial_interval=timedelta(seconds=5),
                             backoff_coefficient=2.0,
                         ),
-                        task_queue=WHATSAPP_TASK_QUEUE,
+                        task_queue=input.output_task_queue,
                     )
                 except ActivityError as exc:
-                    workflow.logger.error(f"Failed to send WhatsApp message for {chat_id}: {exc}")
+                    workflow.logger.error(f"Failed to send message for {chat_id}: {exc}")
 
                 try:
                     await self._maybe_compact_history(chat_id=chat_id)

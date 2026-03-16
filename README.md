@@ -14,7 +14,7 @@ cp .env.example .env
 
 docker compose up --build
 
-docker compose logs listener # scan the bar code to link
+docker compose logs listener # scan the bar code to link to whatsapp
 ```
 
 ## Quick Start (Dev)
@@ -39,6 +39,15 @@ docker compose -f docker-compose.yaml -f docker-compose.dev.yml watch --remove-o
 # terminal 2
 docker compose logs -f worker listener
 ```
+
+## Local CLI 
+
+If you're not using WhatsApp, then you can also boot up a local terminal session:
+```
+opentlawpy-terminal
+```
+
+
 
 ## Architecture
 
