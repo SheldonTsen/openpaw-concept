@@ -408,7 +408,7 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 - [x] Updated `tests/test_heartbeat.py` — added `SubAgentWorkflow` to worker registration
 - [x] All 67 tests pass, ruff clean
 
-### 8.3 Terminal Heartbeat Cleanup
+### 8.3 Terminal Heartbeat Cleanup (DONE)
 
 **Problem**: When the terminal CLI exits (Ctrl+C or crash), the agent workflow and its heartbeat child keep running in Temporal. The heartbeat pokes every 30 min (before the 60 min idle timeout), so the agent never times out — it's a self-sustaining cycle. Each poke restarts the agent, which tries `send_terminal_message` on a dead task queue (nobody polling), causing activity timeouts and retries forever.
 
@@ -417,11 +417,11 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 **Approach**: Don't start heartbeat for terminal sessions. The heartbeat is a WhatsApp UX feature ("still there?"). In a terminal, if the user walks away, there's nobody to nudge. The agent just times out after 60 min of inactivity and that's it. Conversation state is persisted, so a new session picks up where it left off.
 
 **Implementation**:
-- [ ] Add `enable_heartbeat: bool` field to `AgentWorkflowInput`
-- [ ] WhatsApp listener passes `enable_heartbeat=True`
-- [ ] Terminal CLI passes `enable_heartbeat=False`
-- [ ] Agent workflow: `if input.enable_heartbeat:` before `start_child_workflow(HeartbeatWorkflow)` — this is deterministic (input is constant across replays), so Temporal sandbox allows it. The heartbeat workflow itself stays unchanged — it doesn't need to know about channels.
-- [ ] Update tests
+- [x] Add `enable_heartbeat: bool` field to `AgentWorkflowInput`
+- [x] WhatsApp listener passes `enable_heartbeat=True`
+- [x] Terminal CLI passes `enable_heartbeat=False`
+- [x] Agent workflow: `if input.enable_heartbeat:` before `start_child_workflow(HeartbeatWorkflow)` — this is deterministic (input is constant across replays), so Temporal sandbox allows it. The heartbeat workflow itself stays unchanged — it doesn't need to know about channels.
+- [x] Update tests — all 67 pass
 
 ### 8.4 Progress Messages to User
 

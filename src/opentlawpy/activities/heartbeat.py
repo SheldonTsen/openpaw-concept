@@ -34,6 +34,7 @@ def create_poke_agent_activity(
                     chat_id=input.chat_id,
                     output_activity=input.output_activity,
                     output_task_queue=input.output_task_queue,
+                    enable_heartbeat=True,
                 ),
                 id=workflow_id,
                 task_queue=TASK_QUEUE,
