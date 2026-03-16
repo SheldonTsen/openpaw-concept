@@ -58,6 +58,7 @@ async def _async_main() -> None:
                             chat_id=session_id,
                             output_activity="send_terminal_message",
                             output_task_queue=task_queue,
+                            enable_heartbeat=False,
                         ),
                         id=workflow_id,
                         task_queue=TASK_QUEUE,

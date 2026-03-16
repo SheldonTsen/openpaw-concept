@@ -84,6 +84,7 @@ class WhatsAppListener:
                     chat_id=sender,
                     output_activity="send_whatsapp_message",
                     output_task_queue=WHATSAPP_TASK_QUEUE,
+                    enable_heartbeat=True,
                 ),
                 id=workflow_id,
                 task_queue=TASK_QUEUE,

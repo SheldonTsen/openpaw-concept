@@ -216,6 +216,7 @@ async def test_agent_starts_heartbeat():
                     chat_id="test-chat-4",
                     output_activity="send_whatsapp_message",
                     output_task_queue=WHATSAPP_TASK_QUEUE,
+                    enable_heartbeat=True,
                 ),
                 id="whatsapp-test-chat-4",
                 task_queue=TASK_QUEUE,
