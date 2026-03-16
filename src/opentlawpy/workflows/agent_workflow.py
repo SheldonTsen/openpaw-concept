@@ -48,21 +48,22 @@ class AgentWorkflow:
     async def run(self, input: AgentWorkflowInput) -> None:
         chat_id = input.chat_id
         wf_id = workflow.info().workflow_id
-        try:
-            await workflow.start_child_workflow(
-                HeartbeatWorkflow.run,
-                arg=HeartbeatWorkflowInput(
-                    chat_id=chat_id,
-                    parent_workflow_id=wf_id,
-                    output_activity=input.output_activity,
-                    output_task_queue=input.output_task_queue,
-                ),
-                id=f"heartbeat-{wf_id}",
-                parent_close_policy=ParentClosePolicy.ABANDON,
-                id_reuse_policy=WorkflowIDReusePolicy.ALLOW_DUPLICATE,
-            )
-        except Exception:
-            workflow.logger.info(f"Heartbeat already running for {chat_id}")
+        if input.enable_heartbeat:
+            try:
+                await workflow.start_child_workflow(
+                    HeartbeatWorkflow.run,
+                    arg=HeartbeatWorkflowInput(
+                        chat_id=chat_id,
+                        parent_workflow_id=wf_id,
+                        output_activity=input.output_activity,
+                        output_task_queue=input.output_task_queue,
+                    ),
+                    id=f"heartbeat-{wf_id}",
+                    parent_close_policy=ParentClosePolicy.ABANDON,
+                    id_reuse_policy=WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+                )
+            except Exception:
+                workflow.logger.info(f"Heartbeat already running for {chat_id}")
 
         self._tool_definitions = await workflow.execute_activity(
             load_tools_activity,
