@@ -408,17 +408,53 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 - [x] Updated `tests/test_heartbeat.py` — added `SubAgentWorkflow` to worker registration
 - [x] All 67 tests pass, ruff clean
 
-### 8.3 Other Ideas
+### 8.3 Terminal Heartbeat Cleanup
 
-- [ ] Add extra messages to send to user as stuff happens
+**Problem**: When the terminal CLI exits (Ctrl+C or crash), the agent workflow and its heartbeat child keep running in Temporal. The heartbeat pokes every 30 min (before the 60 min idle timeout), so the agent never times out — it's a self-sustaining cycle. Each poke restarts the agent, which tries `send_terminal_message` on a dead task queue (nobody polling), causing activity timeouts and retries forever.
+
+**Why WhatsApp doesn't have this problem**: The WhatsApp listener is a long-lived container — always polling its task queue. Heartbeat poke → agent response → WhatsApp delivery always has a live worker. The listener never "exits" in normal operation.
+
+**Approach**: Don't start heartbeat for terminal sessions. The heartbeat is a WhatsApp UX feature ("still there?"). In a terminal, if the user walks away, there's nobody to nudge. The agent just times out after 60 min of inactivity and that's it. Conversation state is persisted, so a new session picks up where it left off.
+
+**Implementation**:
+- [ ] Add `enable_heartbeat: bool` field to `AgentWorkflowInput`
+- [ ] WhatsApp listener passes `enable_heartbeat=True`
+- [ ] Terminal CLI passes `enable_heartbeat=False`
+- [ ] Agent workflow: `if input.enable_heartbeat:` before `start_child_workflow(HeartbeatWorkflow)` — this is deterministic (input is constant across replays), so Temporal sandbox allows it. The heartbeat workflow itself stays unchanged — it doesn't need to know about channels.
+- [ ] Update tests
+
+### 8.4 Progress Messages to User
+
+**Goal**: Send status updates to the user at key points during the thinking loop, so they know the agent is working. Messages go through the same output channel (WhatsApp or terminal) via the existing `output_activity` + `output_task_queue` routing.
+
+**Which moments matter to the user**:
+1. **Tool use decided** — LLM returns tool_calls → tell user which tools are about to run. e.g. `"Using bash, read_file..."`. Shows the agent is actively working, not stuck.
+2. **Tool results gathered** — all tool calls finished → e.g. `"Analyzing results..."`. Signals we're going back to the LLM for another round. Useful when tool execution takes a while.
+3. **Delegating to sub-agent** — e.g. `"Delegating task to sub-agent..."`. So user knows a child workflow is running.
+
+**What NOT to send**:
+- LLM call started / "thinking..." — too noisy, the LLM call is fast enough that this feels spammy
+- State save / load — backend plumbing, user doesn't care
+- Compaction — internal optimization, irrelevant to user
+- Heartbeat pokes — system-level, not user-facing
+
+**Implementation**:
+- [ ] Add a `_send_status(text)` helper method on `AgentWorkflow` that calls the output activity with a short status message. Same `output_activity` / `output_task_queue` from `input`. Fire-and-forget style — if it fails, log and continue (don't break the thinking loop over a status message).
+- [ ] In `_thinking_loop()` after LLM returns tool_calls (line ~236): extract tool names from `llm_output.tool_calls`, send `"🔧 Using {tool_names}..."`
+- [ ] In `_thinking_loop()` after `gather_tool_results` (line ~249): send `"🔍 Analyzing results..."`
+- [ ] `_thinking_loop` needs access to `input` (AgentWorkflowInput) for routing. Either pass it as a parameter or store on `self`.
+- [ ] Update tests — mock the extra send calls or assert they happen
+
+**Format**: Same `SendMessageInput` / output activity, no new mechanism. Emoji prefix distinguishes status from actual responses (`🔧`, `🔍`, `🤖`). In WhatsApp it's just another message bubble. In terminal it's another `Agent: ...` print. Short + emoji = obviously a status update.
+
+### 8.5 Other Ideas
 - [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools
 - [ ] Clean up docs - make step by step guide minimal
 - [x] Clean up tools - or filter them. For local LLM need less context so it responds faster.
 - [x] Add local terminal interface (done in 8.2)
 - [ ] Check ollama interface free
 - [ ] Rename to openpaw
-- [ ] Add some sort of loading when workflow is running
-- [ ] Need to kill heartbeat for terminal session (kill old ones otherwise they keep going). Different from whatsapp?
+- [x] Add some sort of loading when workflow is running (see 8.4)
 
 ## Quick Commands Reference
 
