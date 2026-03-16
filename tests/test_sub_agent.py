@@ -253,6 +253,7 @@ async def test_orchestrator_delegates_and_receives_result():
                     chat_id="1234567890",
                     output_activity="send_whatsapp_message",
                     output_task_queue=WHATSAPP_TASK_QUEUE,
+                    enable_heartbeat=True,
                 ),
                 id="test-orchestrator-delegate",
                 task_queue=TASK_QUEUE,

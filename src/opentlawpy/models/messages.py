@@ -6,6 +6,7 @@ class AgentWorkflowInput:
     chat_id: str
     output_activity: str
     output_task_queue: str
+    enable_heartbeat: bool
 
 
 @dataclass
