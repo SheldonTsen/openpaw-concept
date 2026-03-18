@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 
-from opentlawpy.llm.openrouter_client import OPENROUTER_BASE_URL, OpenRouterClient
+from openpaw.llm.openrouter_client import OPENROUTER_BASE_URL, OpenRouterClient
 
 
 def _make_mock_response(*, data: dict) -> httpx.Response:
@@ -16,7 +16,7 @@ def _make_mock_response(*, data: dict) -> httpx.Response:
 
 def _patch_httpx(mock_response: httpx.Response):
     """Return a patch context manager that stubs httpx.AsyncClient."""
-    patcher = patch("opentlawpy.llm.openrouter_client.httpx.AsyncClient")
+    patcher = patch("openpaw.llm.openrouter_client.httpx.AsyncClient")
 
     def setup(mock_client_cls):
         mock_instance = AsyncMock()

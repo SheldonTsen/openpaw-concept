@@ -1,12 +1,12 @@
 import pytest
 
-from opentlawpy.activities.bash_command import execute_bash_command
-from opentlawpy.models.bash_command import BashCommandInput
+from openpaw.activities.bash_command import execute_bash_command
+from openpaw.models.bash_command import BashCommandInput
 
 
 @pytest.fixture(autouse=True)
 def _patch_workspace(tmp_path, monkeypatch):
-    monkeypatch.setattr("opentlawpy.activities.bash_command.WORKSPACE_DIR", str(tmp_path))
+    monkeypatch.setattr("openpaw.activities.bash_command.WORKSPACE_DIR", str(tmp_path))
 
 
 @pytest.mark.asyncio

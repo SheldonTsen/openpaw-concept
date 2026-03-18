@@ -1,4 +1,4 @@
-from opentlawpy.utils.tool_loader import load_tools
+from openpaw.utils.tool_loader import load_tools
 
 EXPECTED_ALL_TOOLS = {
     "bash",
