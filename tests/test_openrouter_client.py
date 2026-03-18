@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from opentlawpy.config import LLM_TIMEOUT_SECONDS
-from opentlawpy.llm.openrouter_client import OPENROUTER_BASE_URL, OpenRouterClient
+from openpaw.config import LLM_TIMEOUT_SECONDS
+from openpaw.llm.openrouter_client import OPENROUTER_BASE_URL, OpenRouterClient
 
 
 async def test_openrouter_client_sends_correct_request():
@@ -21,7 +21,7 @@ async def test_openrouter_client_sends_correct_request():
         request=httpx.Request("POST", OPENROUTER_BASE_URL),
     )
 
-    with patch("opentlawpy.llm.openrouter_client.httpx.AsyncClient") as mock_client_cls:
+    with patch("openpaw.llm.openrouter_client.httpx.AsyncClient") as mock_client_cls:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -68,7 +68,7 @@ async def test_openrouter_client_handles_missing_usage():
         request=httpx.Request("POST", OPENROUTER_BASE_URL),
     )
 
-    with patch("opentlawpy.llm.openrouter_client.httpx.AsyncClient") as mock_client_cls:
+    with patch("openpaw.llm.openrouter_client.httpx.AsyncClient") as mock_client_cls:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -94,7 +94,7 @@ async def test_openrouter_client_raises_on_http_error():
         request=httpx.Request("POST", OPENROUTER_BASE_URL),
     )
 
-    with patch("opentlawpy.llm.openrouter_client.httpx.AsyncClient") as mock_client_cls:
+    with patch("openpaw.llm.openrouter_client.httpx.AsyncClient") as mock_client_cls:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)

@@ -1,4 +1,4 @@
-# Upgrade Ideas for opentlawpy
+# Upgrade Ideas for openpaw
 
 This document contains enhancements and sophisticated features to consider **after** the initial implementation from `plan.md` is working.
 
@@ -68,7 +68,7 @@ import os
 import hmac
 import hashlib
 
-app = FastAPI(title="opentlawpy Gateway")
+app = FastAPI(title="openpaw Gateway")
 
 # Initialize Temporal client
 temporal_client: Optional[Client] = None
@@ -416,7 +416,7 @@ async def health():
 async def root():
     """Root endpoint with API info."""
     return {
-        "service": "opentlawpy Gateway",
+        "service": "openpaw Gateway",
         "version": "1.0.0",
         "endpoints": {
             "messages": "POST /api/messages",
@@ -623,7 +623,7 @@ class WhatsAppAccountConfig:
     account_id: str = "default"
     enabled: bool = True
     name: str = "Bot"
-    auth_dir: str = "~/.opentlawpy/whatsapp/default"
+    auth_dir: str = "~/.openpaw/whatsapp/default"
     dm_policy: str = "allowlist"
     allowed_senders: list[str] = field(default_factory=list)
 ```
@@ -2484,7 +2484,7 @@ async def execute_bash_command(input: dict):
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: opentlawpy-state-pv
+  name: openpaw-state-pv
 spec:
   capacity:
     storage: 10Gi
@@ -2492,7 +2492,7 @@ spec:
     - ReadWriteMany  # ⚠️ CRITICAL: Multiple pods read/write
   nfs:
     server: nfs-server.example.com
-    path: /mnt/opentlawpy/state
+    path: /mnt/openpaw/state
   persistentVolumeReclaimPolicy: Retain
 
 ---
@@ -2500,14 +2500,14 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: opentlawpy-state-pvc
+  name: openpaw-state-pvc
 spec:
   accessModes:
     - ReadWriteMany  # ⚠️ CRITICAL
   resources:
     requests:
       storage: 10Gi
-  volumeName: opentlawpy-state-pv
+  volumeName: openpaw-state-pv
 
 ---
 
@@ -2515,7 +2515,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: opentlawpy-workspace-pv
+  name: openpaw-workspace-pv
 spec:
   capacity:
     storage: 50Gi
@@ -2523,7 +2523,7 @@ spec:
     - ReadWriteMany
   nfs:
     server: nfs-server.example.com
-    path: /mnt/opentlawpy/workspace
+    path: /mnt/openpaw/workspace
   persistentVolumeReclaimPolicy: Retain
 
 ---
@@ -2531,14 +2531,14 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: opentlawpy-workspace-pvc
+  name: openpaw-workspace-pvc
 spec:
   accessModes:
     - ReadWriteMany
   resources:
     requests:
       storage: 50Gi
-  volumeName: opentlawpy-workspace-pv
+  volumeName: openpaw-workspace-pv
 ```
 
 **AWS EFS Alternative:**
@@ -2547,7 +2547,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: opentlawpy-state-efs
+  name: openpaw-state-efs
 spec:
   capacity:
     storage: 100Gi
@@ -2566,20 +2566,20 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: opentlawpy-worker
+  name: openpaw-worker
 spec:
   replicas: 3  # Scale horizontally!
   selector:
     matchLabels:
-      app: opentlawpy-worker
+      app: openpaw-worker
   template:
     metadata:
       labels:
-        app: opentlawpy-worker
+        app: openpaw-worker
     spec:
       containers:
       - name: worker
-        image: opentlawpy:latest
+        image: openpaw:latest
         command: ["python", "-m", "src.worker"]
         env:
         - name: TEMPORAL_ADDRESS
@@ -2587,7 +2587,7 @@ spec:
         - name: ANTHROPIC_API_KEY
           valueFrom:
             secretKeyRef:
-              name: opentlawpy-secrets
+              name: openpaw-secrets
               key: anthropic-api-key
         volumeMounts:
         - name: state
@@ -2604,10 +2604,10 @@ spec:
       volumes:
       - name: state
         persistentVolumeClaim:
-          claimName: opentlawpy-state-pvc
+          claimName: openpaw-state-pvc
       - name: workspace
         persistentVolumeClaim:
-          claimName: opentlawpy-workspace-pvc
+          claimName: openpaw-workspace-pvc
 
 ---
 
@@ -2628,7 +2628,7 @@ spec:
     spec:
       containers:
       - name: poller
-        image: opentlawpy:latest
+        image: openpaw:latest
         command: ["python", "-m", "src.whatsapp.poller"]
         env:
         - name: TEMPORAL_ADDRESS
@@ -2636,12 +2636,12 @@ spec:
         - name: GREEN_API_INSTANCE_ID
           valueFrom:
             secretKeyRef:
-              name: opentlawpy-secrets
+              name: openpaw-secrets
               key: green-api-instance-id
         - name: GREEN_API_TOKEN
           valueFrom:
             secretKeyRef:
-              name: opentlawpy-secrets
+              name: openpaw-secrets
               key: green-api-token
 ```
 
@@ -2649,41 +2649,41 @@ spec:
 
 ```bash
 # 1. Build and push image
-docker build -t your-registry/opentlawpy:latest .
-docker push your-registry/opentlawpy:latest
+docker build -t your-registry/openpaw:latest .
+docker push your-registry/openpaw:latest
 
 # 2. Create namespace
-kubectl create namespace opentlawpy
+kubectl create namespace openpaw
 
 # 3. Create secrets
-kubectl create secret generic opentlawpy-secrets \
-  --namespace opentlawpy \
+kubectl create secret generic openpaw-secrets \
+  --namespace openpaw \
   --from-literal=anthropic-api-key=$ANTHROPIC_API_KEY \
   --from-literal=green-api-instance-id=$GREEN_API_INSTANCE_ID \
   --from-literal=green-api-token=$GREEN_API_TOKEN
 
 # 4. Deploy storage (NFS/EFS)
-kubectl apply -f k8s/storage.yml --namespace opentlawpy
+kubectl apply -f k8s/storage.yml --namespace openpaw
 
 # 5. Deploy application
-kubectl apply -f k8s/deployment.yml --namespace opentlawpy
+kubectl apply -f k8s/deployment.yml --namespace openpaw
 
 # 6. Check pods
-kubectl get pods --namespace opentlawpy
+kubectl get pods --namespace openpaw
 
 # 7. View logs
-kubectl logs -f deployment/opentlawpy-worker --namespace opentlawpy
+kubectl logs -f deployment/openpaw-worker --namespace openpaw
 
 # 8. Scale workers
-kubectl scale deployment opentlawpy-worker --replicas=10 --namespace opentlawpy
+kubectl scale deployment openpaw-worker --replicas=10 --namespace openpaw
 
 # 9. Update deployment (rolling update)
-kubectl set image deployment/opentlawpy-worker \
-  worker=your-registry/opentlawpypy:v2 \
-  --namespace opentlawpy
+kubectl set image deployment/openpaw-worker \
+  worker=your-registry/openpawpy:v2 \
+  --namespace openpaw
 
 # 10. Rollback if needed
-kubectl rollout undo deployment/opentlawpy-worker --namespace opentlawpy
+kubectl rollout undo deployment/openpaw-worker --namespace openpaw
 ```
 
 ### When to Use Kubernetes

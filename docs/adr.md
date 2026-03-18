@@ -47,7 +47,7 @@ See `docs/task-queues.md` for routing details.
 
 **Context**: LLM returns tool calls by name. Need to dispatch `"bash"` to the right handler code.
 
-**Decision**: Convention-based dispatch using `importlib.import_module(f"opentlawpy.tool_handlers.{name}")`. Each tool has a module in `tool_handlers/` with an `async def handle(args: dict) -> str` function. Tool definitions live in `tools/{name}/TOOL.md` with YAML frontmatter.
+**Decision**: Convention-based dispatch using `importlib.import_module(f"openpaw.tool_handlers.{name}")`. Each tool has a module in `tool_handlers/` with an `async def handle(args: dict) -> str` function. Tool definitions live in `tools/{name}/TOOL.md` with YAML frontmatter.
 
 **Why**: Zero registration boilerplate. Adding a new tool = create TOOL.md + create handler module. The loader discovers tools via glob, the dispatcher discovers handlers via importlib. No central registry to maintain.
 

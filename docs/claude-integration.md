@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to integrate Claude as your LLM provider in the opentlawpy system. Claude is Anthropic's AI assistant, offering powerful language models with large context windows (200K tokens) - perfect for agent workflows with extensive state.
+This guide explains how to integrate Claude as your LLM provider in the openpaw system. Claude is Anthropic's AI assistant, offering powerful language models with large context windows (200K tokens) - perfect for agent workflows with extensive state.
 
 ---
 
@@ -1175,7 +1175,7 @@ python test_claude.py
 
 ## Summary
 
-**To use Claude with your opentlawpy system:**
+**To use Claude with your openpaw system:**
 
 1. ✅ Add `ANTHROPIC_API_KEY` to `.env`
 2. ✅ Install `anthropic` Python package

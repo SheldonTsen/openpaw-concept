@@ -1,5 +1,5 @@
 [project]
-name = "opentlawpy"
+name = "openpaw"
 version = "0.1.0"
 description = "Temporal-based agentic system with WhatsApp integration"
 requires-python = ">=3.13"
@@ -21,10 +21,10 @@ dev = [
 ]
 
 [project.scripts]
-opentlawpy-terminal = "opentlawpy.terminal.__main__:main"
+openpaw = "openpaw.terminal.__main__:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/opentlawpy"]
+packages = ["src/openpaw"]
 
 [tool.ruff]
 line-length = 100

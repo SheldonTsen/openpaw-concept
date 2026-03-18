@@ -1,4 +1,4 @@
-# opentlawpy Architecture Plan
+# openpaw Architecture Plan
 
 ## Executive Summary
 
@@ -1978,7 +1978,7 @@ For first iteration, just implement:
 ## File Layout
 
 ```
-opentlawpy/
+openpaw/
 ├── docker-compose.yml          # Temporal + Worker setup
 ├── README.md
 ├── requirements.txt            # Python dependencies
@@ -2116,7 +2116,7 @@ class Conversation:
 
 #### Markdown-Based Tool Definition (TOOL.md)
 
-Each tool lives in `opentlawpy/tools/<tool-name>/TOOL.md`:
+Each tool lives in `openpaw/tools/<tool-name>/TOOL.md`:
 
 ```markdown
 ---
@@ -3901,7 +3901,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: opentlawpy-worker
+    container_name: openpaw-worker
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -3946,7 +3946,7 @@ volumes:
 
 networks:
   default:
-    name: opentlawpy-network
+    name: openpaw-network
 ```
 
 **Start Production:**
@@ -4144,14 +4144,14 @@ volumes:
     driver_opts:
       type: nfs
       o: addr=192.168.1.100,rw,nfsvers=4
-      device: ":/mnt/opentlawpy/state"
+      device: ":/mnt/openpaw/state"
 
   agent-workspace:
     driver: local
     driver_opts:
       type: nfs
       o: addr=192.168.1.100,rw,nfsvers=4
-      device: ":/mnt/opentlawpy/workspace"
+      device: ":/mnt/openpaw/workspace"
 ```
 
 **NFS Server Setup:**
@@ -4160,11 +4160,11 @@ volumes:
 sudo apt-get install nfs-kernel-server
 
 # Create directories
-sudo mkdir -p /mnt/opentlawpy/{state,workspace}
-sudo chown -R nobody:nogroup /mnt/opentlawpy
+sudo mkdir -p /mnt/openpaw/{state,workspace}
+sudo chown -R nobody:nogroup /mnt/openpaw
 
 # Configure exports
-echo "/mnt/opentlawpy *(rw,sync,no_subtree_check,no_root_squash)" | sudo tee -a /etc/exports
+echo "/mnt/openpaw *(rw,sync,no_subtree_check,no_root_squash)" | sudo tee -a /etc/exports
 
 # Restart NFS
 sudo exportfs -ra
@@ -4207,9 +4207,9 @@ COPY config/ ./config/
 RUN mkdir -p /app/state /app/workspace
 
 # Non-root user for security
-RUN useradd -m -u 1000 opentlawpy && \
-    chown -R opentlawpy:opentlawpy /app
-USER opentlawpy
+RUN useradd -m -u 1000 openpaw && \
+    chown -R openpaw:openpaw /app
+USER openpaw
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
@@ -4256,7 +4256,7 @@ RUN mkdir -p /app/state /app/workspace /app/src /app/tools /app/config
 # Don't copy code (will be mounted as volume for hot reload)
 
 # Run as root in dev for easier debugging
-# USER opentlawpy
+# USER openpaw
 
 # Default command (override in docker-compose.dev.yml)
 CMD ["python", "-m", "src.worker"]
@@ -4349,8 +4349,8 @@ LOG_LEVEL=INFO
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/opentlawpy.git
-cd opentlawpy
+git clone https://github.com/yourusername/openpaw.git
+cd openpaw
 
 # 2. Configure environment
 cp .env.example .env
@@ -4580,7 +4580,7 @@ docker-compose logs worker
 docker volume ls | grep agent-state
 
 # Inspect volume
-docker volume inspect opentlawpy_agent-state
+docker volume inspect openpaw_agent-state
 
 # Check file permissions
 docker-compose exec worker ls -la /app/state
@@ -4603,7 +4603,7 @@ docker-compose exec --index=2 worker ls /app/state  # Should be same!
 **Issue: NFS mount failing (multi-host)**
 ```bash
 # Test NFS mount manually
-sudo mount -t nfs 192.168.1.100:/mnt/opentlawpy/state /mnt/test
+sudo mount -t nfs 192.168.1.100:/mnt/openpaw/state /mnt/test
 
 # Check NFS exports on server
 showmount -e 192.168.1.100
@@ -4634,7 +4634,7 @@ dpkg -l | grep nfs-common
 - [ ] Worker logs: `docker-compose logs -f worker`
 - [ ] Listener logs: `docker-compose logs -f whatsapp-listener`
 - [ ] Disk usage: `docker system df`
-- [ ] Volume size: `du -sh $(docker volume inspect opentlawpy_agent-state --format '{{.Mountpoint}}')`
+- [ ] Volume size: `du -sh $(docker volume inspect openpaw_agent-state --format '{{.Mountpoint}}')`
 
 ---
 

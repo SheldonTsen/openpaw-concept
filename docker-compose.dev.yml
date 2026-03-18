@@ -3,8 +3,8 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ./src/opentlawpy
-          target: /app/src/opentlawpy
+          path: ./src/openpaw
+          target: /app/src/openpaw
         - action: rebuild
           path: ./pyproject.toml
 
@@ -12,7 +12,7 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ./src/opentlawpy
-          target: /app/src/opentlawpy
+          path: ./src/openpaw
+          target: /app/src/openpaw
         - action: rebuild
           path: ./pyproject.toml

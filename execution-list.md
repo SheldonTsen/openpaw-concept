@@ -73,11 +73,11 @@ You send WhatsApp msg → Neonize listener receives it
 - [x] Update `.env.example` with `MY_PHONE_NUMBER`
 
 Follow Up (DONE):
-- [x] directories renamed to `src/opentlawpy/`, imports use `from opentlawpy import x`
+- [x] directories renamed to `src/openpaw/`, imports use `from openpaw import x`
 - [x] Removed `Dockerfile.dev`, `docker-compose.dev.yml` uses `docker compose watch` (`sync+restart`)
 - [x] Renamed `my_phone_number` to `my_whatsapp_number` everywhere (matches `MY_WHATSAPP_NUMBER` env var)
-- [x] Created `opentlawpy/config.py` — all config in one place (TASK_QUEUE, NAMESPACE, TEMPORAL_ADDRESS, MY_WHATSAPP_NUMBER, NEONIZE_DB_PATH)
-- [x] Created `opentlawpy/logging.py` — shared `setup_logging()` function
+- [x] Created `openpaw/config.py` — all config in one place (TASK_QUEUE, NAMESPACE, TEMPORAL_ADDRESS, MY_WHATSAPP_NUMBER, NEONIZE_DB_PATH)
+- [x] Created `openpaw/logging.py` — shared `setup_logging()` function
 - [x] Removed duplicate test (`test_workflow_start_signal_pattern` was identical to `test_workflow_echoes_message`)
 - [x] Simplified `_get_message_timestamp` — uses `message.Info.Timestamp.seconds` directly (protobuf Timestamp)
 - [x] Added `logger.debug()` for skipped old messages and no-text messages
@@ -117,10 +117,10 @@ neonize.db note: It stores WhatsApp session auth (encryption keys). Only the lis
 **Goal**: Replace "Hello World" with actual LLM calls. Agent can think and respond.
 
 ### 2.1 LLM Call Activity (DONE)
-- [x] Create `src/opentlawpy/models/llm.py` — `LLMCallInput`, `LLMCallOutput` dataclasses
-- [x] Create `src/opentlawpy/llm/__init__.py`
-- [x] Create `src/opentlawpy/llm/anthropic_client.py` — async wrapper around Anthropic SDK
-- [x] Create `src/opentlawpy/activities/llm_call.py` — factory pattern matching whatsapp.py
+- [x] Create `src/openpaw/models/llm.py` — `LLMCallInput`, `LLMCallOutput` dataclasses
+- [x] Create `src/openpaw/llm/__init__.py`
+- [x] Create `src/openpaw/llm/anthropic_client.py` — async wrapper around Anthropic SDK
+- [x] Create `src/openpaw/activities/llm_call.py` — factory pattern matching whatsapp.py
 - [x] Add `ANTHROPIC_API_KEY` and `LLM_MODEL` to `config.py`
 - [x] Register `call_llm` activity in `worker/__main__.py`
 - [x] Test: 3 unit tests pass (activity returns response, propagates errors, client maps SDK response)
@@ -140,7 +140,7 @@ Addendum:
 Note: `result_type=LLMCallOutput` is required on `execute_activity` when calling by string name — without it Temporal can't deserialize the result and the workflow task retries forever.
 
 Addendum — OpenRouter (free) support:
-- [x] Create `src/opentlawpy/llm/openrouter_client.py` — async httpx client for OpenRouter `/v1/chat/completions`
+- [x] Create `src/openpaw/llm/openrouter_client.py` — async httpx client for OpenRouter `/v1/chat/completions`
 - [x] Add `LLM_PROVIDER` config (default `openrouter`) + `OPENROUTER_API_KEY` to `config.py`
 - [x] Widen `create_call_llm_activity` to accept any client with `.chat()` method (duck typing)
 - [x] Branch in `create_activities.py` on `LLM_PROVIDER` (`anthropic` vs `openrouter`)
@@ -148,7 +148,7 @@ Addendum — OpenRouter (free) support:
 - [x] Unit tests: 3 tests for OpenRouterClient (request body, missing usage, HTTP error)
 
 Addendum — Local MLX model support:
-- [x] Create `src/opentlawpy/llm/openai_client.py` — generic OpenAI-compatible client (works with MLX LM server, vLLM, etc.)
+- [x] Create `src/openpaw/llm/openai_client.py` — generic OpenAI-compatible client (works with MLX LM server, vLLM, etc.)
 - [x] Add `LOCAL_MODEL_URL` to `config.py` (default `http://localhost:8080/v1`)
 - [x] Add `elif LLM_PROVIDER == "local"` branch in `create_activities.py`
 - [x] Create `scripts/start-mlx-server.sh` — starts MLX LM server with configurable model/port
@@ -165,21 +165,21 @@ Addendum — Local MLX model support:
 **Goal**: LLM can call tools (bash, read_file, write_file). Multi-step reasoning works.
 
 ### 3.1 Tool Definitions (DONE)
-- [x] Moved `tools/` → `src/opentlawpy/tools/` (available inside Docker containers)
+- [x] Moved `tools/` → `src/openpaw/tools/` (available inside Docker containers)
 - [x] 8 TOOL.md files already exist: bash, read_file, write_file, python, web_search, git, grep, calculator
-- [x] Created `src/opentlawpy/models/tools.py` — `ToolDefinition` dataclass with `to_llm_format()` (OpenAI function-calling format)
-- [x] Created `src/opentlawpy/utils/__init__.py` (empty)
-- [x] Created `src/opentlawpy/utils/tool_loader.py` — `load_tools()` parses YAML frontmatter, filters by tier, sorts by priority
+- [x] Created `src/openpaw/models/tools.py` — `ToolDefinition` dataclass with `to_llm_format()` (OpenAI function-calling format)
+- [x] Created `src/openpaw/utils/__init__.py` (empty)
+- [x] Created `src/openpaw/utils/tool_loader.py` — `load_tools()` parses YAML frontmatter, filters by tier, sorts by priority
 - [x] Added `pyyaml>=6.0` to `pyproject.toml` dependencies
-- [x] Added `TOOLS_DIR` to `config.py` (resolves to `src/opentlawpy/tools/`)
+- [x] Added `TOOLS_DIR` to `config.py` (resolves to `src/openpaw/tools/`)
 - [x] Created `tests/test_tool_loader.py` — 5 tests (load all, required fields, filter by tier, sorted by priority, LLM format)
 - [x] All 15 tests pass, ruff clean
 
 ### 3.2 Tool Activities (DONE)
-- [x] Created `src/opentlawpy/models/tool_activities.py` — `BashCommandOutput/Output`, `ReadFileInput/Output`, `WriteFileInput/Output` dataclasses
+- [x] Created `src/openpaw/models/tool_activities.py` — `BashCommandOutput/Output`, `ReadFileInput/Output`, `WriteFileInput/Output` dataclasses
 - [x] Added `WORKSPACE_DIR` to `config.py` (env var with `./workspace` default)
-- [x] Created `src/opentlawpy/activities/tool_command.py` — generic `execute_bash_command` activity (`asyncio.create_subprocess_shell`, timeout enforcement, output truncation)
-- [x] Created `src/opentlawpy/activities/file_operations.py` — `read_file_activity`, `write_file_activity` with path traversal prevention via `os.path.realpath()` + workspace boundary check
+- [x] Created `src/openpaw/activities/tool_command.py` — generic `execute_bash_command` activity (`asyncio.create_subprocess_shell`, timeout enforcement, output truncation)
+- [x] Created `src/openpaw/activities/file_operations.py` — `read_file_activity`, `write_file_activity` with path traversal prevention via `os.path.realpath()` + workspace boundary check
 - [x] Updated `create_activities.py` — registers all 3 new activities alongside `call_llm`
 - [x] Created `tests/test_tool_command.py` — 3 tests (simple command, nonzero exit, timeout)
 - [x] Created `tests/test_file_operations.py` — 8 tests (read/write, path traversal, large file, append, auto-create dirs)
@@ -198,8 +198,8 @@ Addendum — Local MLX model support:
 
 Addendum:
 - [x] Very nested structure of calling tools - `execute_tool_calls` -> see if can make more flat
-  - Refactored to flat handler pattern: one module per tool in `src/opentlawpy/tool_handlers/`
-  - importlib discovery: tool name "bash" -> `opentlawpy.tool_handlers.bash.handle(args)`
+  - Refactored to flat handler pattern: one module per tool in `src/openpaw/tool_handlers/`
+  - importlib discovery: tool name "bash" -> `openpaw.tool_handlers.bash.handle(args)`
   - Eliminated `_execute_single_tool`, `_execute_activity_tool`, `_find_tool`, `_build_command`
   - Removed `tool_definitions` parameter from `execute_tool_calls`
   - Shared `_run_bash.py` helper for CLI tools (bash, git, python, calculator, grep)
@@ -210,7 +210,7 @@ Addendum:
   - No reason — TOOL.md files are baked into Docker image. Moved to once at workflow start, cached in `self._tool_defs_for_llm`.
 - [x] Add f-string to "I've reached my thinking limit for this message."
 - [x] Install ddg and curl? Or upgrade prompt so LLM can always self-install
-- [x] Change `src/opentlawpy/activities/tool_command.py` to `./../bash_command.py`
+- [x] Change `src/openpaw/activities/tool_command.py` to `./../bash_command.py`
 - [x] why `async def _execute_activity_tool(*, tool_name: str, args: dict) -> str:` returns str even though we've defined nice data models. Surely we should return the data models, keep those for as long as possible, then do a final conversion/extraction if only 1 or 2 fields are needed? We are ditching all that information as soon as the acitivity finishes. But I guess temporal also gives us this transparency so we can discard them to simplify logic?
 - [x] `    output: ToolCommandOutput = await workflow.execute_activity(
         "execute_bash_command",
@@ -235,7 +235,7 @@ Addendum:
   - Extracted `_thinking_loop()` from `_handle_message`, wrapped in `try/except ActivityError`
   - On failure: logs error, appends friendly error message to history, still sends WhatsApp reply
   - `test_workflow_llm_failure_sends_error_message` verifies user gets "trouble processing" message
-- [x] Change `src/opentlawpy/activities/tool_command.py` name to `bash_command.py`
+- [x] Change `src/openpaw/activities/tool_command.py` name to `bash_command.py`
 - [x] [{"error":"failed to get device list: failed to send usync query: websocket not connected","success":false}] - need to fix acitivyt to catch this
 
 ---
@@ -245,8 +245,8 @@ Addendum:
 **Goal**: Conversation survives workflow restarts. Agent has memory across sessions.
 
 ### 4.1 State File I/O (DONE)
-- [x] Created `src/opentlawpy/models/state.py` — `ChatState`, `SaveStateInput/Output`, `LoadStateInput/Output` dataclasses
-- [x] Created `src/opentlawpy/activities/state_io.py` — `save_state_activity` and `load_state_activity` (JSON-based, not YAML+markdown — simpler for `list[dict]` history)
+- [x] Created `src/openpaw/models/state.py` — `ChatState`, `SaveStateInput/Output`, `LoadStateInput/Output` dataclasses
+- [x] Created `src/openpaw/activities/state_io.py` — `save_state_activity` and `load_state_activity` (JSON-based, not YAML+markdown — simpler for `list[dict]` history)
 - [x] Added `STATE_DIR` to `config.py` (default `./data/state`, env var override)
 - [x] Updated `agent_workflow.py` — loads state on startup, saves after each WhatsApp reply
 - [x] Registered new activities in `create_activities.py`
@@ -257,8 +257,8 @@ Addendum:
 - [x] All 49 tests pass, ruff clean on new files
 
 ### 4.2 Conversation Compaction (DONE)
-- [x] Created `src/opentlawpy/models/compaction.py` — `CompactHistoryInput`, `CompactHistoryOutput` dataclasses
-- [x] Created `src/opentlawpy/activities/compaction.py` — factory pattern: `create_compact_history_activity(llm_client)`, summarizes all-but-last-2 messages via LLM, keeps summary + last 2
+- [x] Created `src/openpaw/models/compaction.py` — `CompactHistoryInput`, `CompactHistoryOutput` dataclasses
+- [x] Created `src/openpaw/activities/compaction.py` — factory pattern: `create_compact_history_activity(llm_client)`, summarizes all-but-last-2 messages via LLM, keeps summary + last 2
 - [x] Added `COMPACTION_THRESHOLD` to `config.py` (default 50, env var override)
 - [x] Updated `agent_workflow.py` — `_maybe_compact_history()` called after each message reply, saves compacted state
 - [x] Registered `compact_history` activity in `create_activities.py`
@@ -292,9 +292,9 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 
 ### 5.1 Heartbeat (DONE)
-- [x] Created `src/opentlawpy/models/heartbeat.py` — `PokeAgentInput`, `PokeAgentOutput` dataclasses
-- [x] Created `src/opentlawpy/activities/poke_agent.py` — factory pattern: `create_poke_agent_activity(temporal_client)`, uses atomic start-or-signal (`id_conflict_policy=USE_EXISTING` + `start_signal="new_message"`) to poke the agent workflow
-- [x] Created `src/opentlawpy/workflows/heartbeat_workflow.py` — `HeartbeatWorkflow`:
+- [x] Created `src/openpaw/models/heartbeat.py` — `PokeAgentInput`, `PokeAgentOutput` dataclasses
+- [x] Created `src/openpaw/activities/poke_agent.py` — factory pattern: `create_poke_agent_activity(temporal_client)`, uses atomic start-or-signal (`id_conflict_policy=USE_EXISTING` + `start_signal="new_message"`) to poke the agent workflow
+- [x] Created `src/openpaw/workflows/heartbeat_workflow.py` — `HeartbeatWorkflow`:
   - Loop: `wait_condition(lambda: self._stopped, timeout=HEARTBEAT_INTERVAL_MINUTES)` → on timeout, call `poke_agent` activity by string name
   - `@workflow.signal stop()` sets `self._stopped = True` — `wait_condition` returns immediately
   - `continue_as_new(chat_id)` every 100 pokes to bound event history
@@ -362,15 +362,15 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 **Design**: `delegate_task` as a tool — LLM decides when to delegate vs. call tools directly. Sub-agent has its own thinking loop (duplicated, not shared — loops will likely diverge). No heartbeat, no state persistence, no compaction for sub-agents.
 
-- [x] Create `SubAgentInput` dataclass — `src/opentlawpy/models/sub_agent.py` (task string + optional system prompt)
+- [x] Create `SubAgentInput` dataclass — `src/openpaw/models/sub_agent.py` (task string + optional system prompt)
 - [x] Add `SUB_AGENT_MAX_ITERATIONS`, `SUB_AGENT_TIMEOUT_MINUTES`, `SUB_AGENT_SYSTEM_PROMPT` to `config.py`
-- [x] Create `SubAgentWorkflow` — `src/opentlawpy/workflows/sub_agent_workflow.py`
+- [x] Create `SubAgentWorkflow` — `src/openpaw/workflows/sub_agent_workflow.py`
   - Own `_thinking_loop` (duplicated from AgentWorkflow, stripped down)
   - Loads tools (filters out `delegate_task` to prevent recursion)
   - Seeds history with task as user message
   - Returns final assistant message as result string
-- [x] Create `delegate_task` TOOL.md — `src/opentlawpy/tools/delegate_task/TOOL.md`
-- [x] Create `delegate_task` handler — `src/opentlawpy/tool_handlers/delegate_task.py`
+- [x] Create `delegate_task` TOOL.md — `src/openpaw/tools/delegate_task/TOOL.md`
+- [x] Create `delegate_task` handler — `src/openpaw/tool_handlers/delegate_task.py`
   - Calls `workflow.execute_child_workflow(SubAgentWorkflow.run, ...)`
   - `ParentClosePolicy.TERMINATE` (kill sub-agent if orchestrator dies)
 - [x] Register `SubAgentWorkflow` in `worker/__main__.py`
@@ -384,23 +384,23 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 ### 8.2 Terminal CLI Interface (DONE)
 
-**Goal**: Add a terminal/CLI that can interact with the same Temporal workflows — send messages via signal, receive responses via stdout. No Docker needed, runs directly with `uv run opentlawpy-terminal`.
+**Goal**: Add a terminal/CLI that can interact with the same Temporal workflows — send messages via signal, receive responses via stdout. No Docker needed, runs directly with `uv run openpaw-terminal`.
 
 **Design**: Activity-based, mirrors WhatsApp exactly. The CLI runs its own Temporal activity worker on `TERMINAL_TASK_QUEUE`. When the workflow calls `send_terminal_message`, the CLI's worker picks it up and prints to stdout. Routing is based on workflow_id prefix: `terminal-*` → terminal activity, everything else → WhatsApp (backward-compatible).
 
 - [x] Added `TERMINAL_TASK_QUEUE = "terminal-tasks"` to `config.py`
-- [x] Created `src/opentlawpy/activities/terminal.py` — factory pattern with `output_callback` parameter
-- [x] Updated `src/opentlawpy/models/heartbeat.py` — added `workflow_id` field to `PokeAgentInput`
-- [x] Updated `src/opentlawpy/activities/heartbeat.py` — uses `input.workflow_id` instead of constructing it
-- [x] Updated `src/opentlawpy/workflows/heartbeat_workflow.py` — derives parent workflow_id from own id
-- [x] Updated `src/opentlawpy/workflows/agent_workflow.py`:
+- [x] Created `src/openpaw/activities/terminal.py` — factory pattern with `output_callback` parameter
+- [x] Updated `src/openpaw/models/heartbeat.py` — added `workflow_id` field to `PokeAgentInput`
+- [x] Updated `src/openpaw/activities/heartbeat.py` — uses `input.workflow_id` instead of constructing it
+- [x] Updated `src/openpaw/workflows/heartbeat_workflow.py` — derives parent workflow_id from own id
+- [x] Updated `src/openpaw/workflows/agent_workflow.py`:
   - Added `_get_output_route()` method (deterministic, sandbox-safe)
   - Replaced hardcoded `send_whatsapp_message` with channel-aware routing
   - Changed heartbeat child workflow id from `heartbeat-{chat_id}` to `heartbeat-{wf_id}`
-- [x] Created `src/opentlawpy/terminal/__init__.py` (empty) + `terminal/__main__.py` (CLI entry point)
+- [x] Created `src/openpaw/terminal/__init__.py` (empty) + `terminal/__main__.py` (CLI entry point)
   - Connects to Temporal, runs activity worker in background, reads stdin via `run_in_executor`
   - Atomic start-or-signal pattern (same as WhatsApp listener)
-- [x] Added `opentlawpy-terminal` script entry point to `pyproject.toml`
+- [x] Added `openpaw-terminal` script entry point to `pyproject.toml`
 - [x] Created `tests/test_terminal.py` — 3 tests:
   - `test_terminal_workflow_routes_to_terminal_activity` — terminal-prefixed workflow routes correctly
   - `test_non_terminal_workflow_routes_to_whatsapp` — backward compatibility

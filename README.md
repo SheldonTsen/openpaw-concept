@@ -1,4 +1,4 @@
-# opentlawpy
+# openpaw
 
 A WhatsApp-integrated agentic system built with Temporal orchestration and neonize.
 
@@ -44,7 +44,7 @@ docker compose logs -f worker listener
 
 If you're not using WhatsApp, then you can also boot up a local terminal session:
 ```
-opentlawpy-terminal
+openpaw-terminal
 ```
 
 
@@ -76,8 +76,8 @@ See [docs/plan.md](docs/plan.md) for the full architecture and implementation pl
 
 ```bash
 # 1. Clone and configure
-git clone git@github.com:SheldonTsen/opentlawpy.git
-cd opentlawpy
+git clone git@github.com:SheldonTsen/openpaw.git
+cd openpaw
 cp .env.example .env
 # Edit .env with your ANTHROPIC_API_KEY
 

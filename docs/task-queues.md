@@ -2,7 +2,7 @@
 
 ## Overview
 
-The system runs two Temporal workers on two separate task queues. Both poll the same Temporal namespace (`opentlawpy`), but each registers different activities.
+The system runs two Temporal workers on two separate task queues. Both poll the same Temporal namespace (`openpaw`), but each registers different activities.
 
 ## Queues
 
