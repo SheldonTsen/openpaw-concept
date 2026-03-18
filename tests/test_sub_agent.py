@@ -4,27 +4,27 @@ from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
-from opentlawpy.config import WHATSAPP_TASK_QUEUE
-from opentlawpy.models.bash_command import BashCommandInput, BashCommandOutput
-from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
-from opentlawpy.models.gather_tool_results import (
+from openpaw.config import WHATSAPP_TASK_QUEUE
+from openpaw.models.bash_command import BashCommandInput, BashCommandOutput
+from openpaw.models.compaction import CompactHistoryInput, CompactHistoryOutput
+from openpaw.models.gather_tool_results import (
     GatherToolResultsInput,
     GatherToolResultsOutput,
 )
-from opentlawpy.models.heartbeat import PokeAgentInput, PokeAgentOutput
-from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
-from opentlawpy.models.messages import AgentWorkflowInput, SendMessageInput, SendMessageOutput
-from opentlawpy.models.state_io import (
+from openpaw.models.heartbeat import PokeAgentInput, PokeAgentOutput
+from openpaw.models.llm_call import LLMCallInput, LLMCallOutput
+from openpaw.models.messages import AgentWorkflowInput, SendMessageInput, SendMessageOutput
+from openpaw.models.state_io import (
     LoadStateInput,
     LoadStateOutput,
     SaveStateInput,
     SaveStateOutput,
 )
-from opentlawpy.models.sub_agent import SubAgentInput
-from opentlawpy.models.tools import ToolDefinition
-from opentlawpy.workflows.agent_workflow import AgentWorkflow
-from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
-from opentlawpy.workflows.sub_agent_workflow import SubAgentWorkflow
+from openpaw.models.sub_agent import SubAgentInput
+from openpaw.models.tools import ToolDefinition
+from openpaw.workflows.agent_workflow import AgentWorkflow
+from openpaw.workflows.heartbeat_workflow import HeartbeatWorkflow
+from openpaw.workflows.sub_agent_workflow import SubAgentWorkflow
 
 TASK_QUEUE = "test-sub-agent-tasks"
 
@@ -322,7 +322,7 @@ async def test_sub_agent_max_iterations():
             ],
         )
 
-    with patch("opentlawpy.workflows.sub_agent_workflow.SUB_AGENT_MAX_ITERATIONS", 3):
+    with patch("openpaw.workflows.sub_agent_workflow.SUB_AGENT_MAX_ITERATIONS", 3):
         async with await WorkflowEnvironment.start_time_skipping() as env:
             async with Worker(
                 env.client,

@@ -4,15 +4,15 @@ import importlib
 import inspect
 import pkgutil
 
-import opentlawpy.activities as _activities_pkg
-from opentlawpy.models.tools import ToolTier
-from opentlawpy.utils.tool_loader import load_tools
+import openpaw.activities as _activities_pkg
+from openpaw.models.tools import ToolTier
+from openpaw.utils.tool_loader import load_tools
 
 # Discover all registered activity names by scanning every module in the activities package
 REGISTERED_ACTIVITIES: set[str] = set()
 
 for module_info in pkgutil.iter_modules(_activities_pkg.__path__):
-    mod = importlib.import_module(f"opentlawpy.activities.{module_info.name}")
+    mod = importlib.import_module(f"openpaw.activities.{module_info.name}")
     for _, obj in inspect.getmembers(mod, inspect.isfunction):
         defn = getattr(obj, "__temporal_activity_definition", None)
         if defn is not None:
@@ -25,12 +25,12 @@ def _load_all_tools():
 
 
 def test_every_tool_has_handler():
-    """Every TOOL.md should have a matching opentlawpy.tool_handlers.<name> module."""
+    """Every TOOL.md should have a matching openpaw.tool_handlers.<name> module."""
     tools = _load_all_tools()
     assert len(tools) > 0, "No tools loaded — check tools directory"
 
     for tool in tools:
-        mod = importlib.import_module(f"opentlawpy.tool_handlers.{tool.name}")
+        mod = importlib.import_module(f"openpaw.tool_handlers.{tool.name}")
         assert hasattr(mod, "handle"), f"Handler module for '{tool.name}' missing handle() function"
         assert callable(mod.handle), f"handle in '{tool.name}' handler is not callable"
 

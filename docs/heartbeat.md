@@ -58,7 +58,7 @@ Send a `stop` signal to `heartbeat-{chat_id}` to permanently stop the heartbeat 
 
 ## Files
 
-- `src/opentlawpy/workflows/heartbeat_workflow.py` — HeartbeatWorkflow definition
-- `src/opentlawpy/activities/heartbeat.py` — poke_agent activity (factory pattern)
-- `src/opentlawpy/models/heartbeat.py` — PokeAgentInput/Output dataclasses
-- `src/opentlawpy/config.py` — HEARTBEAT_INTERVAL_MINUTES, HEARTBEAT_MESSAGE
+- `src/openpaw/workflows/heartbeat_workflow.py` — HeartbeatWorkflow definition
+- `src/openpaw/activities/heartbeat.py` — poke_agent activity (factory pattern)
+- `src/openpaw/models/heartbeat.py` — PokeAgentInput/Output dataclasses
+- `src/openpaw/config.py` — HEARTBEAT_INTERVAL_MINUTES, HEARTBEAT_MESSAGE

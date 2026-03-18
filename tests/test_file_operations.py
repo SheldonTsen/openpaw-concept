@@ -1,12 +1,12 @@
 import pytest
 
-from opentlawpy.activities.file_operations import read_file_activity, write_file_activity
-from opentlawpy.models.file_operations import ReadFileInput, WriteFileInput
+from openpaw.activities.file_operations import read_file_activity, write_file_activity
+from openpaw.models.file_operations import ReadFileInput, WriteFileInput
 
 
 @pytest.fixture(autouse=True)
 def _patch_workspace(tmp_path, monkeypatch):
-    monkeypatch.setattr("opentlawpy.activities.file_operations.WORKSPACE_DIR", str(tmp_path))
+    monkeypatch.setattr("openpaw.activities.file_operations.WORKSPACE_DIR", str(tmp_path))
 
 
 @pytest.mark.asyncio
@@ -29,7 +29,7 @@ async def test_read_nonexistent_file():
 
 @pytest.mark.asyncio
 async def test_read_file_too_large(tmp_path, monkeypatch):
-    monkeypatch.setattr("opentlawpy.activities.file_operations.MAX_READ_BYTES", 100)
+    monkeypatch.setattr("openpaw.activities.file_operations.MAX_READ_BYTES", 100)
 
     test_file = tmp_path / "big.txt"
     test_file.write_text("x" * 200)

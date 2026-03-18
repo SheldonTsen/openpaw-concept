@@ -49,7 +49,7 @@ The orchestrator's history stays clean — it never sees the 30+ tool calls the 
 
 ### Implementation Sketch
 
-**New workflow** (`src/opentlawpy/workflows/sub_agent_workflow.py`):
+**New workflow** (`src/openpaw/workflows/sub_agent_workflow.py`):
 
 ```python
 @workflow.defn
@@ -81,7 +81,7 @@ class SubAgentWorkflow:
         return self._conversation_history[-1]["content"]
 ```
 
-**New tool handler** (`src/opentlawpy/tool_handlers/delegate_task.py`):
+**New tool handler** (`src/openpaw/tool_handlers/delegate_task.py`):
 
 ```python
 async def handle(args: dict) -> str:
@@ -97,7 +97,7 @@ async def handle(args: dict) -> str:
     return result
 ```
 
-**New TOOL.md** (`src/opentlawpy/tools/delegate_task/TOOL.md`):
+**New TOOL.md** (`src/openpaw/tools/delegate_task/TOOL.md`):
 
 ```yaml
 ---

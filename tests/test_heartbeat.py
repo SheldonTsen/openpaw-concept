@@ -2,21 +2,21 @@ from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
-from opentlawpy.config import HEARTBEAT_MESSAGE, WHATSAPP_TASK_QUEUE
-from opentlawpy.models.compaction import CompactHistoryInput, CompactHistoryOutput
-from opentlawpy.models.heartbeat import HeartbeatWorkflowInput, PokeAgentInput, PokeAgentOutput
-from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
-from opentlawpy.models.messages import AgentWorkflowInput, SendMessageInput, SendMessageOutput
-from opentlawpy.models.state_io import (
+from openpaw.config import HEARTBEAT_MESSAGE, WHATSAPP_TASK_QUEUE
+from openpaw.models.compaction import CompactHistoryInput, CompactHistoryOutput
+from openpaw.models.heartbeat import HeartbeatWorkflowInput, PokeAgentInput, PokeAgentOutput
+from openpaw.models.llm_call import LLMCallInput, LLMCallOutput
+from openpaw.models.messages import AgentWorkflowInput, SendMessageInput, SendMessageOutput
+from openpaw.models.state_io import (
     LoadStateInput,
     LoadStateOutput,
     SaveStateInput,
     SaveStateOutput,
 )
-from opentlawpy.models.tools import ToolDefinition
-from opentlawpy.workflows.agent_workflow import AgentWorkflow
-from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
-from opentlawpy.workflows.sub_agent_workflow import SubAgentWorkflow
+from openpaw.models.tools import ToolDefinition
+from openpaw.workflows.agent_workflow import AgentWorkflow
+from openpaw.workflows.heartbeat_workflow import HeartbeatWorkflow
+from openpaw.workflows.sub_agent_workflow import SubAgentWorkflow
 
 TASK_QUEUE = "test-heartbeat-tasks"
 

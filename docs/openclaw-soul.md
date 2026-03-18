@@ -57,7 +57,7 @@ Completely separate concerns:
 4. **Content-budgeted** -- files are truncated if too large (head 70% + tail 20%)
 5. **Session-type aware** -- subagent sessions get minimal set (AGENTS, TOOLS, SOUL, IDENTITY, USER)
 
-## Implications for opentlawpy
+## Implications for openpaw
 
 When we revisit (Phase 3+ after tools exist):
 - Replace hardcoded `SYSTEM_PROMPT` with `soul.md` file loaded at runtime

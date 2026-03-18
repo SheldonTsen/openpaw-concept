@@ -2,9 +2,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from opentlawpy.activities.compaction import SUMMARIZATION_PROMPT, create_compact_history_activity
-from opentlawpy.models.compaction import CompactHistoryInput
-from opentlawpy.models.llm_call import LLMCallOutput
+from openpaw.activities.compaction import SUMMARIZATION_PROMPT, create_compact_history_activity
+from openpaw.models.compaction import CompactHistoryInput
+from openpaw.models.llm_call import LLMCallOutput
 
 
 @pytest.fixture

@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from opentlawpy.config import LLM_TIMEOUT_SECONDS
-from opentlawpy.llm.openai_client import OpenAIClient
+from openpaw.config import LLM_TIMEOUT_SECONDS
+from openpaw.llm.openai_client import OpenAIClient
 
 # does not matter
 BASE_URL = "http://localhost:8888/v1"
@@ -24,7 +24,7 @@ async def test_openai_client_sends_correct_request():
         request=httpx.Request("POST", f"{BASE_URL}/chat/completions"),
     )
 
-    with patch("opentlawpy.llm.openai_client.httpx.AsyncClient") as mock_client_cls:
+    with patch("openpaw.llm.openai_client.httpx.AsyncClient") as mock_client_cls:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -67,7 +67,7 @@ async def test_openai_client_sends_api_key_when_provided():
         request=httpx.Request("POST", f"{BASE_URL}/chat/completions"),
     )
 
-    with patch("opentlawpy.llm.openai_client.httpx.AsyncClient") as mock_client_cls:
+    with patch("openpaw.llm.openai_client.httpx.AsyncClient") as mock_client_cls:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -98,7 +98,7 @@ async def test_openai_client_handles_missing_usage():
         request=httpx.Request("POST", f"{BASE_URL}/chat/completions"),
     )
 
-    with patch("opentlawpy.llm.openai_client.httpx.AsyncClient") as mock_client_cls:
+    with patch("openpaw.llm.openai_client.httpx.AsyncClient") as mock_client_cls:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
@@ -124,7 +124,7 @@ async def test_openai_client_raises_on_http_error():
         request=httpx.Request("POST", f"{BASE_URL}/chat/completions"),
     )
 
-    with patch("opentlawpy.llm.openai_client.httpx.AsyncClient") as mock_client_cls:
+    with patch("openpaw.llm.openai_client.httpx.AsyncClient") as mock_client_cls:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_response
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
