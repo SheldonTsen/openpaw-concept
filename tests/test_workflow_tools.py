@@ -271,8 +271,9 @@ async def test_workflow_single_tool_call():
     assert len(llm_calls) == 2
     assert len(tool_command_calls) == 1
     assert tool_command_calls[0].command == "ls"
-    assert len(send_calls) == 1
-    assert send_calls[0].text == "Here are the files: file1.txt, file2.txt"
+    assert send_calls[-1].text == "Here are the files: file1.txt, file2.txt"
+    # Status messages: "🔧 Using bash..." + "🔍 Analyzing results..." + final response
+    assert len(send_calls) == 3
 
     # Second LLM call should include tool results in history
     second_call_messages = llm_calls[1].messages
@@ -368,7 +369,7 @@ async def test_workflow_tool_error_fed_back():
     tool_msgs = [m for m in second_call_messages if m["role"] == "tool"]
     assert len(tool_msgs) == 1
     assert "Error" in tool_msgs[0]["content"]
-    assert send_calls[0].text == "Sorry, the file doesn't exist."
+    assert send_calls[-1].text == "Sorry, the file doesn't exist."
 
 
 async def test_workflow_max_iterations():
@@ -390,8 +391,9 @@ async def test_workflow_max_iterations():
         await _run_workflow_with_mock_llm(mock_llm)
 
     assert len(llm_calls) == 3
-    assert len(send_calls) == 1
-    assert "thinking limit" in send_calls[0].text
+    # 3 iterations × 2 status messages + 1 final response = 7
+    assert len(send_calls) == 7
+    assert "thinking limit" in send_calls[-1].text
 
 
 async def test_workflow_multiple_parallel_tools():
@@ -424,7 +426,8 @@ async def test_workflow_multiple_parallel_tools():
 
     assert len(llm_calls) == 2
     assert len(tool_command_calls) == 2
-    assert len(send_calls) == 1
+    # Status messages: "🔧 Using bash, bash..." + "🔍 Analyzing results..." + final response
+    assert len(send_calls) == 3
 
     # Both tool results should be in the second LLM call
     second_call_messages = llm_calls[1].messages
@@ -577,5 +580,6 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
     assert len(tool_msgs) == 1
     assert "Error" in tool_msgs[0]["content"]
     # LLM adapted and user got a response
-    assert len(send_calls) == 1
-    assert send_calls[0].text == "That command failed, sorry."
+    assert send_calls[-1].text == "That command failed, sorry."
+    # Status messages: "🔧 Using bash..." + "🔍 Analyzing results..." + final response
+    assert len(send_calls) == 3

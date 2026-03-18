@@ -25,10 +25,10 @@ with workflow.unsafe.imports_passed_through():
         GatherToolResultsInput,
         GatherToolResultsOutput,
     )
+    from opentlawpy.models.heartbeat import HeartbeatWorkflowInput
     from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
     from opentlawpy.models.state_io import LoadStateInput, SaveStateInput
     from opentlawpy.models.tools import ToolDefinition
-    from opentlawpy.models.heartbeat import HeartbeatWorkflowInput
     from opentlawpy.workflows.heartbeat_workflow import HeartbeatWorkflow
 
 from opentlawpy.models.messages import AgentWorkflowInput, IncomingMessage, SendMessageInput
@@ -46,6 +46,7 @@ class AgentWorkflow:
 
     @workflow.run
     async def run(self, input: AgentWorkflowInput) -> None:
+        self._input = input
         chat_id = input.chat_id
         wf_id = workflow.info().workflow_id
         if input.enable_heartbeat:
@@ -122,20 +123,7 @@ class AgentWorkflow:
 
                 response_text = self._conversation_history[-1]["content"]
 
-                try:
-                    await workflow.execute_activity(
-                        input.output_activity,
-                        arg=SendMessageInput(phone_number=chat_id, text=response_text),
-                        start_to_close_timeout=timedelta(seconds=30),
-                        retry_policy=RetryPolicy(
-                            maximum_attempts=3,
-                            initial_interval=timedelta(seconds=5),
-                            backoff_coefficient=2.0,
-                        ),
-                        task_queue=input.output_task_queue,
-                    )
-                except ActivityError as exc:
-                    workflow.logger.error(f"Failed to send message for {chat_id}: {exc}")
+                await self._send_status(response_text)
 
                 try:
                     await self._maybe_compact_history(chat_id=chat_id)
@@ -186,6 +174,18 @@ class AgentWorkflow:
             f"{compact_output.compacted_message_count} messages for {chat_id}"
         )
 
+    async def _send_status(self, text: str) -> None:
+        try:
+            await workflow.execute_activity(
+                self._input.output_activity,
+                arg=SendMessageInput(phone_number=self._input.chat_id, text=text),
+                start_to_close_timeout=timedelta(seconds=10),
+                retry_policy=RetryPolicy(maximum_attempts=1),
+                task_queue=self._input.output_task_queue,
+            )
+        except ActivityError as exc:
+            workflow.logger.warning(f"Failed to send status message: {exc}")
+
     async def _thinking_loop(self) -> None:
         for _ in range(MAX_TOOL_ITERATIONS):
             # temporal will not fail the workflow for non-determinism
@@ -223,6 +223,11 @@ class AgentWorkflow:
                 # no more tools to call - exit function
                 return
 
+            tool_names = ", ".join(
+                tc["function"]["name"] for tc in llm_output.tool_calls
+            )
+            await self._send_status(f"🔧 Using {tool_names}...")
+
             workflow.logger.info("Appending tool_call results to conversation history.")
             self._conversation_history.append(
                 {
@@ -248,6 +253,8 @@ class AgentWorkflow:
             )
 
             self._conversation_history.extend(gather_tool_results_output.tool_results_as_messages)
+
+            await self._send_status("🔍 Analyzing results...")
 
         # Hit max iterations
         workflow.logger.info(f"Maximum tool calls reached: {MAX_TOOL_ITERATIONS}")
