@@ -423,14 +423,13 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 - [x] Agent workflow: `if input.enable_heartbeat:` before `start_child_workflow(HeartbeatWorkflow)` — this is deterministic (input is constant across replays), so Temporal sandbox allows it. The heartbeat workflow itself stays unchanged — it doesn't need to know about channels.
 - [x] Update tests — all 67 pass
 
-### 8.4 Progress Messages to User
+### 8.4 Progress Messages to User (DONE)
 
 **Goal**: Send status updates to the user at key points during the thinking loop, so they know the agent is working. Messages go through the same output channel (WhatsApp or terminal) via the existing `output_activity` + `output_task_queue` routing.
 
 **Which moments matter to the user**:
-1. **Tool use decided** — LLM returns tool_calls → tell user which tools are about to run. e.g. `"Using bash, read_file..."`. Shows the agent is actively working, not stuck.
-2. **Tool results gathered** — all tool calls finished → e.g. `"Analyzing results..."`. Signals we're going back to the LLM for another round. Useful when tool execution takes a while.
-3. **Delegating to sub-agent** — e.g. `"Delegating task to sub-agent..."`. So user knows a child workflow is running.
+1. **Tool use decided** — LLM returns tool_calls → tell user which tools are about to run. e.g. `"🔧 Using bash, read_file..."`. Shows the agent is actively working, not stuck.
+2. **Tool results gathered** — all tool calls finished → `"🔍 Analyzing results..."`. Signals we're going back to the LLM for another round. Useful when tool execution takes a while.
 
 **What NOT to send**:
 - LLM call started / "thinking..." — too noisy, the LLM call is fast enough that this feels spammy
@@ -439,13 +438,14 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 - Heartbeat pokes — system-level, not user-facing
 
 **Implementation**:
-- [ ] Add a `_send_status(text)` helper method on `AgentWorkflow` that calls the output activity with a short status message. Same `output_activity` / `output_task_queue` from `input`. Fire-and-forget style — if it fails, log and continue (don't break the thinking loop over a status message).
-- [ ] In `_thinking_loop()` after LLM returns tool_calls (line ~236): extract tool names from `llm_output.tool_calls`, send `"🔧 Using {tool_names}..."`
-- [ ] In `_thinking_loop()` after `gather_tool_results` (line ~249): send `"🔍 Analyzing results..."`
-- [ ] `_thinking_loop` needs access to `input` (AgentWorkflowInput) for routing. Either pass it as a parameter or store on `self`.
-- [ ] Update tests — mock the extra send calls or assert they happen
+- [x] Added `_send_status(text)` helper method on `AgentWorkflow` — calls output activity fire-and-forget (try/except, log warning on failure)
+- [x] Stored `self._input = input` on AgentWorkflow for routing access
+- [x] In `_thinking_loop()` after LLM returns tool_calls: `"🔧 Using {tool_names}..."`
+- [x] In `_thinking_loop()` after `gather_tool_results`: `"🔍 Analyzing results..."`
+- [x] Updated tests — assertions account for extra status messages (e.g. 1 tool iteration = 2 status + 1 final response = 3 sends)
+- [x] All 67 tests pass, ruff clean
 
-**Format**: Same `SendMessageInput` / output activity, no new mechanism. Emoji prefix distinguishes status from actual responses (`🔧`, `🔍`, `🤖`). In WhatsApp it's just another message bubble. In terminal it's another `Agent: ...` print. Short + emoji = obviously a status update.
+**Format**: Same `SendMessageInput` / output activity, no new mechanism. Emoji prefix distinguishes status from actual responses. Short + emoji = obviously a status update.
 
 ### 8.5 Other Ideas
 - [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools
@@ -501,8 +501,8 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 8 (Extras) — 8.2 Terminal CLI Interface
-**Next Milestone**: 8.3 Other Ideas
+**Current Phase**: Phase 8 (Extras) — 8.4 Progress Messages (DONE)
+**Next Milestone**: 8.5 Other Ideas
 
 **Blockers**: None
 
