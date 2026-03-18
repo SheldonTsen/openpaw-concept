@@ -264,8 +264,9 @@ async def test_orchestrator_delegates_and_receives_result():
 
     # Orchestrator called LLM twice, sub-agent called once = 3 total
     assert len(llm_calls) == 3
-    assert len(send_calls) == 1
-    assert "2 Python files" in send_calls[0].text
+    assert "2 Python files" in send_calls[-1].text
+    # Status messages: "🔧 Using delegate_task..." + "🔍 Analyzing results..." + final response
+    assert len(send_calls) == 3
 
     # The sub-agent's result should appear as a tool result in the orchestrator's second LLM call
     orchestrator_second_call = llm_calls[2]
