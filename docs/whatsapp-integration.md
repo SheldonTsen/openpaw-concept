@@ -1,4 +1,4 @@
-# WhatsApp Integration for opentlawpy
+# WhatsApp Integration for openpaw
 
 ## Overview
 

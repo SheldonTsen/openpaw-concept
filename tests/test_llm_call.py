@@ -2,9 +2,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from opentlawpy.activities.llm_call import create_call_llm_activity
-from opentlawpy.llm.anthropic_client import AnthropicClient
-from opentlawpy.models.llm_call import LLMCallInput, LLMCallOutput
+from openpaw.activities.llm_call import create_call_llm_activity
+from openpaw.llm.anthropic_client import AnthropicClient
+from openpaw.models.llm_call import LLMCallInput, LLMCallOutput
 
 
 async def test_call_llm_activity_returns_response():
@@ -52,7 +52,7 @@ async def test_anthropic_client_chat():
     mock_response.usage.input_tokens = 15
     mock_response.usage.output_tokens = 8
 
-    with patch("opentlawpy.llm.anthropic_client.anthropic.AsyncAnthropic") as mock_cls:
+    with patch("openpaw.llm.anthropic_client.anthropic.AsyncAnthropic") as mock_cls:
         mock_instance = AsyncMock()
         mock_instance.messages.create.return_value = mock_response
         mock_cls.return_value = mock_instance

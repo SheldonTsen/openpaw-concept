@@ -136,7 +136,7 @@ In Green API console, configure:
 ### File Structure
 
 ```
-opentlawpy/
+openpaw/
 ├── src/
 │   ├── whatsapp/
 │   │   ├── __init__.py

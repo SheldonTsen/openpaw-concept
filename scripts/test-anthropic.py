@@ -6,8 +6,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from opentlawpy.config import ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, LLM_MODEL
-from opentlawpy.llm.anthropic_client import AnthropicClient
+from openpaw.config import ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, LLM_MODEL
+from openpaw.llm.anthropic_client import AnthropicClient
 
 
 async def main() -> None:

@@ -2,13 +2,13 @@ import json
 
 import pytest
 
-from opentlawpy.activities.state_io import load_state_activity, save_state_activity
-from opentlawpy.models.state_io import LoadStateInput, SaveStateInput
+from openpaw.activities.state_io import load_state_activity, save_state_activity
+from openpaw.models.state_io import LoadStateInput, SaveStateInput
 
 
 @pytest.fixture
 def state_dir(tmp_path, monkeypatch):
-    monkeypatch.setattr("opentlawpy.activities.state_io.STATE_DIR", str(tmp_path))
+    monkeypatch.setattr("openpaw.activities.state_io.STATE_DIR", str(tmp_path))
     return tmp_path
 
 

@@ -514,7 +514,7 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="opentlawpy Gateway",
+    title="openpaw Gateway",
     lifespan=lifespan,
 )
 
@@ -547,7 +547,7 @@ async def health():
 async def root():
     """Root endpoint."""
     return {
-        "service": "opentlawpy-gateway",
+        "service": "openpaw-gateway",
         "version": "1.0.0",
     }
 

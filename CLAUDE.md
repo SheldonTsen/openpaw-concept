@@ -19,7 +19,7 @@ If we discover something, update the execution-list.md in the appropriate place.
 # File Structure Overview
 
 ```
-opentlawpy/
+openpaw/
 ├── src/
 │   ├── workflows/          # Temporal workflows (agent_workflow.py)
 │   ├── activities/         # Temporal activities (llm_call, bash, whatsapp, state_file_io)
