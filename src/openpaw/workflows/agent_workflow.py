@@ -43,6 +43,9 @@ class AgentWorkflow:
         self._conversation_history: list[dict] = []
         self._tool_definitions: list[ToolDefinition] = []
         self._tool_defs_for_llm: list[dict] = []
+        self._approval_response: bool | None = None
+        self._awaiting_approval: bool = False
+        self._active_child_id: str | None = None
 
     @workflow.run
     async def run(self, input: AgentWorkflowInput) -> None:
@@ -144,8 +147,19 @@ class AgentWorkflow:
                     workflow.logger.error(f"Failed to save state for {chat_id}: {exc}")
 
     @workflow.signal
-    def new_message(self, text: str) -> None:
-        self._pending_messages.append(IncomingMessage(text=text))
+    async def new_message(self, text: str) -> None:
+        normalized = text.strip().upper()
+        is_approval_answer = normalized in ("YES", "NO")
+
+        if self._awaiting_approval and is_approval_answer:
+            self._approval_response = (normalized == "YES")
+        elif self._active_child_id and is_approval_answer:
+            child_handle = workflow.get_external_workflow_handle(self._active_child_id)
+            await child_handle.signal("new_message", text)
+        elif self._awaiting_approval or self._active_child_id:
+            await self._send_status("Please reply yes or no (case insensitive).")
+        else:
+            self._pending_messages.append(IncomingMessage(text=text))
 
     async def _maybe_compact_history(self, *, chat_id: str) -> None:
         if len(self._conversation_history) <= COMPACTION_THRESHOLD:
@@ -191,12 +205,9 @@ class AgentWorkflow:
             # temporal will not fail the workflow for non-determinism
             # if the workflow is replayed from a failure
             now = workflow.now().strftime("%Y-%m-%d %H:%M %Z")
-            tool_docs = "\n\n".join(
-                f"### {t.name}\n{t.body}" for t in self._tool_definitions
-            )
+            tool_docs = "\n\n".join(f"### {t.name}\n{t.body}" for t in self._tool_definitions)
             system_content = (
-                f"Current time: {now}\n\n{SYSTEM_PROMPT}"
-                f"\n\n## Tool Documentation\n\n{tool_docs}"
+                f"Current time: {now}\n\n{SYSTEM_PROMPT}\n\n## Tool Documentation\n\n{tool_docs}"
             )
             messages = [{"role": "system", "content": system_content}] + self._conversation_history
 
@@ -223,9 +234,7 @@ class AgentWorkflow:
                 # no more tools to call - exit function
                 return
 
-            tool_names = ", ".join(
-                tc["function"]["name"] for tc in llm_output.tool_calls
-            )
+            tool_names = ", ".join(tc["function"]["name"] for tc in llm_output.tool_calls)
             await self._send_status(f"🔧 Using {tool_names}...")
 
             workflow.logger.info("Appending tool_call results to conversation history.")
@@ -240,7 +249,7 @@ class AgentWorkflow:
 
             # execute tool calls in parallel
             workflow.logger.info(f"Calling execute_tool_calls with: {llm_output.tool_calls}")
-            tasks = [_dispatch(tool_call=tc) for tc in llm_output.tool_calls]
+            tasks = [self._dispatch(tool_call=tc) for tc in llm_output.tool_calls]
             tool_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             gather_tool_results_output: GatherToolResultsOutput = await workflow.execute_activity(
@@ -268,21 +277,20 @@ class AgentWorkflow:
             }
         )
 
+    async def _dispatch(self, tool_call: dict) -> str:
+        """Dispatch a single tool call to its handler via importlib convention.
 
-async def _dispatch(tool_call: dict) -> str:
-    """Dispatch a single tool call to its handler via importlib convention.
+        Tool name "bash" → openpaw.tool_handlers.bash → handle(args).
+        """
+        logger.info(f"Dispatching tool call for {tool_call}")
+        func = tool_call["function"]
+        name = func["name"]
+        args = func["arguments"]
 
-    Tool name "bash" → openpaw.tool_handlers.bash → handle(args).
-    """
-    logger.info(f"Dispatching tool call for {tool_call}")
-    func = tool_call["function"]
-    name = func["name"]
-    args = func["arguments"]
+        try:
+            with workflow.unsafe.imports_passed_through():
+                mod = importlib.import_module(f"openpaw.tool_handlers.{name}")
+        except ModuleNotFoundError:
+            return f"Error: Unknown tool '{name}'"
 
-    try:
-        with workflow.unsafe.imports_passed_through():
-            mod = importlib.import_module(f"openpaw.tool_handlers.{name}")
-    except ModuleNotFoundError:
-        return f"Error: Unknown tool '{name}'"
-
-    return await mod.handle(args)
+        return await mod.handle(args, workflow_ref=self)
