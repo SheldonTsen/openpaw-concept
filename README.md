@@ -2,6 +2,8 @@
 
 Inspired by [OpenClaw](https://github.com/openclaw) — but in Python, and using Temporal instead of custom orchestration.
 
+Why Temporal? Because [reasons](docs/user/01-why-temporal.md).
+
 ## Prerequisites
 
 - Docker and Docker Compose
@@ -39,6 +41,8 @@ Say "Hi!" in the terminal and watch it respond.
 ```
 cp .env.example .env
 # fill in required details mainly API key and WhatsApp number
+# fill in your own whatsapp number for simplicity
+# you do not need a separate whatsapp number
 MY_WHATSAPP_NUMBER=...
 
 # alternatively - if you don't have a paid API key, use Ollama
@@ -60,8 +64,6 @@ docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 docker compose logs listener
 # scan the bar code to link to whatsapp
 
-# terminal 3
-uv run openpaw
 ```
 
 Say "Hi!" to it (really yourself) and watch it respond.
@@ -71,7 +73,6 @@ Say "Hi!" to it (really yourself) and watch it respond.
 
 Once you've interacted with the agent by sending a message, to view everything the agent does, go to http://localhost:8080/ and 
 select the `openpaw` namespace (top left corner). 
-
 
 
 ## Development
@@ -85,5 +86,4 @@ docker compose logs -f worker whatsapp-listener
 
 # View agent state files directly on host
 cat ./data/state/*/state.json
-
 ```
