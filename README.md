@@ -12,9 +12,11 @@ Inspired by [OpenClaw](https://github.com/openclaw) — but in Python, and using
 cp .env.example .env
 # fill in required details mainly API key 
 
-# alternatively - if you don't have a paid API key, use OpenRouter
-OPENROUTER_API_KEY=...
-LLM_MODEL=openrouter/free
+# alternatively - if you don't have a paid API key, use Ollama (easiest)
+LLM_PROVIDER=local
+LOCAL_MODEL_URL=https://ollama.com/v1
+LOCAL_MODEL_API_KEY=...
+LLM_MODEL=qwen3-coder:480b-cloud
 
 # alternatively - run scripts/start-mlx-server.sh for a local model if you machine can handle it. Don't forget to set .env appropriately ie
 LLM_MODEL=  # yes leave blank
@@ -34,15 +36,17 @@ Say "Hi!" in the terminal and watch it respond.
 
 ## Minimal Quick Start (Whatsapp)
 
-
 ```
 cp .env.example .env
 # fill in required details mainly API key and WhatsApp number
 MY_WHATSAPP_NUMBER=...
 
-# alternatively - if you don't have a paid API key, use OpenRouter
-OPENROUTER_API_KEY=...
-LLM_MODEL=openrouter/free
+# alternatively - if you don't have a paid API key, use Ollama
+# for Ollama
+LLM_PROVIDER=local
+LOCAL_MODEL_URL=https://ollama.com/v1
+LOCAL_MODEL_API_KEY=...
+LLM_MODEL=qwen3-coder:480b-cloud
 
 # alternatively - run scripts/start-mlx-server.sh for a local model if you machine can handle it. Don't forget to set .env appropriately ie
 LLM_MODEL=  # yes leave blank
@@ -60,14 +64,13 @@ docker compose logs listener
 uv run openpaw
 ```
 
-Say "Hi!" to it via WhatsApp and watch it respond.
+Say "Hi!" to it (really yourself) and watch it respond.
+
 
 ## Backend
 
 Once you've interacted with the agent by sending a message, to view everything the agent does, go to http://localhost:8080/ and 
 select the `openpaw` namespace (top left corner). 
-
-
 
 
 
