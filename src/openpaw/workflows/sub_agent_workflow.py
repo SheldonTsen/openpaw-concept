@@ -58,7 +58,7 @@ class SubAgentWorkflow:
 
     @workflow.signal
     def new_message(self, text: str) -> None:
-        if self._awaiting_approval and text.strip().upper() in ("YES", "NO"):
+        if self._awaiting_approval:
             self._approval_response = text.strip().upper() == "YES"
 
     async def _send_status(self, text: str) -> None:

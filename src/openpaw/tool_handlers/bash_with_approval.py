@@ -4,12 +4,10 @@ from datetime import timedelta
 
 from temporalio import workflow
 
-from openpaw.config import APPROVAL_COMMAND_PREVIEW_LENGTH
+from openpaw.config import APPROVAL_COMMAND_PREVIEW_LENGTH, APPROVAL_TIMEOUT_MINUTES
 from openpaw.tool_handlers._run_bash import run_bash
 
 logger = logging.getLogger(__name__)
-
-APPROVAL_TIMEOUT_MINUTES = 5
 
 
 async def handle(args: dict, *, workflow_ref=None) -> str:
