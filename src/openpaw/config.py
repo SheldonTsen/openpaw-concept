@@ -15,6 +15,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 LLM_MODEL = os.environ.get("LLM_MODEL", "claude-sonnet-4-5-20250929")
 LLM_TIMEOUT_SECONDS = float(os.environ.get("LLM_TIMEOUT_SECONDS", "240.0"))
 LOCAL_MODEL_URL = os.environ.get("LOCAL_MODEL_URL", "http://localhost:8888/v1")
+LOCAL_MODEL_API_KEY = os.environ.get("LOCAL_MODEL_API_KEY", "")
 SYSTEM_PROMPT = """You are a helpful assistant and an orchestrator.
 
 When multiple tool calls are independent of each other, call them all in the same

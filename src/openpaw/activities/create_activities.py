@@ -14,6 +14,7 @@ from openpaw.config import (
     ANTHROPIC_API_KEY,
     ANTHROPIC_BASE_URL,
     LLM_PROVIDER,
+    LOCAL_MODEL_API_KEY,
     LOCAL_MODEL_URL,
     OPENROUTER_API_KEY,
 )
@@ -31,7 +32,7 @@ def create_activities(*, temporal_client: Client) -> list:
         logger.info("Using local client.")
         from openpaw.llm.openai_client import OpenAIClient
 
-        llm_client = OpenAIClient(base_url=LOCAL_MODEL_URL)
+        llm_client = OpenAIClient(base_url=LOCAL_MODEL_URL, api_key=LOCAL_MODEL_API_KEY or None)
     else:
         logger.info("Using OpenRouter client.")
         from openpaw.llm.openrouter_client import OpenRouterClient
