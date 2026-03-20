@@ -334,3 +334,13 @@ Temporal signals make it straightforward to add human-in-the-loop approval. Befo
 3. Proceed or abort based on the response.
 
 The workflow just pauses. No polling, no timeouts (well, you can add one). Temporal keeps the workflow state alive for as long as needed and does so efficiently.
+
+Below you can see the approval gate in action in terminal:
+
+![](../images/07-a-approval-terminal.png)
+
+Or in whatsapp (with a typo):
+
+![](../images/07-b-approval-whatsapp.png)
+
+

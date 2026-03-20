@@ -181,7 +181,12 @@ async def test_sub_agent_completes_task():
         ):
             result = await env.client.execute_workflow(
                 SubAgentWorkflow.run,
-                arg=SubAgentInput(task="List all files in the workspace"),
+                arg=SubAgentInput(
+                    task="List all files in the workspace",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                    chat_id="test-sub-agent",
+                ),
                 id="test-sub-agent-1",
                 task_queue=TASK_QUEUE,
             )
@@ -294,7 +299,12 @@ async def test_sub_agent_excludes_delegate_task():
         ):
             await env.client.execute_workflow(
                 SubAgentWorkflow.run,
-                arg=SubAgentInput(task="Do something"),
+                arg=SubAgentInput(
+                    task="Do something",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                    chat_id="test-sub-agent",
+                ),
                 id="test-sub-agent-no-delegate",
                 task_queue=TASK_QUEUE,
             )
@@ -333,7 +343,12 @@ async def test_sub_agent_max_iterations():
             ):
                 result = await env.client.execute_workflow(
                     SubAgentWorkflow.run,
-                    arg=SubAgentInput(task="Keep looping"),
+                    arg=SubAgentInput(
+                        task="Keep looping",
+                        output_activity="send_whatsapp_message",
+                        output_task_queue=WHATSAPP_TASK_QUEUE,
+                        chat_id="test-sub-agent",
+                    ),
                     id="test-sub-agent-max-iter",
                     task_queue=TASK_QUEUE,
                 )

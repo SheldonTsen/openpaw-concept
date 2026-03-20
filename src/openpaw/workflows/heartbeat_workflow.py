@@ -35,9 +35,7 @@ class HeartbeatWorkflow:
                 workflow.logger.info(f"Heartbeat stopped for {input.chat_id}")
                 return
 
-            workflow.logger.info(
-                f"Heartbeat poke #{self._poke_count + 1} for {input.chat_id}"
-            )
+            workflow.logger.info(f"Heartbeat poke #{self._poke_count + 1} for {input.chat_id}")
 
             await workflow.execute_activity(
                 "poke_agent",

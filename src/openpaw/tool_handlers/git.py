@@ -5,7 +5,7 @@ from openpaw.tool_handlers._run_bash import run_bash
 logger = logging.getLogger(__name__)
 
 
-async def handle(args: dict) -> str:
+async def handle(args: dict, **kwargs) -> str:
     command = f"git {args['command']}"
     logger.info(f"Calling git with {command}")
     return await run_bash(
