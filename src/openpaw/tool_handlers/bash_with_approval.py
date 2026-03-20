@@ -10,17 +10,9 @@ from openpaw.tool_handlers._run_bash import run_bash
 logger = logging.getLogger(__name__)
 
 
-async def handle(args: dict, *, workflow_ref=None) -> str:
+async def handle(args: dict, *, workflow_ref, **kwargs) -> str:
     command = args["command"]
     timeout = args.get("timeout", 30)
-
-    if workflow_ref is None or not hasattr(workflow_ref, "_awaiting_approval"):
-        return (
-            "Error: bash_with_approval requires user approval which is not "
-            "available in this context."
-        )
-
-    # --- Approval gate ---
 
     args_summary = command[:APPROVAL_COMMAND_PREVIEW_LENGTH]
     await workflow_ref._send_status(
