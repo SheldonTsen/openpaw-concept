@@ -9,7 +9,7 @@ from openpaw.models.file_operations import WriteFileInput, WriteFileOutput
 logger = logging.getLogger(__name__)
 
 
-async def handle(args: dict) -> str:
+async def handle(args: dict, **kwargs) -> str:
     logger.info("Calling write_file.")
     output: WriteFileOutput = await workflow.execute_activity(
         "write_file_activity",
