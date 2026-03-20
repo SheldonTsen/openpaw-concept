@@ -350,7 +350,7 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 ### 7.3 Target 80%+ Coverage (DONE — 73%)
 - [x] `pytest --cov=src --cov-report=term-missing` — 73% total, core workflow/activities 92-100%, remainder is entry points (0%) and tool handlers (33-58%) that need real infra or direct unit tests
 
-64 tests total across 13 test files.
+72 tests total across 14 test files.
 
 ---
 
@@ -456,7 +456,44 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 - [x] Rename to openpaw
 - [x] Add some sort of loading when workflow is running (see 8.4)
 - [ ] Missing OpenAI API KEY option
-- [ ] Add exampoe approval gate
+- [x] Add example approval gate
+
+### 8.6 Approval Gate: `bash_with_approval` (DONE)
+
+**Goal**: Human-in-the-loop approval before executing bash commands. Demonstrates the signal gate pattern — other tools can follow the same approach.
+
+**Design**: `bash_with_approval` tool works exactly like `bash` but pauses and asks the user for YES/NO before executing. Uses `workflow.wait_condition()` to block the handler until the user responds (or 5 min timeout). See `docs/developer/approval-gates.md` for full design doc.
+
+**Implementation**:
+- [x] Added `_approval_response: bool | None` and `_awaiting_approval: bool` fields to `AgentWorkflow.__init__`
+- [x] Updated `new_message` signal: intercepts YES/NO when `_awaiting_approval` is True, routes to `_approval_response` instead of `_pending_messages`
+- [x] Moved `_dispatch` from module-level function into `AgentWorkflow` as a method — passes `workflow_ref=self` to `mod.handle(args, workflow_ref=self)`
+- [x] Same refactor for `SubAgentWorkflow._dispatch` — passes `workflow_ref=self` so sub-agents also support approval
+- [x] Added `**kwargs` to all 9 existing tool handler `handle()` signatures so they accept and ignore `workflow_ref`
+- [x] Created `src/openpaw/tools/bash_with_approval/TOOL.md` — same structure as bash, priority 2, tier essential
+- [x] Created `src/openpaw/tool_handlers/bash_with_approval.py` — approval gate handler:
+  - Sends approval request via `workflow_ref._send_status()`
+  - Sets `_awaiting_approval = True`, waits via `workflow.wait_condition()` (5 min timeout)
+  - On YES → runs `run_bash()`. On NO/timeout → returns error string to LLM
+  - Errors if `workflow_ref is None` (no approval mechanism available)
+- [x] Sub-agent approval forwarding:
+  - Added `output_activity`, `output_task_queue`, `chat_id` to `SubAgentInput` (optional, for status messages)
+  - Added `_approval_response`, `_awaiting_approval`, `new_message` signal, `_send_status` to `SubAgentWorkflow`
+  - Added `_active_child_id` to `AgentWorkflow` — tracks active child workflow for signal forwarding
+  - Made `AgentWorkflow.new_message` async — forwards YES/NO to child via `workflow.get_external_workflow_handle()`
+  - Updated `delegate_task.py` — passes output routing from parent, sets/clears `_active_child_id`
+- [x] Created `tests/test_approval_gate.py` — 5 tests:
+  - `test_approval_granted` — signal YES → command runs, result returned
+  - `test_approval_denied` — signal NO → command not run, error string returned
+  - `test_approval_timeout` — no signal → timeout error returned
+  - `test_regular_bash_unchanged` — bash tool still works without approval
+  - `test_sub_agent_approval_forwarded` — parent forwards YES to child, command runs
+- [x] Updated `tests/test_tool_loader.py` — added `bash_with_approval` to expected tool sets
+- [x] All 72 tests pass, ruff clean
+
+Addendum:
+- [ ] How are typos handled?
+
 
 ## Quick Commands Reference
 
@@ -503,7 +540,7 @@ docker-compose down
 
 ## Progress Tracking
 
-**Current Phase**: Phase 8 (Extras) — 8.4 Progress Messages (DONE)
+**Current Phase**: Phase 8 (Extras) — 8.6 Approval Gate (DONE)
 **Next Milestone**: 8.5 Other Ideas
 
 **Blockers**: None

@@ -2,6 +2,7 @@ from openpaw.utils.tool_loader import load_tools
 
 EXPECTED_ALL_TOOLS = {
     "bash",
+    "bash_with_approval",
     "read_file",
     "write_file",
     "python",
@@ -12,7 +13,7 @@ EXPECTED_ALL_TOOLS = {
     "delegate_task",
 }
 
-EXPECTED_ESSENTIAL_TOOLS = {"bash", "python", "delegate_task"}
+EXPECTED_ESSENTIAL_TOOLS = {"bash", "bash_with_approval", "python", "delegate_task"}
 
 
 def test_load_all_tools():

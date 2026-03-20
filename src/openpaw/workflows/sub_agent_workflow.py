@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from temporalio.exceptions import ActivityError
 
 with workflow.unsafe.imports_passed_through():
     from openpaw.activities.gather_tool_results import gather_tool_results_activity
@@ -20,6 +21,7 @@ with workflow.unsafe.imports_passed_through():
         GatherToolResultsOutput,
     )
     from openpaw.models.llm_call import LLMCallInput, LLMCallOutput
+    from openpaw.models.messages import SendMessageInput
     from openpaw.models.sub_agent import SubAgentInput
     from openpaw.models.tools import ToolDefinition
 
@@ -32,9 +34,12 @@ class SubAgentWorkflow:
         self._conversation_history: list[dict] = []
         self._tool_definitions: list[ToolDefinition] = []
         self._tool_defs_for_llm: list[dict] = []
+        self._approval_response: bool | None = None
+        self._awaiting_approval: bool = False
 
     @workflow.run
     async def run(self, input: SubAgentInput) -> str:
+        self._input = input
         all_tools = await workflow.execute_activity(
             load_tools_activity,
             start_to_close_timeout=timedelta(seconds=10),
@@ -51,15 +56,29 @@ class SubAgentWorkflow:
 
         return self._conversation_history[-1]["content"]
 
+    @workflow.signal
+    def new_message(self, text: str) -> None:
+        if self._awaiting_approval and text.strip().upper() in ("YES", "NO"):
+            self._approval_response = text.strip().upper() == "YES"
+
+    async def _send_status(self, text: str) -> None:
+        try:
+            await workflow.execute_activity(
+                self._input.output_activity,
+                arg=SendMessageInput(phone_number=self._input.chat_id, text=text),
+                start_to_close_timeout=timedelta(seconds=10),
+                retry_policy=RetryPolicy(maximum_attempts=1),
+                task_queue=self._input.output_task_queue,
+            )
+        except ActivityError as exc:
+            workflow.logger.warning(f"Sub-agent failed to send status: {exc}")
+
     async def _thinking_loop(self, *, system_prompt: str) -> None:
         for _ in range(SUB_AGENT_MAX_ITERATIONS):
             now = workflow.now().strftime("%Y-%m-%d %H:%M %Z")
-            tool_docs = "\n\n".join(
-                f"### {t.name}\n{t.body}" for t in self._tool_definitions
-            )
+            tool_docs = "\n\n".join(f"### {t.name}\n{t.body}" for t in self._tool_definitions)
             system_content = (
-                f"Current time: {now}\n\n{system_prompt}"
-                f"\n\n## Tool Documentation\n\n{tool_docs}"
+                f"Current time: {now}\n\n{system_prompt}\n\n## Tool Documentation\n\n{tool_docs}"
             )
             messages = [{"role": "system", "content": system_content}] + self._conversation_history
 
@@ -94,7 +113,7 @@ class SubAgentWorkflow:
                 }
             )
 
-            tasks = [_dispatch(tool_call=tc) for tc in llm_output.tool_calls]
+            tasks = [self._dispatch(tool_call=tc) for tc in llm_output.tool_calls]
             tool_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             gather_tool_results_output: GatherToolResultsOutput = await workflow.execute_activity(
@@ -120,18 +139,17 @@ class SubAgentWorkflow:
             }
         )
 
+    async def _dispatch(self, tool_call: dict) -> str:
+        """Dispatch a single tool call to its handler via importlib convention."""
+        logger.info(f"Sub-agent dispatching tool call for {tool_call}")
+        func = tool_call["function"]
+        name = func["name"]
+        args = func["arguments"]
 
-async def _dispatch(tool_call: dict) -> str:
-    """Dispatch a single tool call to its handler via importlib convention."""
-    logger.info(f"Sub-agent dispatching tool call for {tool_call}")
-    func = tool_call["function"]
-    name = func["name"]
-    args = func["arguments"]
+        try:
+            with workflow.unsafe.imports_passed_through():
+                mod = importlib.import_module(f"openpaw.tool_handlers.{name}")
+        except ModuleNotFoundError:
+            return f"Error: Unknown tool '{name}'"
 
-    try:
-        with workflow.unsafe.imports_passed_through():
-            mod = importlib.import_module(f"openpaw.tool_handlers.{name}")
-    except ModuleNotFoundError:
-        return f"Error: Unknown tool '{name}'"
-
-    return await mod.handle(args)
+        return await mod.handle(args, workflow_ref=self)

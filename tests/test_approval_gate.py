@@ -1,19 +1,12 @@
-from unittest.mock import patch
+import asyncio
 
 from temporalio import activity
-from temporalio.client import WorkflowFailureError
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
 from openpaw.config import WHATSAPP_TASK_QUEUE
 from openpaw.models.bash_command import BashCommandInput, BashCommandOutput
 from openpaw.models.compaction import CompactHistoryInput, CompactHistoryOutput
-from openpaw.models.file_operations import (
-    ReadFileInput,
-    ReadFileOutput,
-    WriteFileInput,
-    WriteFileOutput,
-)
 from openpaw.models.gather_tool_results import GatherToolResultsInput, GatherToolResultsOutput
 from openpaw.models.heartbeat import PokeAgentInput, PokeAgentOutput
 from openpaw.models.llm_call import LLMCallInput, LLMCallOutput
@@ -29,14 +22,12 @@ from openpaw.workflows.agent_workflow import AgentWorkflow
 from openpaw.workflows.heartbeat_workflow import HeartbeatWorkflow
 from openpaw.workflows.sub_agent_workflow import SubAgentWorkflow
 
-TASK_QUEUE = "test-tool-tasks"
+TASK_QUEUE = "test-approval-tasks"
 
 # Track activity calls for assertions
 send_calls: list[SendMessageInput] = []
 llm_calls: list[LLMCallInput] = []
 tool_command_calls: list[BashCommandInput] = []
-read_file_calls: list[ReadFileInput] = []
-write_file_calls: list[WriteFileInput] = []
 gather_tool_results_calls: list[GatherToolResultsInput] = []
 
 
@@ -49,32 +40,21 @@ async def mock_send(input: SendMessageInput) -> SendMessageOutput:
 @activity.defn(name="execute_bash_command")
 async def mock_execute_bash_command(input: BashCommandInput) -> BashCommandOutput:
     tool_command_calls.append(input)
-    return BashCommandOutput(stdout="file1.txt\nfile2.txt", stderr="", exit_code=0, success=True)
+    return BashCommandOutput(stdout="command output", stderr="", exit_code=0, success=True)
 
 
-@activity.defn(name="read_file_activity")
-async def mock_read_file(input: ReadFileInput) -> ReadFileOutput:
-    read_file_calls.append(input)
-    return ReadFileOutput(content="file contents here", success=True)
-
-
-@activity.defn(name="write_file_activity")
-async def mock_write_file(input: WriteFileInput) -> WriteFileOutput:
-    write_file_calls.append(input)
-    return WriteFileOutput(success=True, bytes_written=len(input.content))
-
-
-def _clear_all():
-    send_calls.clear()
-    llm_calls.clear()
-    tool_command_calls.clear()
-    read_file_calls.clear()
-    write_file_calls.clear()
-    gather_tool_results_calls.clear()
-
-
-# Minimal tool definitions for testing (load_tools returns these)
 MOCK_TOOLS = [
+    ToolDefinition(
+        name="bash_with_approval",
+        description="Run bash with approval",
+        parameters={
+            "type": "object",
+            "properties": {"command": {"type": "string"}},
+            "required": ["command"],
+        },
+        metadata={"type": "cli", "tier": "essential", "priority": 2},
+        body="Execute bash commands with human approval.",
+    ),
     ToolDefinition(
         name="bash",
         description="Run bash",
@@ -85,22 +65,6 @@ MOCK_TOOLS = [
         },
         metadata={"type": "cli", "tier": "essential", "priority": 1},
         body="Execute shell commands in a sandboxed container.",
-    ),
-    ToolDefinition(
-        name="read_file",
-        description="Read a file",
-        parameters={
-            "type": "object",
-            "properties": {"path": {"type": "string"}},
-            "required": ["path"],
-        },
-        metadata={
-            "type": "activity",
-            "activity": "read_file_activity",
-            "tier": "essential",
-            "priority": 2,
-        },
-        body="Read file contents from the workspace.",
     ),
 ]
 
@@ -157,6 +121,13 @@ async def mock_gather_tool_results_activity(
     return GatherToolResultsOutput(tool_results_as_messages=num_res)
 
 
+def _clear_all():
+    send_calls.clear()
+    llm_calls.clear()
+    tool_command_calls.clear()
+    gather_tool_results_calls.clear()
+
+
 def _make_text_response(text: str) -> LLMCallOutput:
     return LLMCallOutput(
         response_text=text,
@@ -179,8 +150,28 @@ def _make_tool_response(tool_calls: list[dict], text: str = "") -> LLMCallOutput
     )
 
 
-async def _run_workflow_with_mock_llm(mock_llm_fn):
-    """Helper to run the workflow with a mocked call_llm and load_tools."""
+async def test_approval_granted():
+    """Signal YES → command runs, result returned to LLM."""
+    _clear_all()
+    call_count = 0
+
+    def mock_llm_fn(input: LLMCallInput) -> LLMCallOutput:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return _make_tool_response(
+                tool_calls=[
+                    {
+                        "id": "call_approve",
+                        "type": "function",
+                        "function": {
+                            "name": "bash_with_approval",
+                            "arguments": {"command": "echo hello"},
+                        },
+                    }
+                ],
+            )
+        return _make_text_response("Command ran successfully.")
 
     @activity.defn(name="call_llm")
     async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
@@ -197,8 +188,6 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
                     mock_call_llm,
                     mock_compact_history,
                     mock_execute_bash_command,
-                    mock_read_file,
-                    mock_write_file,
                     mock_load_tools,
                     mock_gather_tool_results_activity,
                     mock_save_state,
@@ -216,106 +205,67 @@ async def _run_workflow_with_mock_llm(mock_llm_fn):
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
                 arg=AgentWorkflowInput(
-                    chat_id="1234567890",
+                    chat_id="approval-test-1",
                     output_activity="send_whatsapp_message",
                     output_task_queue=WHATSAPP_TASK_QUEUE,
-                    enable_heartbeat=True,
+                    enable_heartbeat=False,
                 ),
-                id="test-wf-tools",
+                id="test-approval-granted",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["Hello"],
+                start_signal_args=["Delete temp files"],
             )
+
+            # Wait a moment for the approval request to be sent
+            await asyncio.sleep(0.5)
+
+            # Signal YES
+            await handle.signal(AgentWorkflow.new_message, args=["YES"])
+
             await handle.result()
 
-
-async def test_workflow_no_tool_calls():
-    """LLM returns text only — no tool loop, just sends the response."""
-    _clear_all()
-
-    def mock_llm(input: LLMCallInput) -> LLMCallOutput:
-        return _make_text_response("Just a text reply")
-
-    await _run_workflow_with_mock_llm(mock_llm)
-
-    assert len(llm_calls) == 1
-    assert len(tool_command_calls) == 0
-    assert len(send_calls) == 1
-    assert send_calls[0].text == "Just a text reply"
-
-
-async def test_workflow_single_tool_call():
-    """LLM requests one tool call, gets result, then responds with text."""
-    _clear_all()
-    call_count = 0
-
-    def mock_llm(input: LLMCallInput) -> LLMCallOutput:
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return _make_tool_response(
-                tool_calls=[
-                    {
-                        "id": "call_1",
-                        "type": "function",
-                        "function": {"name": "bash", "arguments": {"command": "ls"}},
-                    }
-                ],
-                text="Let me check...",
-            )
-        return _make_text_response("Here are the files: file1.txt, file2.txt")
-
-    await _run_workflow_with_mock_llm(mock_llm)
-
-    assert len(llm_calls) == 2
+    # Bash command should have been executed
     assert len(tool_command_calls) == 1
-    assert tool_command_calls[0].command == "ls"
-    assert send_calls[-1].text == "Here are the files: file1.txt, file2.txt"
-    # Status messages: "🔧 Using bash..." + "🔍 Analyzing results..." + final response
-    assert len(send_calls) == 3
+    assert tool_command_calls[0].command == "echo hello"
 
-    # Second LLM call should include tool results in history
-    second_call_messages = llm_calls[1].messages
-    tool_msgs = [m for m in second_call_messages if m["role"] == "tool"]
-    assert len(tool_msgs) == 1
-    assert tool_msgs[0]["tool_call_id"] == "call_1"
-    assert "file1.txt" in tool_msgs[0]["content"]
+    # LLM called twice: once to get tool call, once after tool result
+    assert len(llm_calls) == 2
+
+    # Final response to user
+    assert send_calls[-1].text == "Command ran successfully."
+
+    # Approval request message should be in send_calls
+    approval_msgs = [s for s in send_calls if "Approval needed" in s.text]
+    assert len(approval_msgs) == 1
 
 
-async def test_workflow_tool_error_fed_back():
-    """Tool fails — error message is returned to LLM, which adapts."""
+async def test_approval_denied():
+    """Signal NO → command not run, error string returned to LLM."""
     _clear_all()
     call_count = 0
 
-    @activity.defn(name="execute_bash_command")
-    async def mock_failing_command(input: BashCommandInput) -> BashCommandOutput:
-        tool_command_calls.append(input)
-        return BashCommandOutput(
-            stdout="",
-            stderr="No such file or directory",
-            exit_code=1,
-            success=False,
-        )
-
-    def mock_llm(input: LLMCallInput) -> LLMCallOutput:
+    def mock_llm_fn(input: LLMCallInput) -> LLMCallOutput:
         nonlocal call_count
         call_count += 1
         if call_count == 1:
             return _make_tool_response(
                 tool_calls=[
                     {
-                        "id": "call_err",
+                        "id": "call_deny",
                         "type": "function",
-                        "function": {"name": "bash", "arguments": {"command": "cat missing.txt"}},
+                        "function": {
+                            "name": "bash_with_approval",
+                            "arguments": {"command": "rm -rf /"},
+                        },
                     }
                 ],
             )
-        return _make_text_response("Sorry, the file doesn't exist.")
+        return _make_text_response("OK, I won't run that command.")
 
     @activity.defn(name="call_llm")
     async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
         llm_calls.append(input)
-        return mock_llm(input)
+        return mock_llm_fn(input)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
         async with (
@@ -325,137 +275,8 @@ async def test_workflow_tool_error_fed_back():
                 workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
                 activities=[
                     mock_call_llm,
-                    mock_compact_history,
-                    mock_failing_command,
-                    mock_read_file,
-                    mock_write_file,
-                    mock_load_tools,
-                    mock_gather_tool_results_activity,
-                    mock_save_state,
-                    mock_load_state,
-                    mock_poke_agent,
-                ],
-                workflow_runner=UnsandboxedWorkflowRunner(),
-            ),
-            Worker(
-                env.client,
-                task_queue=WHATSAPP_TASK_QUEUE,
-                activities=[mock_send],
-            ),
-        ):
-            handle = await env.client.start_workflow(
-                AgentWorkflow.run,
-                arg=AgentWorkflowInput(
-                    chat_id="1234567890",
-                    output_activity="send_whatsapp_message",
-                    output_task_queue=WHATSAPP_TASK_QUEUE,
-                    enable_heartbeat=True,
-                ),
-                id="test-wf-err",
-                task_queue=TASK_QUEUE,
-                start_signal="new_message",
-                start_signal_args=["Read missing.txt"],
-            )
-            try:
-                await handle.result()
-            except WorkflowFailureError as e:
-                raise e.cause
-
-    assert len(llm_calls) == 2
-    # Error message should be in tool result
-    second_call_messages = llm_calls[1].messages
-    tool_msgs = [m for m in second_call_messages if m["role"] == "tool"]
-    assert len(tool_msgs) == 1
-    assert "Error" in tool_msgs[0]["content"]
-    assert send_calls[-1].text == "Sorry, the file doesn't exist."
-
-
-async def test_workflow_max_iterations():
-    """LLM always returns tool_calls — hits MAX_TOOL_ITERATIONS and sends limit message."""
-    _clear_all()
-
-    def mock_llm(input: LLMCallInput) -> LLMCallOutput:
-        return _make_tool_response(
-            tool_calls=[
-                {
-                    "id": f"call_{len(llm_calls)}",
-                    "type": "function",
-                    "function": {"name": "bash", "arguments": {"command": "echo loop"}},
-                }
-            ],
-        )
-
-    with patch("openpaw.workflows.agent_workflow.MAX_TOOL_ITERATIONS", 3):
-        await _run_workflow_with_mock_llm(mock_llm)
-
-    assert len(llm_calls) == 3
-    # 3 iterations × 2 status messages + 1 final response = 7
-    assert len(send_calls) == 7
-    assert "thinking limit" in send_calls[-1].text
-
-
-async def test_workflow_multiple_parallel_tools():
-    """LLM returns 2 tool calls at once — both are executed."""
-    _clear_all()
-    call_count = 0
-
-    def mock_llm(input: LLMCallInput) -> LLMCallOutput:
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return _make_tool_response(
-                tool_calls=[
-                    {
-                        "id": "call_a",
-                        "type": "function",
-                        "function": {"name": "bash", "arguments": {"command": "ls"}},
-                    },
-                    {
-                        "id": "call_b",
-                        "type": "function",
-                        "function": {"name": "bash", "arguments": {"command": "pwd"}},
-                    },
-                ],
-                text="Let me check both...",
-            )
-        return _make_text_response("Done checking.")
-
-    await _run_workflow_with_mock_llm(mock_llm)
-
-    assert len(llm_calls) == 2
-    assert len(tool_command_calls) == 2
-    # Status messages: "🔧 Using bash, bash..." + "🔍 Analyzing results..." + final response
-    assert len(send_calls) == 3
-
-    # Both tool results should be in the second LLM call
-    second_call_messages = llm_calls[1].messages
-    tool_msgs = [m for m in second_call_messages if m["role"] == "tool"]
-    assert len(tool_msgs) == 2
-    tool_call_ids = {m["tool_call_id"] for m in tool_msgs}
-    assert tool_call_ids == {"call_a", "call_b"}
-
-
-async def test_workflow_llm_failure_sends_error_message():
-    """LLM activity fails after retries — user gets an error message on WhatsApp."""
-    _clear_all()
-
-    @activity.defn(name="call_llm")
-    async def mock_failing_llm(input: LLMCallInput) -> LLMCallOutput:
-        llm_calls.append(input)
-        raise RuntimeError("LLM provider is down")
-
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with (
-            Worker(
-                env.client,
-                task_queue=TASK_QUEUE,
-                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
-                activities=[
-                    mock_failing_llm,
                     mock_compact_history,
                     mock_execute_bash_command,
-                    mock_read_file,
-                    mock_write_file,
                     mock_load_tools,
                     mock_gather_tool_results_activity,
                     mock_save_state,
@@ -473,56 +294,64 @@ async def test_workflow_llm_failure_sends_error_message():
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
                 arg=AgentWorkflowInput(
-                    chat_id="1234567890",
+                    chat_id="approval-test-2",
                     output_activity="send_whatsapp_message",
                     output_task_queue=WHATSAPP_TASK_QUEUE,
-                    enable_heartbeat=True,
+                    enable_heartbeat=False,
                 ),
-                id="test-wf-llm-fail",
+                id="test-approval-denied",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["Hello"],
+                start_signal_args=["Delete everything"],
             )
+
+            await asyncio.sleep(0.5)
+
+            # Signal NO
+            await handle.signal(AgentWorkflow.new_message, args=["NO"])
+
             await handle.result()
 
-    # User should still get a WhatsApp message
-    assert len(send_calls) == 1
-    assert "trouble processing" in send_calls[0].text
+    # Bash command should NOT have been executed
+    assert len(tool_command_calls) == 0
+
+    # LLM called twice: once to get tool call, once after denial error
+    assert len(llm_calls) == 2
+
+    # Second LLM call should have the denial error in tool results
+    second_call_messages = llm_calls[1].messages
+    tool_msgs = [m for m in second_call_messages if m["role"] == "tool"]
+    assert len(tool_msgs) == 1
+    assert "denied" in tool_msgs[0]["content"].lower()
 
 
-async def test_workflow_tool_activity_failure_fed_back_to_llm():
-    """Tool activity crashes after retries — error fed back to LLM, LLM still responds."""
+async def test_approval_timeout():
+    """No signal → approval times out, error string returned to LLM."""
     _clear_all()
     call_count = 0
 
-    def mock_llm(input: LLMCallInput) -> LLMCallOutput:
+    def mock_llm_fn(input: LLMCallInput) -> LLMCallOutput:
         nonlocal call_count
         call_count += 1
         if call_count == 1:
             return _make_tool_response(
                 tool_calls=[
                     {
-                        "id": "call_fail",
+                        "id": "call_timeout",
                         "type": "function",
-                        "function": {"name": "bash", "arguments": {"command": "rm -rf /"}},
+                        "function": {
+                            "name": "bash_with_approval",
+                            "arguments": {"command": "echo timeout"},
+                        },
                     }
                 ],
             )
-        return _make_text_response("That command failed, sorry.")
-
-    @activity.defn(name="execute_bash_command")
-    async def mock_crashing_command(input: BashCommandInput) -> BashCommandOutput:
-        return BashCommandOutput(
-            stdout="",
-            stderr=str("This is failed return."),
-            exit_code=-1,
-            success=False,
-        )
+        return _make_text_response("The command timed out waiting for approval.")
 
     @activity.defn(name="call_llm")
     async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
         llm_calls.append(input)
-        return mock_llm(input)
+        return mock_llm_fn(input)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
         async with (
@@ -533,9 +362,7 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
                 activities=[
                     mock_call_llm,
                     mock_compact_history,
-                    mock_crashing_command,
-                    mock_read_file,
-                    mock_write_file,
+                    mock_execute_bash_command,
                     mock_load_tools,
                     mock_gather_tool_results_activity,
                     mock_save_state,
@@ -553,29 +380,237 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
             handle = await env.client.start_workflow(
                 AgentWorkflow.run,
                 arg=AgentWorkflowInput(
-                    chat_id="1234567890",
+                    chat_id="approval-test-3",
                     output_activity="send_whatsapp_message",
                     output_task_queue=WHATSAPP_TASK_QUEUE,
-                    enable_heartbeat=True,
+                    enable_heartbeat=False,
                 ),
-                id="test-wf-tool-activity-fail",
+                id="test-approval-timeout",
                 task_queue=TASK_QUEUE,
                 start_signal="new_message",
-                start_signal_args=["Do something"],
+                start_signal_args=["Run something"],
             )
-            try:
-                await handle.result()
-            except WorkflowFailureError as e:
-                raise e.cause
 
-    # LLM called twice: once to get tool call, once after error fed back
+            # Don't signal anything — let approval timeout
+            # Time-skipping env will auto-advance the 5 min timeout
+            await handle.result()
+
+    # Bash command should NOT have been executed
+    assert len(tool_command_calls) == 0
+
+    # LLM called twice: once to get tool call, once after timeout error
     assert len(llm_calls) == 2
-    # Error was fed to LLM as a tool result
+
+    # Second LLM call should have the timeout error in tool results
     second_call_messages = llm_calls[1].messages
     tool_msgs = [m for m in second_call_messages if m["role"] == "tool"]
     assert len(tool_msgs) == 1
-    assert "Error" in tool_msgs[0]["content"]
-    # LLM adapted and user got a response
-    assert send_calls[-1].text == "That command failed, sorry."
-    # Status messages: "🔧 Using bash..." + "🔍 Analyzing results..." + final response
-    assert len(send_calls) == 3
+    assert "timed out" in tool_msgs[0]["content"].lower()
+
+
+async def test_regular_bash_unchanged():
+    """Regular bash tool still works without approval gate."""
+    _clear_all()
+    call_count = 0
+
+    def mock_llm_fn(input: LLMCallInput) -> LLMCallOutput:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return _make_tool_response(
+                tool_calls=[
+                    {
+                        "id": "call_bash",
+                        "type": "function",
+                        "function": {
+                            "name": "bash",
+                            "arguments": {"command": "ls"},
+                        },
+                    }
+                ],
+            )
+        return _make_text_response("Here are the files.")
+
+    @activity.defn(name="call_llm")
+    async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
+        llm_calls.append(input)
+        return mock_llm_fn(input)
+
+    async with await WorkflowEnvironment.start_time_skipping() as env:
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
+                activities=[
+                    mock_call_llm,
+                    mock_compact_history,
+                    mock_execute_bash_command,
+                    mock_load_tools,
+                    mock_gather_tool_results_activity,
+                    mock_save_state,
+                    mock_load_state,
+                    mock_poke_agent,
+                ],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send],
+            ),
+        ):
+            handle = await env.client.start_workflow(
+                AgentWorkflow.run,
+                arg=AgentWorkflowInput(
+                    chat_id="approval-test-4",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                    enable_heartbeat=False,
+                ),
+                id="test-bash-no-approval",
+                task_queue=TASK_QUEUE,
+                start_signal="new_message",
+                start_signal_args=["List files"],
+            )
+
+            # No need to signal YES — regular bash runs immediately
+            await handle.result()
+
+    # Bash command should have been executed immediately (no approval needed)
+    assert len(tool_command_calls) == 1
+    assert tool_command_calls[0].command == "ls"
+
+    # LLM called twice: once to get tool call, once after result
+    assert len(llm_calls) == 2
+    assert send_calls[-1].text == "Here are the files."
+
+
+async def test_sub_agent_approval_forwarded():
+    """Parent forwards YES signal to sub-agent child workflow for approval."""
+    _clear_all()
+
+    # Orchestrator LLM: delegates to sub-agent on first call
+    orchestrator_call_count = 0
+
+    def orchestrator_llm_fn(input: LLMCallInput) -> LLMCallOutput:
+        nonlocal orchestrator_call_count
+        orchestrator_call_count += 1
+        if orchestrator_call_count == 1:
+            return _make_tool_response(
+                tool_calls=[
+                    {
+                        "id": "call_delegate",
+                        "type": "function",
+                        "function": {
+                            "name": "delegate_task",
+                            "arguments": {"task": "Run echo hello with approval"},
+                        },
+                    }
+                ],
+            )
+        return _make_text_response("Sub-agent completed the task.")
+
+    # Sub-agent LLM: calls bash_with_approval on first call
+    sub_agent_call_count = 0
+
+    def sub_agent_llm_fn(input: LLMCallInput) -> LLMCallOutput:
+        nonlocal sub_agent_call_count
+        sub_agent_call_count += 1
+        if sub_agent_call_count == 1:
+            return _make_tool_response(
+                tool_calls=[
+                    {
+                        "id": "call_sub_approve",
+                        "type": "function",
+                        "function": {
+                            "name": "bash_with_approval",
+                            "arguments": {"command": "echo hello"},
+                        },
+                    }
+                ],
+            )
+        return _make_text_response("Done running the command.")
+
+    @activity.defn(name="call_llm")
+    async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
+        llm_calls.append(input)
+        # Route based on whether this is a sub-agent or orchestrator call
+        # Sub-agent calls have a task-seeded user message
+        first_user = next((m for m in input.messages if m["role"] == "user"), None)
+        if first_user and "Run echo hello with approval" in first_user.get("content", ""):
+            return sub_agent_llm_fn(input)
+        return orchestrator_llm_fn(input)
+
+    # Include delegate_task in mock tools so orchestrator can use it
+    mock_tools_with_delegate = MOCK_TOOLS + [
+        ToolDefinition(
+            name="delegate_task",
+            description="Delegate task to sub-agent",
+            parameters={
+                "type": "object",
+                "properties": {"task": {"type": "string"}},
+                "required": ["task"],
+            },
+            metadata={"type": "workflow", "tier": "essential", "priority": 3},
+            body="Delegate a task to a sub-agent.",
+        ),
+    ]
+
+    @activity.defn(name="load_tools_activity")
+    async def mock_load_tools_with_delegate() -> list[ToolDefinition]:
+        return mock_tools_with_delegate
+
+    async with await WorkflowEnvironment.start_time_skipping() as env:
+        async with (
+            Worker(
+                env.client,
+                task_queue=TASK_QUEUE,
+                workflows=[AgentWorkflow, HeartbeatWorkflow, SubAgentWorkflow],
+                activities=[
+                    mock_call_llm,
+                    mock_compact_history,
+                    mock_execute_bash_command,
+                    mock_load_tools_with_delegate,
+                    mock_gather_tool_results_activity,
+                    mock_save_state,
+                    mock_load_state,
+                    mock_poke_agent,
+                ],
+                workflow_runner=UnsandboxedWorkflowRunner(),
+            ),
+            Worker(
+                env.client,
+                task_queue=WHATSAPP_TASK_QUEUE,
+                activities=[mock_send],
+            ),
+        ):
+            handle = await env.client.start_workflow(
+                AgentWorkflow.run,
+                arg=AgentWorkflowInput(
+                    chat_id="approval-sub-test",
+                    output_activity="send_whatsapp_message",
+                    output_task_queue=WHATSAPP_TASK_QUEUE,
+                    enable_heartbeat=False,
+                ),
+                id="test-sub-agent-approval",
+                task_queue=TASK_QUEUE,
+                start_signal="new_message",
+                start_signal_args=["Please delegate this"],
+            )
+
+            # Wait for the sub-agent to send the approval request
+            await asyncio.sleep(0.5)
+
+            # Signal YES to the PARENT — it should forward to the child
+            await handle.signal(AgentWorkflow.new_message, args=["YES"])
+
+            await handle.result()
+
+    # Bash command should have been executed via the sub-agent
+    assert len(tool_command_calls) == 1
+    assert tool_command_calls[0].command == "echo hello"
+
+    # Approval request should have been sent to user
+    approval_msgs = [s for s in send_calls if "Approval needed" in s.text]
+    assert len(approval_msgs) == 1
