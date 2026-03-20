@@ -42,6 +42,7 @@ HEARTBEAT_INTERVAL_MINUTES = int(os.environ.get("HEARTBEAT_INTERVAL_MINUTES", "1
 # HEARTBEAT_MESSAGE = "[HEARTBEAT] Check in on current status and any pending tasks."
 HEARTBEAT_MESSAGE = "[HEARTBEAT] Say 'Checking In On You!'"
 APPROVAL_COMMAND_PREVIEW_LENGTH = 200
+APPROVAL_TIMEOUT_MINUTES = 5
 SUB_AGENT_MAX_ITERATIONS = int(os.environ.get("SUB_AGENT_MAX_ITERATIONS", "10"))
 SUB_AGENT_TIMEOUT_MINUTES = int(os.environ.get("SUB_AGENT_TIMEOUT_MINUTES", "10"))
 SUB_AGENT_SYSTEM_PROMPT = """You are a sub-agent executing a specific task.
