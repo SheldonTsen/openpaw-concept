@@ -7,7 +7,7 @@ from openpaw.tool_handlers._run_bash import run_bash
 logger = logging.getLogger(__name__)
 
 
-async def handle(args: dict) -> str:
+async def handle(args: dict, **kwargs) -> str:
     query = args["query"]
     num_results = min(args.get("num_results", 5), 10)
 
