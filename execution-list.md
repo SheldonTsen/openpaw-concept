@@ -492,7 +492,7 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 - [x] All 72 tests pass, ruff clean
 
 Addendum:
-- [ ] How are typos handled?
+- [x] How are typos handled?
 
 
 ## Quick Commands Reference
