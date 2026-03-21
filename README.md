@@ -12,7 +12,7 @@ Why Temporal? Because [reasons](docs/user/01-why-temporal.md).
 
 - Docker and Docker Compose
 
-## Minimal Quick Start
+## Minimal Quick Start (Terminal)
 
 ```
 cp .env.example .env
@@ -40,7 +40,7 @@ This will boot up a local terminal session where you can interact.
 Say "Hi!" in the terminal and watch it respond.
 
 
-## Minimal Quick Start (Whatsapp)
+## Minimal Quick Start (Terminal + Whatsapp)
 
 ```
 cp .env.example .env
@@ -70,7 +70,8 @@ docker compose logs listener
 
 ```
 
-Say "Hi!" to it (really yourself) and watch it respond.
+Say "Hi!" to yourself on WhatsApp and watch it respond. You 
+can still use the terminal.
 
 
 ## Backend
