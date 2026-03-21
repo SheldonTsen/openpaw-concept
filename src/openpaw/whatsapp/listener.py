@@ -80,13 +80,17 @@ class WhatsAppListener:
 
     async def _route_message(self, sender: str, text: str) -> None:
         """Start-or-signal a Temporal workflow for this chat."""
-        workflow_id = f"whatsapp-{sender}"
+        # Always use MY_WHATSAPP_NUMBER as the canonical chat_id — the sender
+        # value can be a platform-assigned ID (not the real phone number) depending
+        # on WhatsApp's routing, which breaks state persistence and message sending.
+        chat_id = self._my_whatsapp_number
+        workflow_id = f"whatsapp-{chat_id}"
 
         try:
             await self._temporal_client.start_workflow(
                 AgentWorkflow.run,
                 arg=AgentWorkflowInput(
-                    chat_id=sender,
+                    chat_id=chat_id,
                     output_activity="send_whatsapp_message",
                     output_task_queue=WHATSAPP_TASK_QUEUE,
                     enable_heartbeat=True,
