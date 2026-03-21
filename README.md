@@ -18,7 +18,7 @@ Why Temporal? Because [reasons](docs/user/01-why-temporal.md).
 cp sample.env .env
 # fill in required details mainly API key 
 
-# alternatively - if you don't have a paid API key, use Ollama (easiest)
+# alternatively - if you don't have a paid API key, use Ollama Cloud free tier (easiest)
 LLM_PROVIDER=local
 LOCAL_MODEL_URL=https://ollama.com/v1
 LOCAL_MODEL_API_KEY=...
@@ -52,7 +52,7 @@ cp sample.env .env
 # do not include the + in the number
 MY_WHATSAPP_NUMBER=...
 
-# alternatively - if you don't have a paid API key, use Ollama
+# alternatively - if you don't have a paid API key, use Ollama Cloud free tier (easiest)
 # for Ollama
 LLM_PROVIDER=local
 LOCAL_MODEL_URL=https://ollama.com/v1
