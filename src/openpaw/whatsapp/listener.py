@@ -61,11 +61,14 @@ class WhatsAppListener:
         sender = message.Info.MessageSource.Sender.User
         chat = message.Info.MessageSource.Chat.User
 
-        logger.debug(f"Message: is_from_me={is_from_me} sender={sender} chat={chat} expected={self._my_whatsapp_number}")
+        logger.info(f"Message: is_from_me={is_from_me} sender={sender!r} chat={chat!r} expected={self._my_whatsapp_number!r}")
 
-        # Only process messages I send to myself
-        if not is_from_me or chat != self._my_whatsapp_number:
-            logger.info(f"Filtered message: is_from_me={is_from_me} chat={chat!r} expected={self._my_whatsapp_number!r}")
+        # Only process messages I send to myself chat.
+        # The chat ID is either the user's own number or a platform-assigned ID
+        # depending on WhatsApp's routing — accept either.
+        if not is_from_me:
+            return
+        if chat != self._my_whatsapp_number and sender != self._my_whatsapp_number:
             return
 
         logger.info(f"Received message from {sender}: {text}")
