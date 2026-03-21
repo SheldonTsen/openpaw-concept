@@ -47,6 +47,7 @@ cp sample.env .env
 # fill in required details mainly API key and WhatsApp number
 # fill in your own whatsapp number for simplicity
 # you do not need a separate whatsapp number
+# do not include the + in the number
 MY_WHATSAPP_NUMBER=...
 
 # alternatively - if you don't have a paid API key, use Ollama
