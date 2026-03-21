@@ -61,7 +61,10 @@ class WhatsAppListener:
         sender = message.Info.MessageSource.Sender.User
         chat = message.Info.MessageSource.Chat.User
 
-        logger.info(f"Message: is_from_me={is_from_me} sender={sender!r} chat={chat!r} expected={self._my_whatsapp_number!r}")
+        logger.info(
+            f"Message: is_from_me={is_from_me} sender={sender!r} "
+            f"chat={chat!r} expected={self._my_whatsapp_number!r}"
+        )
 
         # Only process messages sent to the self-chat (message yourself).
         # WhatsApp routes self-chat differently across accounts/regions —

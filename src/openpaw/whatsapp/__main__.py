@@ -70,7 +70,9 @@ def main() -> None:
             try:
                 code = client.PairPhone(phone=MY_WHATSAPP_NUMBER, show_push_notification=True)
                 logger.info(f"WhatsApp pairing code: {code}")
-                logger.info("Open WhatsApp → Linked Devices → Link a Device → Link with phone number")
+                logger.info(
+                    "Open WhatsApp → Linked Devices → Link a Device → Link with phone number"
+                )
             except Exception:
                 logger.exception("Failed to get pairing code")
 
