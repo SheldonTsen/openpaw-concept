@@ -30,7 +30,7 @@ LLM_PROVIDER=local
 LOCAL_MODEL_URL=http://host.docker.internal:8888/v1
 
 # terminal 1
-docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up --build
 
 # terminal 2
 uv run openpaw
@@ -63,7 +63,7 @@ LLM_PROVIDER=local
 LOCAL_MODEL_URL=http://host.docker.internal:8888/v1
 
 # terminal 1
-docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up --build
 
 # terminal 2 
 docker compose logs whatsapp-listener
@@ -71,8 +71,10 @@ docker compose logs whatsapp-listener
 # Use the pairing code to pair your device.
 # it might take awhile for the barcode to pop up. You should see this in the logs...
 
+...
 whatsapp-listener-1  | 09:19:53.745 [openpaw.whatsapp.listener INFO] - Starting WhatsApp listener...
 whatsapp-listener-1  | 09:19:55.023 [__main__ INFO] - WhatsApp pairing code: AB1C-DEFG
+...
 ```
 
 Say "Hi!" to yourself on WhatsApp and watch it respond. You 
