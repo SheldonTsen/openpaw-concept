@@ -1,5 +1,9 @@
 # openpaw
 
+[![CI](https://github.com/SheldonTsen/openpaw-concept/actions/workflows/ci.yml/badge.svg)](https://github.com/SheldonTsen/openpaw-concept/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+
 Inspired by [OpenClaw](https://github.com/openclaw) — but in Python, and using Temporal instead of custom orchestration.
 
 Why Temporal? Because [reasons](docs/user/01-why-temporal.md).
@@ -87,3 +91,23 @@ docker compose logs -f worker whatsapp-listener
 # View agent state files directly on host
 cat ./data/state/*/state.json
 ```
+
+## Contributing
+
+PRs are welcome! Please:
+
+1. Fork the repo and create a branch from `main`
+2. Install dev dependencies: `uv sync --extra dev`
+3. Make your changes and add tests
+4. Ensure lint and tests pass:
+   ```bash
+   uv run ruff check src tests
+   uv run pytest tests/ -v
+   ```
+5. Open a pull request
+
+Code style is enforced via [ruff](https://docs.astral.sh/ruff/). Type checking via [ty](https://github.com/astral-sh/ty).
+
+## License
+
+MIT — see [LICENSE](LICENSE).

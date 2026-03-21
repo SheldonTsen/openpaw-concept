@@ -2,6 +2,7 @@
 name = "openpaw"
 version = "0.1.0"
 description = "Temporal-based agentic system with WhatsApp integration"
+license = { file = "LICENSE" }
 requires-python = ">=3.13"
 dependencies = [
     "temporalio<=2.0.0",
