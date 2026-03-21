@@ -63,12 +63,11 @@ class WhatsAppListener:
 
         logger.info(f"Message: is_from_me={is_from_me} sender={sender!r} chat={chat!r} expected={self._my_whatsapp_number!r}")
 
-        # Only process messages I send to myself chat.
-        # The chat ID is either the user's own number or a platform-assigned ID
-        # depending on WhatsApp's routing — accept either.
-        if not is_from_me:
-            return
-        if chat != self._my_whatsapp_number and sender != self._my_whatsapp_number:
+        # Only process messages sent to the self-chat (message yourself).
+        # WhatsApp routes self-chat differently across accounts/regions —
+        # sometimes chat == phone number, sometimes a platform-assigned ID.
+        # In both cases chat == sender, which uniquely identifies the self-chat.
+        if not is_from_me or chat != sender:
             return
 
         logger.info(f"Received message from {sender}: {text}")
