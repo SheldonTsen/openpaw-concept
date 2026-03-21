@@ -7,6 +7,8 @@ services:
           target: /app/src/openpaw
         - action: rebuild
           path: ./pyproject.toml
+        - action: rebuild
+          path: ./Dockerfile
 
   whatsapp-listener:
     develop:
@@ -16,3 +18,5 @@ services:
           target: /app/src/openpaw
         - action: rebuild
           path: ./pyproject.toml
+        - action: rebuild
+          path: ./Dockerfile
