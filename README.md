@@ -39,6 +39,8 @@ uv run openpaw
 This will boot up a local terminal session where you can interact. 
 Say "Hi!" in the terminal and watch it respond.
 
+Note in terminal, the session will end after `WORKFLOW_TIMEOUT_MINUTES` if 
+no input is received.
 
 ## Minimal Quick Start (Terminal + Whatsapp)
 
@@ -79,6 +81,10 @@ whatsapp-listener-1  | 09:19:55.023 [__main__ INFO] - WhatsApp pairing code: AB1
 
 Say "Hi!" to yourself on WhatsApp and watch it respond. You 
 can still use the terminal.
+
+Unlike the terminal, sessions triggered via WhatsApp run indefinitely. 
+The LLM will check in on the user periodically based on `HEARTBEAT_INTERVAL_MINUTES`. The action taken every heartbeat can 
+be configured via `HEARTBEAT_MESSAGE`. 
 
 
 ## Backend
