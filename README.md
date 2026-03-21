@@ -84,7 +84,7 @@ whatsapp-listener-1  | 09:19:55.023 [__main__ INFO] - WhatsApp pairing code: AB1
 Say "Hi!" to yourself on WhatsApp and watch it respond. You 
 can still use the terminal.
 
-Unlike the terminal, sessions triggered via WhatsApp run indefinitely. 
+Unlike the terminal, sessions triggered via WhatsApp run "indefinitely". 
 The LLM will check in on the user periodically based on `HEARTBEAT_INTERVAL_MINUTES`. The action taken every heartbeat can 
 be configured via `HEARTBEAT_MESSAGE`. 
 
