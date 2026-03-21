@@ -120,7 +120,7 @@ PRs are welcome! Please:
    ```
 5. Open a pull request
 
-Code style is enforced via [ruff](https://docs.astral.sh/ruff/). Type checking via [ty](https://github.com/astral-sh/ty).
+Code style is enforced via [ruff](https://docs.astral.sh/ruff/).
 
 ## License
 
