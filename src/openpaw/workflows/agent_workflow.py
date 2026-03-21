@@ -152,7 +152,7 @@ class AgentWorkflow:
         is_approval_answer = normalized in ("YES", "NO")
 
         if self._awaiting_approval and is_approval_answer:
-            self._approval_response = (normalized == "YES")
+            self._approval_response = normalized == "YES"
         elif self._active_child_id and is_approval_answer:
             child_handle = workflow.get_external_workflow_handle(self._active_child_id)
             await child_handle.signal("new_message", text)

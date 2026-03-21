@@ -12,10 +12,10 @@ Why Temporal? Because [reasons](docs/user/01-why-temporal.md).
 
 - Docker and Docker Compose
 
-## Minimal Quick Start
+## Minimal Quick Start (Terminal)
 
 ```
-cp .env.example .env
+cp sample.env .env
 # fill in required details mainly API key 
 
 # alternatively - if you don't have a paid API key, use Ollama (easiest)
@@ -30,7 +30,7 @@ LLM_PROVIDER=local
 LOCAL_MODEL_URL=http://host.docker.internal:8888/v1
 
 # terminal 1
-docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up --build
 
 # terminal 2
 uv run openpaw
@@ -39,14 +39,17 @@ uv run openpaw
 This will boot up a local terminal session where you can interact. 
 Say "Hi!" in the terminal and watch it respond.
 
+Note in terminal, the session will end after `WORKFLOW_TIMEOUT_MINUTES` if 
+no input is received.
 
-## Minimal Quick Start (Whatsapp)
+## Minimal Quick Start (Terminal + Whatsapp)
 
 ```
-cp .env.example .env
+cp sample.env .env
 # fill in required details mainly API key and WhatsApp number
 # fill in your own whatsapp number for simplicity
 # you do not need a separate whatsapp number
+# do not include the + in the number
 MY_WHATSAPP_NUMBER=...
 
 # alternatively - if you don't have a paid API key, use Ollama
@@ -62,15 +65,26 @@ LLM_PROVIDER=local
 LOCAL_MODEL_URL=http://host.docker.internal:8888/v1
 
 # terminal 1
-docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up --build
 
 # terminal 2 
-docker compose logs listener
-# scan the bar code to link to whatsapp
+docker compose logs whatsapp-listener
 
+# Use the pairing code to pair your device.
+# it might take awhile for the barcode to pop up. You should see this in the logs...
+
+...
+whatsapp-listener-1  | 09:19:53.745 [openpaw.whatsapp.listener INFO] - Starting WhatsApp listener...
+whatsapp-listener-1  | 09:19:55.023 [__main__ INFO] - WhatsApp pairing code: AB1C-DEFG
+...
 ```
 
-Say "Hi!" to it (really yourself) and watch it respond.
+Say "Hi!" to yourself on WhatsApp and watch it respond. You 
+can still use the terminal.
+
+Unlike the terminal, sessions triggered via WhatsApp run indefinitely. 
+The LLM will check in on the user periodically based on `HEARTBEAT_INTERVAL_MINUTES`. The action taken every heartbeat can 
+be configured via `HEARTBEAT_MESSAGE`. 
 
 
 ## Backend
@@ -106,7 +120,7 @@ PRs are welcome! Please:
    ```
 5. Open a pull request
 
-Code style is enforced via [ruff](https://docs.astral.sh/ruff/). Type checking via [ty](https://github.com/astral-sh/ty).
+Code style is enforced via [ruff](https://docs.astral.sh/ruff/).
 
 ## License
 

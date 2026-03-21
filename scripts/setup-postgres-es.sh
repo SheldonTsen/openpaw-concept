@@ -10,7 +10,16 @@ set -eu
 
 echo 'Starting PostgreSQL and Elasticsearch schema setup...'
 echo 'Waiting for PostgreSQL port to be available...'
-nc -z -w 10 postgresql 5432
+attempt=0
+until nc -z -w 3 postgresql 5432; do
+  attempt=$((attempt + 1))
+  if [ $attempt -ge 20 ]; then
+    echo "ERROR: PostgreSQL port not available after $attempt attempts"
+    exit 1
+  fi
+  echo "PostgreSQL not reachable yet, waiting... (attempt $attempt/20)"
+  sleep 2
+done
 echo 'PostgreSQL port is available'
 
 # Create and setup temporal database

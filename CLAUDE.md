@@ -2,7 +2,7 @@
 # Codestyle
 
 Always prefer calling functions using kwargs whenever possible. This
-might not be possible with temporal however. Use ruff for formatting and ty for type checking.
+might not be possible with temporal however. Use ruff for formatting.
 
 uv is used for package management.
 
