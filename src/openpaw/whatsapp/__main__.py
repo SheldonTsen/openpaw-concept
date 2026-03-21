@@ -58,6 +58,28 @@ def main() -> None:
     neonize_client = NewClient(NEONIZE_DB_PATH)
     send_activity = create_send_whatsapp_message_activity(neonize_client=neonize_client)
 
+    # Use pair-code login instead of QR (more reliable in Docker/headless environments)
+    _code_requested = threading.Event()
+
+    def on_qr(client: NewClient, _data: bytes) -> None:
+        if _code_requested.is_set():
+            return
+        _code_requested.set()
+
+        def request_code() -> None:
+            try:
+                code = client.PairPhone(phone=MY_WHATSAPP_NUMBER, show_push_notification=True)
+                logger.info(f"WhatsApp pairing code: {code}")
+                logger.info(
+                    "Open WhatsApp → Linked Devices → Link a Device → Link with phone number"
+                )
+            except Exception:
+                logger.exception("Failed to get pairing code")
+
+        threading.Thread(target=request_code, daemon=True).start()
+
+    neonize_client.event.qr(on_qr)
+
     # Start event loop in daemon thread
     loop = asyncio.new_event_loop()
     threading.Thread(target=loop.run_forever, daemon=True, name="async-loop").start()

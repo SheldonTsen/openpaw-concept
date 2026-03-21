@@ -61,8 +61,16 @@ class WhatsAppListener:
         sender = message.Info.MessageSource.Sender.User
         chat = message.Info.MessageSource.Chat.User
 
-        # Only process messages I send to myself
-        if not is_from_me or chat != self._my_whatsapp_number:
+        logger.info(
+            f"Message: is_from_me={is_from_me} sender={sender!r} "
+            f"chat={chat!r} expected={self._my_whatsapp_number!r}"
+        )
+
+        # Only process messages sent to the self-chat (message yourself).
+        # WhatsApp routes self-chat differently across accounts/regions —
+        # sometimes chat == phone number, sometimes a platform-assigned ID.
+        # In both cases chat == sender, which uniquely identifies the self-chat.
+        if not is_from_me or chat != sender:
             return
 
         logger.info(f"Received message from {sender}: {text}")
@@ -75,13 +83,17 @@ class WhatsAppListener:
 
     async def _route_message(self, sender: str, text: str) -> None:
         """Start-or-signal a Temporal workflow for this chat."""
-        workflow_id = f"whatsapp-{sender}"
+        # Always use MY_WHATSAPP_NUMBER as the canonical chat_id — the sender
+        # value can be a platform-assigned ID (not the real phone number) depending
+        # on WhatsApp's routing, which breaks state persistence and message sending.
+        chat_id = self._my_whatsapp_number
+        workflow_id = f"whatsapp-{chat_id}"
 
         try:
             await self._temporal_client.start_workflow(
                 AgentWorkflow.run,
                 arg=AgentWorkflowInput(
-                    chat_id=sender,
+                    chat_id=chat_id,
                     output_activity="send_whatsapp_message",
                     output_task_queue=WHATSAPP_TASK_QUEUE,
                     enable_heartbeat=True,
