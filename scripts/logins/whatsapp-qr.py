@@ -7,6 +7,9 @@ Usage:
 
 Auth is stored in neonize.db at the repo root.
 Subsequent runs (worker, listener) will reuse it automatically.
+
+Due to the janky nature of this script, you will need to kill the terminal window to 
+close it. ctrl+c won't work.
 """
 
 import os

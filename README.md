@@ -68,16 +68,11 @@ docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 # terminal 2 
 docker compose logs whatsapp-listener
 
-# scan the bar code to link to whatsapp
+# Use the pairing code to pair your device.
 # it might take awhile for the barcode to pop up. You should see this in the logs...
 
-# whatsapp-listener-1  | 07:27:44.072 [openpaw.whatsapp.listener INFO] - Starting WhatsApp listener...
-# whatsapp-listener-1  | █████████████████████████████████████████████████████████████████
-# whatsapp-listener-1  | █████████████████████████████████████████████████████████████████
-# whatsapp-listener-1  | ████ ▄▄▄▄▄ █ █ █▀ ▀ ▀██▀ ▀█ ▄▀ ▄▄▄▄▀▄▄█▄▀▀▄█▄ ▄▀▄▀▄ ██ ▄▄▄▄▄ ████
-# whatsapp-listener-1  | ████ █   █ █ ▄▀▄▀▀█▀▀██▀▄█  ▄▄ █ ▀▀▄▄▀▄▄▄▀█▀▀ ▀▄▄ ▄ ██ █   █ ████
-# whatsapp-listener-1  | ████ █▄▄▄█ █▀█▄▀▄▀▀▄  ▀▄  ▀▄██ ▄▄▄  ▄▄▀▄██ ▄█  ▄ ▄▀▄██ █▄▄▄█ ████
-
+whatsapp-listener-1  | 09:19:53.745 [openpaw.whatsapp.listener INFO] - Starting WhatsApp listener...
+whatsapp-listener-1  | 09:19:55.023 [__main__ INFO] - WhatsApp pairing code: AB1C-DEFG
 ```
 
 Say "Hi!" to yourself on WhatsApp and watch it respond. You 
