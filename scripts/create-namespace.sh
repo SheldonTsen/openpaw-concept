@@ -9,7 +9,7 @@ nc -z -w 10 $(echo $TEMPORAL_ADDRESS | cut -d: -f1) $(echo $TEMPORAL_ADDRESS | c
 echo 'Temporal server port is available'
 
 echo 'Waiting for Temporal server to be healthy...'
-max_attempts=3
+max_attempts=20
 attempt=0
 
 until temporal operator cluster health --address $TEMPORAL_ADDRESS; do
@@ -19,7 +19,7 @@ until temporal operator cluster health --address $TEMPORAL_ADDRESS; do
     exit 1
   fi
   echo "Server not ready yet, waiting... (attempt $attempt/$max_attempts)"
-  sleep 5
+  sleep 3
 done
 
 echo "Server is healthy, creating namespace '$NAMESPACE'..."
