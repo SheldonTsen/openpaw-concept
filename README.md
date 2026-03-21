@@ -30,7 +30,7 @@ LLM_PROVIDER=local
 LOCAL_MODEL_URL=http://host.docker.internal:8888/v1
 
 # terminal 1
-docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 
 # terminal 2
 uv run openpaw
@@ -63,7 +63,7 @@ LLM_PROVIDER=local
 LOCAL_MODEL_URL=http://host.docker.internal:8888/v1
 
 # terminal 1
-docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 
 # terminal 2 
 docker compose logs whatsapp-listener
