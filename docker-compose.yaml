@@ -1,7 +1,6 @@
 services:
   postgresql:
     image: postgres:${POSTGRESQL_VERSION}
-    container_name: temporal-postgresql
     ports:
       - "5432:5432"
     environment:
@@ -20,7 +19,6 @@ services:
 
   elasticsearch:
     image: elasticsearch:${ELASTICSEARCH_VERSION}
-    container_name: temporal-elasticsearch
     ports:
       - "9200:9200"
     environment:
@@ -42,7 +40,6 @@ services:
 
   temporal-admin-tools:
     image: temporalio/admin-tools:${TEMPORAL_ADMINTOOLS_VERSION}
-    container_name: temporal-admin-tools
     restart: on-failure:6
     depends_on:
       postgresql:
@@ -70,7 +67,6 @@ services:
 
   temporal:
     image: temporalio/server:${TEMPORAL_VERSION}
-    container_name: temporal
     depends_on:
       temporal-admin-tools:
         condition: service_completed_successfully
@@ -100,7 +96,6 @@ services:
 
   temporal-create-namespace:
     image: temporalio/admin-tools:${TEMPORAL_ADMINTOOLS_VERSION}
-    container_name: temporal-create-namespace
     restart: on-failure:5
     depends_on:
       temporal:
@@ -116,7 +111,6 @@ services:
     command: /scripts/create-namespace.sh
 
   temporal-ui:
-    container_name: temporal-ui
     depends_on:
       temporal:
         condition: service_healthy
@@ -131,7 +125,6 @@ services:
 
   worker:
     build: .
-    container_name: openpaw-worker
     depends_on:
       temporal:
         condition: service_healthy
@@ -150,7 +143,6 @@ services:
 
   whatsapp-listener:
     build: .
-    container_name: openpaw-whatsapp-listener
     depends_on:
       temporal:
         condition: service_healthy
