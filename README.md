@@ -15,7 +15,7 @@ Why Temporal? Because [reasons](docs/user/01-why-temporal.md).
 ## Minimal Quick Start (Terminal)
 
 ```
-cp .env.example .env
+cp sample.env .env
 # fill in required details mainly API key 
 
 # alternatively - if you don't have a paid API key, use Ollama (easiest)
@@ -43,7 +43,7 @@ Say "Hi!" in the terminal and watch it respond.
 ## Minimal Quick Start (Terminal + Whatsapp)
 
 ```
-cp .env.example .env
+cp sample.env .env
 # fill in required details mainly API key and WhatsApp number
 # fill in your own whatsapp number for simplicity
 # you do not need a separate whatsapp number
