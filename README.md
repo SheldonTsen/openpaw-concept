@@ -44,6 +44,8 @@ no input is received.
 
 ## Minimal Quick Start (Terminal + Whatsapp)
 
+If you want the always on agent, then for now, you need to setup WhatsApp.
+
 ```
 cp sample.env .env
 # fill in required details mainly API key and WhatsApp number
