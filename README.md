@@ -8,6 +8,12 @@ Inspired by [OpenClaw](https://github.com/openclaw) — but in Python, and using
 
 Why Temporal? Because [reasons](docs/user/01-why-temporal.md).
 
+The end result (hopefully):
+
+1. A fully visible agent where every action is tracked.
+1. A potentially more secure agent.
+1. A simpler codebase to maintain.
+
 ## Prerequisites
 
 - Docker and Docker Compose
