@@ -9,7 +9,6 @@ Well, if you haven't used Temporal yet, it's amazing. I will not rehash their do
 
 How does this help in agentic systems? Let's find out. 
 
-
 ## Visibility
 
 To provide a simple mental model, functions are Temporal activities, and a chain of Temporal activities is a workflow. Agentic systems have to run a chain of... stuff. We can comprise an agentic system as a Temporal workflow, and everything that happens in the workflow, we can see in the UI:
