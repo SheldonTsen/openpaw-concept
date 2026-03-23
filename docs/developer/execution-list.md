@@ -546,6 +546,7 @@ Addendum:
   - **Medium-term**: lower default bash timeout (e.g. 30s), let LLM pass higher value explicitly when it knows a command is slow
   - **Long-term**: add `bash_background` tool — starts a detached process, returns PID immediately. Pair with `bash_background_kill(pid)` and `bash_background_status(pid)`. Removes the ambiguity: `bash` = finite, `bash_background` = runs until killed.
 - [ ] memories (follow claude code)
+- [ ] Make it possible for whatsapp to use a separate number.
 
 ---
 
