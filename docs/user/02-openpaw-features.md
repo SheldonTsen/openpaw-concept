@@ -1,5 +1,9 @@
 # OpenPaw Behaviour
 
+## Configuration
+
+Check out `src/openpaw/config.py`
+
 ## `/btw` — Ask a Side Question While the Agent is Busy
 
 Sometimes you remember something mid-task. Maybe the agent is running a long operation and you want to ask an unrelated question without interrupting it.
