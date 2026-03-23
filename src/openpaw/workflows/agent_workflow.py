@@ -28,8 +28,10 @@ with workflow.unsafe.imports_passed_through():
     from openpaw.models.heartbeat import HeartbeatWorkflowInput
     from openpaw.models.llm_call import LLMCallInput, LLMCallOutput
     from openpaw.models.state_io import LoadStateInput, SaveStateInput
+    from openpaw.models.sub_agent import SubAgentInput
     from openpaw.models.tools import ToolDefinition
     from openpaw.workflows.heartbeat_workflow import HeartbeatWorkflow
+    from openpaw.workflows.sub_agent_workflow import SubAgentWorkflow
 
 from openpaw.models.messages import AgentWorkflowInput, IncomingMessage, SendMessageInput
 
@@ -46,6 +48,8 @@ class AgentWorkflow:
         self._approval_response: bool | None = None
         self._awaiting_approval: bool = False
         self._active_child_id: str | None = None
+        self._btw_counter: int = 0
+        self._pending_btw: list[str] = []  # buffer for /btw msgs that arrive before _input is set
 
     @workflow.run
     async def run(self, input: AgentWorkflowInput) -> None:
@@ -87,6 +91,11 @@ class AgentWorkflow:
             workflow.logger.info(
                 f"Restored {len(self._conversation_history)} messages for {chat_id}"
             )
+
+        # Drain any /btw messages that arrived before run() had loaded state
+        for question in self._pending_btw:
+            await self._spawn_btw_child(question)
+        self._pending_btw.clear()
 
         while True:
             try:
@@ -148,6 +157,15 @@ class AgentWorkflow:
 
     @workflow.signal
     async def new_message(self, text: str) -> None:
+        if text.lower().startswith("/btw "):
+            question = text[5:].strip()
+            if question:
+                if hasattr(self, "_input"):
+                    await self._spawn_btw_child(question)
+                else:
+                    self._pending_btw.append(question)
+            return
+
         normalized = text.strip().upper()
         is_approval_answer = normalized in ("YES", "NO")
 
@@ -186,6 +204,23 @@ class AgentWorkflow:
         workflow.logger.info(
             f"Compacted {compact_output.original_message_count} → "
             f"{compact_output.compacted_message_count} messages for {chat_id}"
+        )
+
+    async def _spawn_btw_child(self, question: str) -> None:
+        self._btw_counter += 1
+        child_id = f"btw-{workflow.info().workflow_id}-{self._btw_counter}"
+        await workflow.start_child_workflow(
+            SubAgentWorkflow.run,
+            arg=SubAgentInput(
+                task=question,
+                output_activity=self._input.output_activity,
+                output_task_queue=self._input.output_task_queue,
+                chat_id=self._input.chat_id,
+                initial_conversation_history=list(self._conversation_history),
+                send_final_response=True,
+            ),
+            id=child_id,
+            parent_close_policy=ParentClosePolicy.ABANDON,
         )
 
     async def _send_status(self, text: str) -> None:

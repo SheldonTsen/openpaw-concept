@@ -449,13 +449,13 @@ Design: simple — summarize everything except last 2 messages into a `[CONVERSA
 
 ### 8.5 Other Ideas
 - [ ] Tools tools tools - what is the pattern? I think just introduce a separate cli/ module and let people build CLIs and add skills/tools
-- [ ] Clean up docs - make step by step guide minimal
+- [x] Clean up docs - make step by step guide minimal
 - [x] Clean up tools - or filter them. For local LLM need less context so it responds faster.
 - [x] Add local terminal interface (done in 8.2)
-- [ ] Check ollama interface free
+- [x] Check ollama interface free
 - [x] Rename to openpaw
 - [x] Add some sort of loading when workflow is running (see 8.4)
-- [ ] Missing OpenAI API KEY option
+- [x] Missing OpenAI API KEY option
 - [x] Add example approval gate
 
 ### 8.6 Approval Gate: `bash_with_approval` (DONE)
@@ -536,6 +536,51 @@ Addendum:
 - [ ] Add issue templates (`.github/ISSUE_TEMPLATE/bug_report.md`, `feature_request.md`)
 - [ ] Tag a `v0.1.0` release once CI is green and repo is public
 
+
+## 10.0 Extras??
+
+- [ ] How do we handle a bash command that gets stuck or "takes up" the temrinal.
+- [ ] memories (follow claude code)
+
+---
+
+## 11.0 `/btw` — Concurrent Side Questions
+
+**Goal**: Let the user type `/btw <question>` at any time, even while the agent is mid-task. The question gets answered by a fire-and-forget `SubAgentWorkflow` that has a snapshot of the current conversation history as context and sends its answer directly back to the user. The main workflow is never blocked or interrupted.
+
+**Design**:
+- `/btw question` → listener detects prefix → signals `btw_question` on `AgentWorkflow` (instead of `new_message`)
+- `AgentWorkflow.btw_question` signal handler → snapshots `_conversation_history` → starts a `SubAgentWorkflow` child with `ParentClosePolicy.ABANDON` (fire-and-forget, does NOT await result)
+- `SubAgentWorkflow` runs with the history snapshot as context, answers the question (tools available), and sends its final answer via `_send_status`
+- Main workflow continues running unaffected
+
+**Why this works**: Temporal signal handlers are async and can `await workflow.start_child_workflow(...)`. With `ABANDON` policy and no `await handle.result()`, the child is truly concurrent. The parent never blocks.
+
+**Latency caveat**: If a signal arrives while the parent is mid-activity (e.g. mid-LLM call), Temporal buffers it and delivers it at the next yield point. The child still starts quickly — it's only the signal *delivery* that may be delayed by seconds.
+
+**What to build**:
+
+### 11.1 Extend `SubAgentInput` (DONE)
+- [x] Add `initial_conversation_history: list[dict]` (default empty) — history snapshot for context
+- [x] Add `send_final_response: bool` (default False) — when True, SubAgent sends its final answer via `_send_status`
+
+### 11.2 Update `SubAgentWorkflow` (DONE)
+- [x] In `run()`: if `initial_conversation_history` is set, seed `_conversation_history` from it before appending the task as a user message
+- [x] In `run()`: after `_thinking_loop`, if `send_final_response=True`, call `_send_status(final_answer)` before returning
+
+### 11.3 Update `AgentWorkflow.new_message` signal handler (DONE)
+- [x] The listener stays untouched — it always sends `new_message` regardless of prefix. Routing logic lives in the workflow, not the channel.
+- [x] In the `new_message` signal handler, add a `/btw ` prefix check (case-insensitive) before the existing YES/NO and approval checks
+- [x] If `/btw `: extract question, add `_btw_counter += 1`, build child ID `btw-{workflow_id}-{counter}`, fire `start_child_workflow` with `ABANDON` policy — do NOT await result
+- [x] Add `_btw_counter: int = 0` to `__init__`
+- [x] Import `SubAgentWorkflow` and `SubAgentInput` inside the `workflow.unsafe.imports_passed_through()` block
+
+### 11.4 Tests (DONE)
+- [x] `test_btw_spawns_child_and_sends_response` — child runs and sends response directly to user
+- [x] `test_btw_does_not_add_to_pending_messages` — main workflow LLM is never called for a /btw
+- [x] `test_btw_passes_conversation_history_as_context` — child receives state snapshot as context
+
+**Note**: A subtle bug was found during implementation — signals can fire before `run()` sets `self._input` (when used as `start_signal`). Fixed by buffering in `_pending_btw` and draining *after* `load_state_activity` so the history snapshot is fully populated.
 ---
 
 ## Quick Commands Reference
