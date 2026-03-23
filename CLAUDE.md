@@ -16,6 +16,10 @@ When ready, commit the work.
 As you develop, update docs/developer/execution-list.md to keep track of what you've done.
 If we discover something, update the docs/developer/execution-list.md in the appropriate place.
 
+# Documentation
+
+Ensure we update docs/user with features on how to use openpaw. 
+
 # Misc
 
 Update this file yourself as you receive pattern instructions or DO or DO NOTs.

@@ -48,13 +48,21 @@ class SubAgentWorkflow:
         self._tool_definitions = [t for t in all_tools if t.name != "delegate_task"]
         self._tool_defs_for_llm = [t.to_llm_format() for t in self._tool_definitions]
 
+        if input.initial_conversation_history:
+            self._conversation_history = list(input.initial_conversation_history)
+
         self._conversation_history.append({"role": "user", "content": input.task})
 
         system_prompt = input.system_prompt or SUB_AGENT_SYSTEM_PROMPT
 
         await self._thinking_loop(system_prompt=system_prompt)
 
-        return self._conversation_history[-1]["content"]
+        final_response = self._conversation_history[-1]["content"]
+
+        if input.send_final_response:
+            await self._send_status(final_response)
+
+        return final_response
 
     @workflow.signal
     def new_message(self, text: str) -> None:
