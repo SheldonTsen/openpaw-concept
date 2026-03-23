@@ -2,7 +2,7 @@
 
 ## Configuration
 
-Check out `src/openpaw/config.py`
+Check out `src/openpaw/config.py`.
 
 ## `/btw` — Ask a Side Question While the Agent is Busy
 
