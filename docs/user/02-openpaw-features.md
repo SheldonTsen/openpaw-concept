@@ -2,7 +2,7 @@
 
 ## Configuration
 
-Check out `src/openpaw/config.py`.
+Check out `src/openpaw/config.py` for everything you can configure.
 
 ## `/btw` — Ask a Side Question While the Agent is Busy
 
@@ -24,9 +24,3 @@ The agent will answer your question and send the response back to you directly. 
 - The agent has full context of your conversation *up to the moment you sent the `/btw`*, so you can refer to things discussed earlier in the session.
 - The exchange is self-contained. If the agent looks something up to answer your question (searches the web, reads a file, runs a command), that result is not fed back into the main task. If you want the main agent to act on something from a `/btw` answer, send it as a follow-up message.
 - `/btw` is for questions, not new tasks. If you want to give the agent new work, just send a normal message (it will be queued and handled once the current task finishes).
-
-### When it's useful
-
-- You're mid-task and want a quick lookup without breaking the agent's focus.
-- You want to ask something about the current session ("what files have we changed so far?") while the agent is still working.
-- You want a second opinion or a quick calculation while waiting for a result.
