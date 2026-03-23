@@ -94,7 +94,7 @@ Unlike the terminal, sessions triggered via WhatsApp run "indefinitely".
 The LLM will check in on the user periodically based on `HEARTBEAT_INTERVAL_MINUTES`. The action taken every heartbeat can 
 be configured via `HEARTBEAT_MESSAGE`. 
 
-Read up more [here](docs/user/02-openpaw-features.md)
+Read up more [here](docs/user/02-openpaw-features.md).
 
 
 ## Backend
