@@ -520,27 +520,33 @@ Addendum:
   - Trigger: push to `main`, all PRs
   - Steps: `uv sync --extra dev` → `ruff check src tests` → `pytest tests/ -v`
   - Matrix: Python 3.13 (single version is fine given neonize constraint)
-- [ ] Confirm CI passes on `main` before making repo public
+- [x] Confirm CI passes on `main` before making repo public
 
 ### 9.5 GitHub Repo Settings (do in GitHub UI)
-- [ ] Make repo public (Settings → Danger Zone → Change visibility)
-- [ ] Enable branch protection on `main`:
+- [x] Make repo public (Settings → Danger Zone → Change visibility)
+- [x] Enable branch protection on `main`:
   - Require PR before merging
   - Require status checks to pass (CI workflow)
   - Require branches to be up to date before merge
-- [ ] Add repo description + topics (e.g. `temporal`, `whatsapp`, `ai-agent`, `python`)
+- [x] Add repo description + topics (e.g. `temporal`, `whatsapp`, `ai-agent`, `python`)
 - [ ] Add a social preview image (optional but nice)
 
 ### 9.6 Optional But Recommended
 - [ ] Add `CONTRIBUTING.md` with development setup steps
 - [ ] Add issue templates (`.github/ISSUE_TEMPLATE/bug_report.md`, `feature_request.md`)
-- [ ] Tag a `v0.1.0` release once CI is green and repo is public
+- [x] Tag a `v0.1.0` release once CI is green and repo is public
 
 
 ## 10.0 Extras??
 
-- [ ] How do we handle a bash command that gets stuck or "takes up" the temrinal.
+- [ ] **Blocking/long-running bash commands** — Two distinct problems:
+  1. *Stuck command* (should finish but doesn't) — already handled by the 300s activity timeout. LLM gets an error back after 5 min. Not great UX but safe.
+  2. *Intentionally long-running command* (`kubectl port-forward`, `python server.py`, `tail -f`) — current `bash` tool hangs until timeout. LLM can also stumble into this unintentionally (e.g. running a buggy infinite loop).
+  - **Short-term**: add system prompt guidance — "never run non-terminating commands with `bash`"
+  - **Medium-term**: lower default bash timeout (e.g. 30s), let LLM pass higher value explicitly when it knows a command is slow
+  - **Long-term**: add `bash_background` tool — starts a detached process, returns PID immediately. Pair with `bash_background_kill(pid)` and `bash_background_status(pid)`. Removes the ambiguity: `bash` = finite, `bash_background` = runs until killed.
 - [ ] memories (follow claude code)
+- [ ] Make it possible for whatsapp to use a separate number.
 
 ---
 
