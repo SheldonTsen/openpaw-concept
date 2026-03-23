@@ -31,11 +31,11 @@ If we "click" into the `SubAgentWorkflow`, we can easily see everything the sub-
 
 ![](../images/03-sub-agent-workflow.png)
 
-When the task is highly complex, and requires several subagents, we can see this visually in the Temporal UI as well in the form of parallel `SubAgentWorkflow`s being kicked off:
+When the task is highly complex, and requires several subagents (if the LLM decides this is the best way to tackle the task), we can see this visually in the Temporal UI as well in the form of parallel `SubAgentWorkflow`s being kicked off:
 
 ![](../images/04-multiple-subagents.png)
 
-When all these `SubAgentWorkflow`s complete, as before, we can click into each of them and view what happened in every single step.
+When all these `SubAgentWorkflow`s complete, as before, we can click into each of them and view what happened in every single step. Below is an example of an agent kicking off other subagents (which successfully completed):
 
 ![](../images/05-inspect-everything.png)
 

@@ -547,6 +547,7 @@ Addendum:
   - **Long-term**: add `bash_background` tool — starts a detached process, returns PID immediately. Pair with `bash_background_kill(pid)` and `bash_background_status(pid)`. Removes the ambiguity: `bash` = finite, `bash_background` = runs until killed.
 - [ ] memories (follow claude code)
 - [ ] Make it possible for whatsapp to use a separate number.
+- [ ] Add browser support
 
 ---
 
@@ -587,6 +588,37 @@ Addendum:
 - [x] `test_btw_passes_conversation_history_as_context` — child receives state snapshot as context
 
 **Note**: A subtle bug was found during implementation — signals can fire before `run()` sets `self._input` (when used as `start_signal`). Fixed by buffering in `_pending_btw` and draining *after* `load_state_activity` so the history snapshot is fully populated.
+---
+
+## Phase 12: Browser Tool 🌐
+
+**Goal**: Let the agent control a real browser — navigate, click, fill forms, extract content, take screenshots. Closes the gap with OpenClaw's browser tool.
+
+**Design**: Playwright + Chromium running as a sidecar container. The agent gets a `browser` tool backed by a Temporal activity. The activity connects to the Playwright server over HTTP — keeps browser state isolated from the worker container.
+
+**Why sidecar**: Playwright needs a full Chromium install (~300MB). Keeping it out of the worker image keeps builds fast and the worker lean.
+
+### 12.1 Playwright Sidecar Service
+- [ ] Add `browser` service to `docker-compose.yaml` — `mcr.microsoft.com/playwright/python:v1.x` image, exposes port 3000
+- [ ] Add `BROWSER_URL` to `config.py` + `sample.env` (default `http://browser:3000`)
+
+### 12.2 Browser Activity
+- [ ] Create `src/openpaw/activities/browser.py` — `create_browser_activity(browser_url)` factory
+  - Uses `playwright.async_api` to connect via `connect_over_cdp(browser_url)`
+  - Single activity: `browser_action(input: BrowserInput) -> BrowserOutput`
+  - Actions: `navigate`, `snapshot`, `screenshot`, `click`, `type`, `fill`, `scroll`
+- [ ] Create `src/openpaw/models/browser.py` — `BrowserInput`, `BrowserOutput` dataclasses
+- [ ] Register activity in `create_activities.py`
+
+### 12.3 Browser Tool
+- [ ] Create `src/openpaw/tools/browser/TOOL.md` — parameters: `action`, `url`, `selector`, `text`, `timeout`
+- [ ] Create `src/openpaw/tool_handlers/browser.py` — calls `browser_action` activity
+- [ ] Use numeric/role-based element refs in snapshots (like OpenClaw) rather than CSS selectors
+
+### 12.4 Tests
+- [ ] Unit tests for browser activity (mock playwright)
+- [ ] Integration test: navigate → snapshot → click flow
+
 ---
 
 ## Quick Commands Reference
