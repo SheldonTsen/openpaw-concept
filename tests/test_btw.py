@@ -119,7 +119,8 @@ async def test_btw_spawns_child_and_sends_response():
                 start_signal="new_message",
                 start_signal_args=["/btw What is the meaning of life?"],
             )
-            # Parent workflow times out (no regular message sent). Time-skipping advances automatically.
+            # Parent workflow times out (no regular message sent). 
+            # Time-skipping advances automatically.
             await handle.result()
 
     # The child SubAgent should have sent its answer
