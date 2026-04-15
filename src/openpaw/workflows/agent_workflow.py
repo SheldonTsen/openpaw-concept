@@ -285,7 +285,10 @@ class AgentWorkflow:
             # execute tool calls in parallel
             workflow.logger.info(f"Calling execute_tool_calls with: {llm_output.tool_calls}")
             tasks = [self._dispatch(tool_call=tc) for tc in llm_output.tool_calls]
-            tool_results = await asyncio.gather(*tasks, return_exceptions=True)
+            tool_results = [
+                f"Error: {getattr(r, 'cause', None) or r}" if isinstance(r, Exception) else r
+                for r in await asyncio.gather(*tasks, return_exceptions=True)
+            ]
 
             gather_tool_results_output: GatherToolResultsOutput = await workflow.execute_activity(
                 gather_tool_results_activity,

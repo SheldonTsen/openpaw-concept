@@ -12,10 +12,7 @@ async def gather_tool_results_activity(input: GatherToolResultsInput) -> GatherT
     """Gather all results."""
     tool_results_as_messages = []
     for tc, result in zip(input.tool_calls, input.tool_results):
-        if isinstance(result, Exception):
-            content = f"Error: {result}"
-        else:
-            content = result
+        content = result
 
         tool_results_as_messages.append(
             {

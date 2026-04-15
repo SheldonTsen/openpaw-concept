@@ -1,8 +1,10 @@
 import asyncio
+import errno
 import logging
 import os
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from openpaw.config import MAX_COMMAND_OUTPUT_BYTES, MAX_COMMAND_TIMEOUT, WORKSPACE_DIR
 from openpaw.models.bash_command import BashCommandInput, BashCommandOutput
@@ -34,26 +36,23 @@ async def execute_bash_command(input: BashCommandInput) -> BashCommandOutput:
         stderr = stderr_bytes[:MAX_COMMAND_OUTPUT_BYTES].decode(errors="replace")
         exit_code = process.returncode or 0
 
-        return BashCommandOutput(
-            stdout=stdout,
-            stderr=stderr,
-            exit_code=exit_code,
-            success=exit_code == 0,
-        )
+        if exit_code != 0:
+            raise ApplicationError(
+                stderr or stdout or f"exited with code {exit_code}",
+                non_retryable=True,
+            )
+        return BashCommandOutput(stdout=stdout, stderr=stderr, exit_code=exit_code, success=True)
 
     except asyncio.TimeoutError:
         process.kill()
         await process.wait()
-        return BashCommandOutput(
-            stdout="",
-            stderr=f"Command timed out after {timeout}s",
-            exit_code=-1,
-            success=False,
+        raise ApplicationError(
+            f"Command timed out after {timeout}s",
+            non_retryable=True,
         )
+    except OSError as e:
+        _TRANSIENT_ERRNOS = {errno.EAGAIN, errno.ENOMEM, errno.EMFILE, errno.ENFILE}
+        non_retryable = e.errno not in _TRANSIENT_ERRNOS
+        raise ApplicationError(str(e), non_retryable=non_retryable) from e
     except Exception as e:
-        return BashCommandOutput(
-            stdout="",
-            stderr=str(e),
-            exit_code=-1,
-            success=False,
-        )
+        raise ApplicationError(str(e), non_retryable=True) from e

@@ -107,7 +107,7 @@ select the `openpaw` namespace (top left corner).
 
 ```bash
 # terminal 1
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml watch --remove-orphans
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml watch
 
 # terminal 2
 docker compose logs -f worker whatsapp-listener
