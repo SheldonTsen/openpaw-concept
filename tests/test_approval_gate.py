@@ -104,19 +104,10 @@ async def mock_gather_tool_results_activity(
 ) -> GatherToolResultsOutput:
     gather_tool_results_calls.append(input)
 
-    num_res = []
-    for tc, result in zip(input.tool_calls, input.tool_results):
-        if isinstance(result, Exception):
-            content = f"Error: {result}"
-        else:
-            content = result
-        num_res.append(
-            {
-                "role": "tool",
-                "tool_call_id": tc["id"],
-                "content": content,
-            }
-        )
+    num_res = [
+        {"role": "tool", "tool_call_id": tc["id"], "content": result}
+        for tc, result in zip(input.tool_calls, input.tool_results)
+    ]
     return GatherToolResultsOutput(tool_results_as_messages=num_res)
 
 
