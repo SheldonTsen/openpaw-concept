@@ -20,15 +20,15 @@ async def test_execute_simple_command():
 
 @pytest.mark.asyncio
 async def test_execute_command_with_nonzero_exit():
-    result = await execute_bash_command(BashCommandInput(command="ls /nonexistent_path_xyz"))
-    assert result.success is False
-    assert result.exit_code != 0
-    assert result.stderr != ""
+    from temporalio.exceptions import ApplicationError
+
+    with pytest.raises(ApplicationError):
+        await execute_bash_command(BashCommandInput(command="ls /nonexistent_path_xyz"))
 
 
 @pytest.mark.asyncio
 async def test_execute_command_timeout():
-    result = await execute_bash_command(BashCommandInput(command="sleep 10", timeout=1))
-    assert result.success is False
-    assert result.exit_code == -1
-    assert "timed out" in result.stderr
+    from temporalio.exceptions import ApplicationError
+
+    with pytest.raises(ApplicationError, match="timed out"):
+        await execute_bash_command(BashCommandInput(command="sleep 10", timeout=1))

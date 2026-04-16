@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from temporalio import activity
 from temporalio.client import WorkflowFailureError
+from temporalio.exceptions import ApplicationError
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
@@ -140,20 +141,10 @@ async def mock_gather_tool_results_activity(
 ) -> GatherToolResultsOutput:
     gather_tool_results_calls.append(input)
 
-    num_res = []
-    for tc, result in zip(input.tool_calls, input.tool_results):
-        if isinstance(result, Exception):
-            content = f"Error: {result}"
-        else:
-            content = result
-        num_res.append(
-            {
-                "role": "tool",
-                "tool_call_id": tc["id"],
-                "content": content,
-            }
-        )
-
+    num_res = [
+        {"role": "tool", "tool_call_id": tc["id"], "content": result}
+        for tc, result in zip(input.tool_calls, input.tool_results)
+    ]
     return GatherToolResultsOutput(tool_results_as_messages=num_res)
 
 
@@ -290,12 +281,7 @@ async def test_workflow_tool_error_fed_back():
     @activity.defn(name="execute_bash_command")
     async def mock_failing_command(input: BashCommandInput) -> BashCommandOutput:
         tool_command_calls.append(input)
-        return BashCommandOutput(
-            stdout="",
-            stderr="No such file or directory",
-            exit_code=1,
-            success=False,
-        )
+        raise ApplicationError("No such file or directory", non_retryable=True)
 
     def mock_llm(input: LLMCallInput) -> LLMCallOutput:
         nonlocal call_count
@@ -512,12 +498,7 @@ async def test_workflow_tool_activity_failure_fed_back_to_llm():
 
     @activity.defn(name="execute_bash_command")
     async def mock_crashing_command(input: BashCommandInput) -> BashCommandOutput:
-        return BashCommandOutput(
-            stdout="",
-            stderr=str("This is failed return."),
-            exit_code=-1,
-            success=False,
-        )
+        raise ApplicationError("This is failed return.", non_retryable=True)
 
     @activity.defn(name="call_llm")
     async def mock_call_llm(input: LLMCallInput) -> LLMCallOutput:
