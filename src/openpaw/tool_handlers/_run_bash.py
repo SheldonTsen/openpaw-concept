@@ -12,7 +12,7 @@ async def run_bash(command: str, timeout: int = 30) -> str:
         "execute_bash_command",
         arg=BashCommandInput(command=command, timeout=timeout),
         result_type=BashCommandOutput,
-        start_to_close_timeout=timedelta(seconds=TEMPORAL_DEFAULT_TIMEOUT + 30),
+        start_to_close_timeout=timedelta(seconds=TEMPORAL_DEFAULT_TIMEOUT + 30),  # arbitrary buffer
         retry_policy=RetryPolicy(maximum_attempts=TEMPORAL_DEFAULT_RETRIES),
     )
     return output.stdout or "(no output)"
